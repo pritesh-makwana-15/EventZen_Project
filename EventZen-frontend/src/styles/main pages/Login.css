@@ -1,0 +1,210 @@
+/* ===== Page Layout ===== */
+.login-page {
+  min-height: 100vh;
+  background: #f8f8f8; /* Alabaster */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.login-container {
+  width: 100%;
+  max-width: 1000px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0px 10px 30px rgba(30, 44, 56, 0.3);
+  display: flex;
+  flex-direction: column; /* mobile default */
+  overflow: hidden;
+}
+
+/* Desktop: two-column layout */
+@media (min-width: 768px) {
+  .login-container {
+    flex-direction: row;
+    min-height: 500px;
+  }
+}
+
+/* ===== Left Side ===== */
+.login-left {
+  display: none; /* hidden on mobile */
+}
+
+@media (min-width: 768px) {
+  .login-left {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(to bottom right, #44a0b9, #1e2c38);
+    color: #f8f8f8;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .login-left-img {
+    width: 100%;
+    max-width: 300px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0px 5px 20px rgba(30, 44, 56, 0.4);
+  }
+}
+
+.welcome-title {
+  font-size: 2.2rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #f8f8f8;
+}
+
+.welcome-text {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  max-width: 350px;
+  margin: 0 auto;
+  color: #f8f8f8;
+}
+
+/* ===== Right Side ===== */
+.login-right {
+  flex: 1;
+  padding: 40px 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-box {
+  width: 100%;
+  max-width: 400px;
+}
+
+.form-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1e2c38; /* Mirage */
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+/* ===== Input Fields ===== */
+.input-field {
+  width: 100%;
+  padding: 14px;
+  margin-bottom: 18px;
+  border-radius: 12px;
+  border: 1px solid #b2b9bc; /* Silver Sand */
+  background: #f8f8f8; /* Alabaster */
+  color: #1e2c38; /* Mirage */
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.input-field::placeholder {
+  color: #b2b9bc; /* Silver Sand */
+}
+
+.input-field:focus {
+  outline: none;
+  border-color: #44a0b9; /* Pelorous */
+  box-shadow: 0 0 5px rgba(68, 160, 185, 0.6);
+}
+
+/* Password Box */
+.password-box {
+  position: relative;
+}
+
+.eye-btn {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #67696a; /* Nevada */
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.eye-btn:hover {
+  color: #1e2c38; /* Mirage */
+}
+
+/* ===== Buttons ===== */
+.login-form-btn {
+  width: 100%;
+  background: #f29d0e; /* Gamboge */
+  color: #f8f8f8;
+  font-weight: bold;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s ease;
+}
+
+.login-form-btn:hover {
+  background: #fccb6c; /* Goldenrod */
+  color: #1e2c38; /* Mirage */
+  transform: scale(1.03);
+}
+
+/* Back button */
+.login-form-back-btn {
+  width: 100%;
+  background: #44a0b9; /* Pelorous */
+  color: #f8f8f8;
+  font-weight: bold;
+  padding: 12px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: 0.3s ease;
+  margin-top: 10px;
+}
+
+.login-form-back-btn:hover {
+  background: #1e2c38; /* Mirage */
+}
+
+/* Forgot Password */
+.forgot-box {
+  text-align: center;
+  margin-top: 15px;
+}
+
+.forgot-btn {
+  background: none;
+  border: none;
+  color: #44a0b9; /* Pelorous */
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.forgot-btn:hover {
+  color: #f29d0e; /* Gamboge */
+}
+
+/* Sign Up */
+.signup-box {
+  text-align: center;
+  margin-top: 25px;
+  color: #67696a; /* Nevada */
+}
+
+.login-form-signup-btn {
+  background: none;
+  border: none;
+  color: #44a0b9; /* Pelorous */
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.login-form-signup-btn:hover {
+  color: #f29d0e; /* Gamboge */
+}

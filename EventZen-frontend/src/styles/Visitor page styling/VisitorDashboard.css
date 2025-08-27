@@ -1,0 +1,21 @@
+/* ===== Visitor Dashboard General ===== */
+.visitor-dashboard {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+  padding: 20px;
+  background: #f8f8f8;
+}
+
+footer {
+  background: #1e2c38;
+  color: white;
+  text-align: center;
+  padding: 10px 0;
+  margin-top: auto;
+  font-size: 14px;
+}

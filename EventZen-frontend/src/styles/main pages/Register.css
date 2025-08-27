@@ -1,0 +1,204 @@
+/* ===== Page Layout ===== */
+.register-page {
+  min-height: 100vh;
+  background: #f8f8f8; /* Alabaster */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.register-container {
+  width: 100%;
+  max-width: 1000px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.1);
+  display: flex;
+  overflow: hidden;
+}
+
+/* Desktop: two-column layout */
+@media (min-width: 768px) {
+  .register-container {
+    flex-direction: row;
+    min-height: 500px;
+  }
+}
+
+/* ===== Left Side ===== */
+.register-left {
+  display: none; /* hidden on mobile */
+}
+
+@media (min-width: 768px) {
+  .register-left {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background: linear-gradient(to bottom right, #44a0b9, #1e2c38);
+    color: #f8f8f8;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .register-left-img {
+    width: 100%;
+    max-width: 300px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    box-shadow: 0px 5px 20px rgba(30, 44, 56, 0.4);
+  }
+
+  .welcome-title {
+    font-size: 28px;
+    font-weight: bold;
+    margin-bottom: 12px;
+  }
+
+  .welcome-text {
+    font-size: 16px;
+    line-height: 1.5;
+    max-width: 300px;
+  }
+}
+
+
+/* ===== Right Section (Form) ===== */
+.register-right {
+  flex: 1;
+  padding: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.form-box {
+  width: 100%;
+  max-width: 350px;
+}
+
+.form-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #1e2c38; /* Mirage */
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+/* ===== Input Fields with Icons ===== */
+.form-group {
+  position: relative;
+  margin-bottom: 18px;
+}
+
+.icon-input .input-icon {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #67696a; /* Nevada */
+}
+
+.icon-input input {
+  width: 100%;
+  padding: 12px 12px 12px 38px;
+  border: 1px solid #b2b9bc; /* Silver Sand */
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: 0.3s;
+}
+
+.icon-input input:focus {
+  border-color: #44a0b9; /* Pelorous */
+}
+
+/* ===== Upload Image Styling ===== */
+.image-upload {
+  margin-bottom: 18px;
+  text-align: center;
+}
+
+.upload-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #f8f8f8;
+  border: 2px dashed #b2b9bc;
+  border-radius: 8px;
+  padding: 12px;
+  color: #67696a;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.upload-label:hover {
+  background: #f0f0f0;
+}
+
+.image-preview {
+  margin-top: 10px;
+}
+
+.image-preview img {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #44a0b9;
+}
+
+/* ===== Buttons ===== */
+.btn-create {
+  width: 100%;
+  background: #f29d0e; /* Gamboge */
+  color: white;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.3s;
+  margin-top: 10px;
+}
+
+.btn-create:hover {
+  background: #675f02; /* Verdun Green */
+}
+
+.login-text {
+  margin-top: 15px;
+  font-size: 14px;
+  color: #67696a;
+  text-align: center;
+}
+
+.login-text a {
+  color: #44a0b9; /* Pelorous */
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.login-text a:hover {
+  text-decoration: underline;
+}
+
+/* ===== Responsive (Hide Left Side on Mobile) ===== */
+@media (max-width: 768px) {
+  .register-container {
+    flex-direction: column;
+    max-width: 450px;
+  }
+
+  .register-left {
+    display: none;
+  }
+
+  .register-right {
+    padding: 30px 20px;
+  }
+}

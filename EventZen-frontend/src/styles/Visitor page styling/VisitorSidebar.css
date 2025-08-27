@@ -1,0 +1,103 @@
+/* ===== Visitor Sidebar ===== */
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e2c38; /* Mirage */
+  padding: 12px 20px;
+  color: #fff;
+  box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.15);
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar .logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.logo-img {
+  width: 40px;
+  height: 39px;
+  object-fit: contain;
+}
+
+.header-logo-text {
+  font-size: 20px;
+  font-weight: bold;
+  /* color: #f29d0e; Gamboge */
+}
+
+.navbar ul {
+  list-style: none;
+  display: flex;
+  gap: 25px;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar ul li {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  /* color: #b2b9bc; Silver Sand */
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.navbar ul li:hover {
+  color: #f29d0e;
+}
+
+.navbar ul li.active {
+  color: #f29d0e; /* Gamboge */
+  /* font-weight: 600; */
+}
+
+/* .navbar ul li.active::after {
+  content: "";
+  position: absolute;
+  bottom: -6px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: #f29d0e;
+  border-radius: 2px;
+} */
+
+/* ===== Responsive Sidebar for Mobile ===== */
+@media (max-width: 768px) {
+  .navbar {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px;
+  }
+
+  .navbar ul {
+    flex-direction: column;
+    width: 100%;
+    gap: 15px;
+    margin-top: 10px;
+  }
+
+  .navbar ul li {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 6px;
+  }
+
+  .navbar ul li:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .navbar ul li.active {
+    background: rgba(242, 157, 14, 0.15);
+    color: #f29d0e;
+  }
+
+  .navbar ul li.active::after {
+    display: none;
+  }
+}
