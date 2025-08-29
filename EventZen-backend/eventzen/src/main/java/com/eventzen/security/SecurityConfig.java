@@ -23,18 +23,15 @@ import java.util.Arrays;
 public class SecurityConfig {
 
     @Autowired
-    private CustomUserDetailsService userDetailsService;
-
-    @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    // Password encoder bean
+    // Password encoder
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // AuthenticationManager bean
+    // AuthenticationManager
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
         return config.getAuthenticationManager();
@@ -44,22 +41,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf().disable()
-            .cors()
-            .and()
-            .authorizeHttpRequests()
-                // Allow preflight OPTIONS requests
-                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                // Public endpoints
-                .requestMatchers("/api/auth/**").permitAll()
-                // Role-based endpoints
-                .requestMatchers("/api/events/**").hasAnyRole("ADMIN", "ORGANIZER", "VISITOR")
-                .requestMatchers("/api/registrations/**").hasAnyRole("ADMIN", "VISITOR")
-                .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "VISITOR")
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                .csrf().disable()
+                .cors()
+                .and()
+                .authorizeHttpRequests()
+                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow preflight
+                .requestMatchers("/api/auth/**").permitAll() // Public endpoints now match controller
+                .requestMatchers("/events/**").hasAnyRole("ADMIN", "ORGANIZER", "VISITOR")
+                .requestMatchers("/registrations/**").hasAnyRole("ADMIN", "VISITOR")
+                .requestMatchers("/users/**").hasAnyRole("ADMIN", "VISITOR")
+                .requestMatchers("/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
-            .and()
-            .sessionManagement()
+                .and()
+                .sessionManagement()
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
         // Add JWT filter
@@ -68,7 +62,7 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // CORS configuration to allow frontend React app
+    // CORS config
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -79,7 +73,6 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-
         return source;
     }
 }
