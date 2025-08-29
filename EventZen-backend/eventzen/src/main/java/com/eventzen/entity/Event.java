@@ -30,7 +30,8 @@ public class Event {
 
     private String imageUrl;
 
-    private Long organizerId; // User ID of the organizer
+    @Column(name = "organizer_id", nullable = false)
+    private Long organizerId;
 
     // Getters & Setters
     public Long getId() {

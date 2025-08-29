@@ -33,15 +33,14 @@ public class User {
 
     private String imageUrl;
 
-    // One user (Organizer) can have many events
-    @OneToMany(mappedBy = "organizer", cascade = CascadeType.ALL)
-    private Set<Event> events;
+    // ❌ Remove events relation since Event stores only organizerId
+    // private Set<Event> events;
 
-    // One user (Visitor) can have many registrations
-    @OneToMany(mappedBy = "visitor", cascade = CascadeType.ALL)
+    // One Visitor → Many Registrations
+    @OneToMany(mappedBy = "visitor", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Registration> registrations;
 
-    // Getters and Setters
+    // ===== Getters & Setters =====
     public Long getId() {
         return id;
     }
@@ -88,14 +87,6 @@ public class User {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
-    }
-
-    public Set<Event> getEvents() {
-        return events;
-    }
-
-    public void setEvents(Set<Event> events) {
-        this.events = events;
     }
 
     public Set<Registration> getRegistrations() {

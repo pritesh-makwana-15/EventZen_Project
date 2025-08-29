@@ -6,7 +6,7 @@ export default function ProfileCard() {
     name: "John Doe",
     email: "john@example.com",
     location: "Mumbai",
-    avatar: "https://source.unsplash.com/100x100/?face",
+    avatar: "../src/assets/EZ-logo1.png",
   });
 
   const handleChange = (e) => {

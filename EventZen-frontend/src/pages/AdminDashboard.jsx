@@ -122,7 +122,7 @@ const AdminDashboard = () => {
               <th>Name</th>
               <th>Email</th>
               <th>Phone</th>
-              <th>Events</th>
+              {/* <th>Events</th> */}
               <th>Delete</th>
               <th>Actions</th>
             </tr>
@@ -134,7 +134,7 @@ const AdminDashboard = () => {
                 <td>{v.name}</td>
                 <td>{v.email}</td>
                 <td>{v.phone}</td>
-                <td>{v.registeredEvents}</td>
+                {/* <td>{v.registeredEvents}</td> */}
                 <td><Trash2 size={14} color="red" /></td>
                 <td><MoreHorizontal size={16} /></td>
               </tr>
@@ -157,7 +157,7 @@ const AdminDashboard = () => {
               <th>Name</th>
               <th>Role</th>
               <th>Email</th>
-              <th>Password</th>
+              {/* <th>Password</th> */}
               <th>Events</th>
               <th>Delete</th>
               <th>Actions</th>
@@ -170,7 +170,7 @@ const AdminDashboard = () => {
                 <td>{o.name}</td>
                 <td>{o.role}</td>
                 <td>{o.email}</td>
-                <td>{o.password}</td>
+                {/* <td>{o.password}</td> */}
                 <td>{o.eventsCreated}</td>
                 <td><Trash2 size={14} color="red" /></td>
                 <td><MoreHorizontal size={16} /></td>
@@ -220,21 +220,35 @@ const AdminDashboard = () => {
   );
 
   // ===== Create Organizer Form =====
-  const renderCreateOrganizer = () => (
-    <div className="content">
-      <div className="card form-card">
-        <h2>Create New Organizer</h2>
-        <form onSubmit={handleCreateOrganizer}>
+const renderCreateOrganizer = () => (
+  <section className="create-organizer">
+    {/* ===== Header Bar ===== */}
+    <div className="form-header">
+      <h2>Organizer Management</h2>
+      <p>Create a new organizer account below</p>
+    </div>
+
+    <h3>Create New Organizer</h3>
+    <form className="organizer-form" onSubmit={handleCreateOrganizer}>
+      <div className="form-row">
+        <div className="form-group">
           <label>Full Name</label>
           <input
             type="text"
             value={newOrganizer.name}
-            onChange={(e) => setNewOrganizer({ ...newOrganizer, name: e.target.value })}
+            onChange={(e) =>
+              setNewOrganizer({ ...newOrganizer, name: e.target.value })
+            }
+            placeholder="Enter full name"
           />
+        </div>
+        <div className="form-group">
           <label>Role</label>
           <select
             value={newOrganizer.role}
-            onChange={(e) => setNewOrganizer({ ...newOrganizer, role: e.target.value })}
+            onChange={(e) =>
+              setNewOrganizer({ ...newOrganizer, role: e.target.value })
+            }
           >
             <option value="">Select Role</option>
             <option value="Event Manager">Event Manager</option>
@@ -242,28 +256,46 @@ const AdminDashboard = () => {
             <option value="Coordinator">Coordinator</option>
             <option value="Planner">Planner</option>
           </select>
+        </div>
+      </div>
+
+      <div className="form-row">
+        <div className="form-group">
           <label>Email</label>
           <input
             type="email"
             value={newOrganizer.email}
-            onChange={(e) => setNewOrganizer({ ...newOrganizer, email: e.target.value })}
+            onChange={(e) =>
+              setNewOrganizer({ ...newOrganizer, email: e.target.value })
+            }
+            placeholder="Enter email"
           />
+        </div>
+        <div className="form-group">
           <label>Password</label>
           <input
             type="password"
             value={newOrganizer.password}
-            onChange={(e) => setNewOrganizer({ ...newOrganizer, password: e.target.value })}
+            onChange={(e) =>
+              setNewOrganizer({ ...newOrganizer, password: e.target.value })
+            }
+            placeholder="Enter password"
           />
-          <div className="form-actions">
-            <button type="button" className="btn-outline">Cancel</button>
-            <button type="submit" className="btn-primary">
-              <UserPlus size={16} /> Create
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
-    </div>
-  );
+
+      <div className="form-actions">
+        <button type="button" className="btn-outline">
+          Cancel
+        </button>
+        <button type="submit" className="save-btn">
+          <UserPlus size={16} /> Create
+        </button>
+      </div>
+    </form>
+  </section>
+);
+
 
   // ===== Content Switcher =====
   const renderContent = () => {

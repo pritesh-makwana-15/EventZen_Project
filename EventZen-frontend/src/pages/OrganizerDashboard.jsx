@@ -3,6 +3,25 @@ import React, { useState } from "react";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
 
 export default function OrganizerDashboard() {
+
+
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
+
+  // State → Cities mapping
+  const stateCityData = {
+    Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik"],
+    Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
+    Delhi: ["New Delhi"],
+    Karnataka: ["Bengaluru", "Mysuru", "Mangalore"],
+    "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai"],
+    "West Bengal": ["Kolkata", "Siliguri", "Howrah"],
+    Rajasthan: ["Jaipur", "Udaipur", "Jodhpur"],
+    "Uttar Pradesh": ["Lucknow", "Kanpur", "Varanasi"],
+    "Madhya Pradesh": ["Bhopal", "Indore", "Gwalior"],
+    Punjab: ["Amritsar", "Ludhiana", "Chandigarh"],
+  };
+
   // Dummy events data
   const [events, setEvents] = useState([
     {
@@ -48,7 +67,7 @@ export default function OrganizerDashboard() {
 
   // Summary Data
   const totalEvents = events.length;
-  const totalRegistrations = events.reduce((sum, e) => sum + e.registrations, 0);
+  // const totalRegistrations = events.reduce((sum, e) => sum + e.registrations, 0);
   const upcomingCount = events.filter((e) => e.status === "Upcoming").length;
   const pastCount = events.filter((e) => e.status === "Completed").length;
 
@@ -78,9 +97,6 @@ export default function OrganizerDashboard() {
           <div className="overview">
             <div className="card">
               Total Events <span>{totalEvents}</span>
-            </div>
-            <div className="card">
-              Total Registrations <span>{totalRegistrations}</span>
             </div>
             <div className="card">
               Upcoming Events <span>{upcomingCount}</span>
@@ -114,9 +130,6 @@ export default function OrganizerDashboard() {
                   <td>
                     <button className="action-btn edit">Edit</button>
                     <button className="action-btn delete">Delete</button>
-                    <button className="action-btn view">
-                      View Registrations
-                    </button>
                   </td>
                 </tr>
               ))}
@@ -130,7 +143,6 @@ export default function OrganizerDashboard() {
         <section className="create-event">
           <h3>Create New Event</h3>
           <form className="event-form">
-
             <div className="form-group">
               <label>Event Image</label>
               <input type="file" accept="image/*" />
@@ -147,18 +159,55 @@ export default function OrganizerDashboard() {
               </div>
             </div>
 
+            {/* State and City selection */}
             <div className="form-row">
               <div className="form-group">
-                <label>Location</label>
-                <input type="text" placeholder="Event location" />
+                <label>State</label>
+                <select
+                  value={selectedState}
+                  onChange={(e) => {
+                    setSelectedState(e.target.value);
+                    setSelectedCity(""); // reset city when state changes
+                  }}
+                >
+                  <option value="">Select State</option>
+                  {Object.keys(stateCityData).map((state) => (
+                    <option key={state} value={state}>
+                      {state}
+                    </option>
+                  ))}
+                </select>
               </div>
+
+              <div className="form-group">
+                <label>City</label>
+                <select
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  disabled={!selectedState}
+                >
+                  <option value="">Select City</option>
+                  {selectedState &&
+                    stateCityData[selectedState].map((city) => (
+                      <option key={city} value={city}>
+                        {city}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Detailed event location */}
+            <div className="form-group">
+              <label>Detailed Location</label>
+              <textarea placeholder="Enter venue details, landmark, or address"></textarea>
+            </div>
+
+            <div className="form-row">
               <div className="form-group">
                 <label>Date & Time</label>
                 <input type="datetime-local" />
               </div>
-            </div>
-
-            <div className="form-row">
               <div className="form-group">
                 <label>Type</label>
                 <select>
@@ -166,13 +215,13 @@ export default function OrganizerDashboard() {
                   <option>Private</option>
                 </select>
               </div>
+            </div>
+
+            <div className="form-row">
               <div className="form-group">
                 <label>Private Code (if private)</label>
                 <input type="text" placeholder="Enter private code" />
               </div>
-            </div>
-
-            <div className="form-row">
               <div className="form-group">
                 <label>Participant Limit</label>
                 <input type="number" placeholder="Max participants" />
@@ -190,6 +239,7 @@ export default function OrganizerDashboard() {
           </form>
         </section>
       )}
+
 
       {/* ===== Profile ===== */}
       {activePage === "profile" && (
