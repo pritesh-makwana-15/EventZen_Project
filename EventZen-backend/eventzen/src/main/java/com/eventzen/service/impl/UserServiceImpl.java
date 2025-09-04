@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.eventzen.dto.request.ProfileUpdateRequest;
@@ -20,9 +20,8 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
 
     @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    private PasswordEncoder passwordEncoder; // ✅ inject password encoder
 
-    // ===== Profile Methods =====
     @Override
     public UserResponse getUserProfile(Long userId) throws Exception {
         User user = userRepository.findById(userId)
@@ -40,13 +39,12 @@ public class UserServiceImpl implements UserService {
         if (request.getEmail() != null)
             user.setEmail(request.getEmail());
         if (request.getPassword() != null)
-            user.setPassword(passwordEncoder.encode(request.getPassword()));
+            user.setPassword(passwordEncoder.encode(request.getPassword())); // ✅ encode password
 
         userRepository.save(user);
         return mapToResponse(user);
     }
 
-    // ===== Admin Methods =====
     @Override
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll().stream()
@@ -68,7 +66,6 @@ public class UserServiceImpl implements UserService {
         userRepository.delete(user);
     }
 
-    // ===== Helper =====
     private UserResponse mapToResponse(User user) {
         return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole());
     }

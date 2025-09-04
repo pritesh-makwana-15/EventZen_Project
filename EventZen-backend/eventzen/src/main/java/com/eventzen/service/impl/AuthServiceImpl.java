@@ -3,12 +3,13 @@ package com.eventzen.service.impl;
 import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.eventzen.dto.request.LoginRequest;
 import com.eventzen.dto.request.RegisterRequest;
 import com.eventzen.dto.response.AuthResponse;
+import com.eventzen.entity.Role;
 import com.eventzen.entity.User;
 import com.eventzen.repository.UserRepository;
 import com.eventzen.security.JwtService;
@@ -21,10 +22,10 @@ public class AuthServiceImpl implements AuthService {
     private UserRepository userRepository;
 
     @Autowired
-    private BCryptPasswordEncoder passwordEncoder;
+    private JwtService jwtService;
 
     @Autowired
-    private JwtService jwtService;
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public AuthResponse register(RegisterRequest request) throws Exception {
@@ -36,26 +37,35 @@ public class AuthServiceImpl implements AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole());
+        user.setRole(request.getRole() != null ? request.getRole() : Role.VISITOR); // Default VISITOR
+        user.setImageUrl(request.getProfileImage());
+        user.setMobileNumber(request.getMobileNumber());
 
         userRepository.save(user);
 
-        String token = jwtService.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getEmail(), user.getRole());
+        // ✅ Generate token with role included
+        String token = jwtService.generateToken(user);
+
+        return new AuthResponse(token, user.getEmail(), user.getRole(), "Registration successful");
     }
 
     @Override
     public AuthResponse login(LoginRequest request) throws Exception {
         Optional<User> optionalUser = userRepository.findByEmail(request.getEmail());
-        if (optionalUser.isEmpty())
+        if (optionalUser.isEmpty()) {
             throw new Exception("User not found");
+        }
 
         User user = optionalUser.get();
+
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new Exception("Invalid password");
         }
 
-        String token = jwtService.generateToken(user.getEmail());
-        return new AuthResponse(token, user.getEmail(), user.getRole());
+        // ✅ Generate token with role included
+        String token = jwtService.generateToken(user);
+
+        return new AuthResponse(token, user.getEmail(), user.getRole(), "Login successful");
     }
 }
+            

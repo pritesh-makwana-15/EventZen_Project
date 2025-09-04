@@ -1,9 +1,12 @@
 package com.eventzen.security;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -21,36 +24,48 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Autowired
     private JwtService jwtService;
 
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
-
     @Override
     protected void doFilterInternal(HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
+        try {
+            String token = parseJwt(request);
+            if (token != null && jwtService.validateToken(token)
+                    && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-        String path = request.getRequestURI();
+                String email = jwtService.getEmailFromToken(token);
+                String role = jwtService.getRoleFromToken(token);
 
-        // Skip JWT check for public endpoints
-        if (path.startsWith("/api/auth")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+                if (email != null && role != null) {
+                    // ✅ Build authority list from role claim
+                    GrantedAuthority authority = new SimpleGrantedAuthority(role);
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email,
+                            null, Collections.singletonList(authority));
 
-        String token = parseJwt(request);
-        if (token != null && jwtService.validateToken(token)) {
-            String email = jwtService.getEmailFromToken(token);
-            var userDetails = userDetailsService.loadUserByUsername(email);
-
-            var authentication = new UsernamePasswordAuthenticationToken(
-                    userDetails, null, userDetails.getAuthorities());
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            }
+        } catch (Exception ex) {
+            // Just log & continue — don’t block request on token failure
+            System.out.println("JWT filter error: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Skip authentication for public endpoints (register/login).
+     */
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/api/auth/");
+    }
+
+    /**
+     * Extract Bearer token from Authorization header.
+     */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {

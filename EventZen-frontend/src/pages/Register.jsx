@@ -1,15 +1,13 @@
 // src/pages/Register.jsx
 import React, { useState } from "react";
-import {
-  User,
-  Mail,
-  Lock,
-  Phone,
-  Upload,
-} from "lucide-react";
-import "../styles/main pages/Register.css"
+import { User, Mail, Lock, Phone, Upload } from "lucide-react";
+import "../styles/main pages/Register.css";
+import API from "../services/api";
+import { useNavigate } from "react-router-dom";
 
 export default function Register() {
+  const navigate = useNavigate();
+
   const [formData, setFormData] = useState({
     profileImage: null,
     userName: "",
@@ -18,6 +16,9 @@ export default function Register() {
     password: "",
     confirmPassword: "",
   });
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({
@@ -29,22 +30,53 @@ export default function Register() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setFormData((prev) => ({
-        ...prev,
-        profileImage: URL.createObjectURL(file),
-      }));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({
+          ...prev,
+          profileImage: reader.result, // Base64 string
+        }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Register Data:", formData);
+    setError("");
+
+    if (formData.password !== formData.confirmPassword) {
+      setError("Passwords do not match");
+      return;
+    }
+
+    const payload = {
+      name: formData.userName,
+      mobileNumber: formData.mobileNumber, // ✅ include mobile number
+      email: formData.emailAddress,
+      password: formData.password,
+      profileImage: formData.profileImage,
+      role: "VISITOR", // ✅ automatically assign VISITOR role
+    };
+
+    try {
+      setLoading(true);
+      const response = await API.post("/auth/register", payload);
+      console.log("Registration successful:", response.data);
+      alert("Registration successful! You can now login.");
+      navigate("/login");
+    } catch (err) {
+      console.error(err);
+      setError(err?.response?.data?.message || "Registration failed");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <div className="register-page">
       <div className="register-container">
-        {/* ===== Left Section (Image + Overlay) ===== */}
+        {/* Left Section */}
         <div className="register-left">
           <img
             src="./src/assets/hero-img.jpg"
@@ -57,11 +89,12 @@ export default function Register() {
           </p>
         </div>
 
-
-        {/* ===== Right Section (Form) ===== */}
+        {/* Right Section (Form) */}
         <div className="register-right">
           <form className="form-box" onSubmit={handleSubmit}>
             <h2 className="form-title">Create Account</h2>
+
+            {error && <p className="error-text">{error}</p>}
 
             {/* Profile Image Upload */}
             <div className="form-group image-upload">
@@ -78,10 +111,7 @@ export default function Register() {
               />
               {formData.profileImage && (
                 <div className="image-preview">
-                  <img
-                    src={formData.profileImage}
-                    alt="Profile Preview"
-                  />
+                  <img src={formData.profileImage} alt="Profile Preview" />
                 </div>
               )}
             </div>
@@ -93,9 +123,7 @@ export default function Register() {
                 type="text"
                 placeholder="Username"
                 value={formData.userName}
-                onChange={(e) =>
-                  handleInputChange("userName", e.target.value)
-                }
+                onChange={(e) => handleInputChange("userName", e.target.value)}
                 required
               />
             </div>
@@ -135,9 +163,7 @@ export default function Register() {
                 type="password"
                 placeholder="Create Password"
                 value={formData.password}
-                onChange={(e) =>
-                  handleInputChange("password", e.target.value)
-                }
+                onChange={(e) => handleInputChange("password", e.target.value)}
                 required
               />
             </div>
@@ -156,12 +182,10 @@ export default function Register() {
               />
             </div>
 
-            {/* Create Account Button */}
-            <button type="submit" className="btn-create">
-              Create Account
+            <button type="submit" className="btn-create" disabled={loading}>
+              {loading ? "Registering..." : "Create Account"}
             </button>
 
-            {/* Login Redirect */}
             <p className="login-text">
               Already have an account? <a href="/login">Login</a>
             </p>

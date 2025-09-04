@@ -6,8 +6,11 @@ public class RegisterRequest {
     private String name;
     private String email;
     private String password;
-    private Role role; // ADMIN, ORGANIZER, VISITOR
+    private Role role;
+    private String mobileNumber;
+    private String profileImage;
 
+    // Getters and setters
     public String getName() {
         return name;
     }
@@ -38,5 +41,21 @@ public class RegisterRequest {
 
     public void setRole(Role role) {
         this.role = role;
+    }
+
+    public String getMobileNumber() {
+        return mobileNumber;
+    }
+
+    public void setMobileNumber(String mobileNumber) {
+        this.mobileNumber = mobileNumber;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
     }
 }
