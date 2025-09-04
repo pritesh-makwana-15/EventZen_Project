@@ -5,6 +5,7 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import com.eventzen.dto.request.LoginRequest;
 import com.eventzen.dto.request.RegisterRequest;
@@ -29,6 +30,8 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse register(RegisterRequest request) throws Exception {
+        System.out.println("🔍 Registration attempt for: " + request.getEmail());
+        
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new Exception("Email already exists");
         }
@@ -37,35 +40,49 @@ public class AuthServiceImpl implements AuthService {
         user.setName(request.getName());
         user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(request.getRole() != null ? request.getRole() : Role.VISITOR); // Default VISITOR
-        user.setImageUrl(request.getProfileImage());
+        user.setRole(request.getRole() != null ? request.getRole() : Role.VISITOR);
         user.setMobileNumber(request.getMobileNumber());
+        
+        // 🔧 Handle image URL safely - truncate or skip if too long
+        String imageUrl = request.getProfileImage();
+        if (StringUtils.hasText(imageUrl)) {
+            // If image URL is too long (likely base64), skip it for now
+            if (imageUrl.length() > 1000) {
+                System.out.println("⚠️ Image URL too long, skipping for registration: " + imageUrl.length() + " characters");
+                user.setImageUrl(null);
+            } else {
+                user.setImageUrl(imageUrl);
+            }
+        }
 
+        System.out.println("💾 Saving user to database...");
         userRepository.save(user);
+        System.out.println("✅ User saved successfully");
 
         // ✅ Generate token with role included
         String token = jwtService.generateToken(user);
-
+        
         return new AuthResponse(token, user.getEmail(), user.getRole(), "Registration successful");
     }
 
     @Override
     public AuthResponse login(LoginRequest request) throws Exception {
+        System.out.println("🔍 Login attempt for: " + request.getEmail());
+        
         Optional<User> optionalUser = userRepository.findByEmail(request.getEmail());
         if (optionalUser.isEmpty()) {
             throw new Exception("User not found");
         }
 
         User user = optionalUser.get();
-
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
             throw new Exception("Invalid password");
         }
 
+        System.out.println("✅ Password verified, generating token...");
         // ✅ Generate token with role included
         String token = jwtService.generateToken(user);
-
+        
         return new AuthResponse(token, user.getEmail(), user.getRole(), "Login successful");
     }
 }
-            

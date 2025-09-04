@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import "../styles/main pages/login.css";
 import { Link, useNavigate } from "react-router-dom";
-import { login } from "../services/auth";
+import API from "../services/api";
 
 export default function LoginForm() {
   const [email, setEmail] = useState("");
@@ -14,15 +14,24 @@ export default function LoginForm() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    try {
-      const res = await login({ email, password });
+    setError("");
 
-      if (res.role?.name === "VISITOR") {
-        navigate("/visitor");
-      } else if (res.role?.name === "ORGANIZER") {
-        navigate("/organizer");
-      } else if (res.role?.name === "ADMIN") {
-        navigate("/admin");
+    try {
+      const res = await API.post("/auth/login", { email, password });
+
+      const { token, role } = res.data;
+
+      // Save token & role in localStorage
+      localStorage.setItem("token", token);
+      localStorage.setItem("role", role);
+
+      // Redirect based on role
+      if (role === "VISITOR") {
+        navigate("/visitor/dashboard");
+      } else if (role === "ORGANIZER") {
+        navigate("/organizer/dashboard");
+      } else if (role === "ADMIN") {
+        navigate("/admin/dashboard");
       } else {
         navigate("/");
       }
@@ -34,14 +43,18 @@ export default function LoginForm() {
   return (
     <div className="login-page">
       <div className="login-container">
-        {/* Left */}
         <div className="login-left">
-          <img src="./src/assets/hero-img.jpg" alt="Login Illustration" className="login-left-img" />
+          <img
+            src="./src/assets/hero-img.jpg"
+            alt="Login Illustration"
+            className="login-left-img"
+          />
           <h1 className="welcome-title">Welcome Back</h1>
-          <p className="welcome-text">Sign in to continue your journey and access your account.</p>
+          <p className="welcome-text">
+            Sign in to continue your journey and access your account.
+          </p>
         </div>
 
-        {/* Right */}
         <div className="login-right">
           <div className="form-box">
             <h2 className="form-title">Login</h2>
@@ -89,7 +102,9 @@ export default function LoginForm() {
 
             <div className="signup-box">
               <span>Don't have an account? </span>
-              <Link to={"/register"}><button className="login-form-signup-btn">Sign up</button></Link>
+              <Link to={"/register"}>
+                <button className="login-form-signup-btn">Sign up</button>
+              </Link>
             </div>
           </div>
         </div>

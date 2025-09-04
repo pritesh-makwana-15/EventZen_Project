@@ -1,9 +1,9 @@
 // src/pages/Home.jsx
 import React from "react";
-import { Link } from "react-router-dom";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import "../styles/main pages/Home.css";
+import { Link } from "react-router-dom";
 
 export default function Home() {
   const categories = [
@@ -19,10 +19,9 @@ export default function Home() {
 
   return (
     <div className="home-container">
-      {/* Header */}
       <Header />
 
-      {/* ===== Hero Section ===== */}
+      {/* Hero Section */}
       <section className="hero">
         <div className="hero-overlay">
           <div className="hero-text">
@@ -33,7 +32,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== CATEGORY SECTION ===== */}
+      {/* Categories Section */}
       <section className="categories">
         <h2>Event Categories</h2>
         <div className="category-grid">
@@ -49,7 +48,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== Gallery Section ===== */}
+      {/* Gallery Section */}
       <section className="gallery">
         <h2>Event Gallery</h2>
         <div className="gallery-grid">
@@ -62,7 +61,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== About Us Section ===== */}
+      {/* About Us Section */}
       <section className="about-us">
         <h2>About Us</h2>
         <p>
@@ -72,7 +71,6 @@ export default function Home() {
         </p>
       </section>
 
-      {/* Footer */}
       <Footer />
     </div>
   );

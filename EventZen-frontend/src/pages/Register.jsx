@@ -21,10 +21,7 @@ export default function Register() {
   const [error, setError] = useState("");
 
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const handleImageUpload = (e) => {
@@ -32,10 +29,7 @@ export default function Register() {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          profileImage: reader.result, // Base64 string
-        }));
+        setFormData((prev) => ({ ...prev, profileImage: reader.result }));
       };
       reader.readAsDataURL(file);
     }
@@ -52,21 +46,27 @@ export default function Register() {
 
     const payload = {
       name: formData.userName,
-      mobileNumber: formData.mobileNumber, // ✅ include mobile number
+      mobileNumber: formData.mobileNumber,
       email: formData.emailAddress,
       password: formData.password,
       profileImage: formData.profileImage,
-      role: "VISITOR", // ✅ automatically assign VISITOR role
+      role: "VISITOR", // default role
     };
 
     try {
       setLoading(true);
       const response = await API.post("/auth/register", payload);
-      console.log("Registration successful:", response.data);
-      alert("Registration successful! You can now login.");
+
+      // Save token & role (if backend returns auto-login token)
+      if (response.data.token) {
+        localStorage.setItem("token", response.data.token);
+        localStorage.setItem("role", response.data.role || "VISITOR");
+      }
+
+      alert("Registration successful!");
+      // Redirect to login page
       navigate("/login");
     } catch (err) {
-      console.error(err);
       setError(err?.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
@@ -89,14 +89,13 @@ export default function Register() {
           </p>
         </div>
 
-        {/* Right Section (Form) */}
+        {/* Right Section */}
         <div className="register-right">
           <form className="form-box" onSubmit={handleSubmit}>
             <h2 className="form-title">Create Account</h2>
 
             {error && <p className="error-text">{error}</p>}
 
-            {/* Profile Image Upload */}
             <div className="form-group image-upload">
               <label htmlFor="profileImage" className="upload-label">
                 <Upload size={18} />
@@ -116,7 +115,6 @@ export default function Register() {
               )}
             </div>
 
-            {/* Username */}
             <div className="form-group icon-input">
               <User className="input-icon" size={18} />
               <input
@@ -128,7 +126,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Mobile Number */}
             <div className="form-group icon-input">
               <Phone className="input-icon" size={18} />
               <input
@@ -142,7 +139,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Email */}
             <div className="form-group icon-input">
               <Mail className="input-icon" size={18} />
               <input
@@ -156,7 +152,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Password */}
             <div className="form-group icon-input">
               <Lock className="input-icon" size={18} />
               <input
@@ -168,7 +163,6 @@ export default function Register() {
               />
             </div>
 
-            {/* Confirm Password */}
             <div className="form-group icon-input">
               <Lock className="input-icon" size={18} />
               <input

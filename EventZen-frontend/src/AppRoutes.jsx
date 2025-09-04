@@ -10,6 +10,7 @@ import VisitorDashboard from "./pages/VisitorDashboard";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ForgotPasswordPage from "./pages/ForgotPassword";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function AppRoutes() {
   return (
@@ -18,16 +19,37 @@ export default function AppRoutes() {
       <Route path="/" element={<Home />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
-      <Route path="/forgotpassword" element={<ForgotPasswordPage/>} />
+      <Route path="/forgotpassword" element={<ForgotPasswordPage />} />
 
       {/* Events */}
       <Route path="/events" element={<EventsPage />} />
       <Route path="/events/:id" element={<EventDetails />} />
 
-      {/* Dashboards */}
-      <Route path="/visitor/dashboard" element={<VisitorDashboard />} />
-      <Route path="/organizer/dashboard" element={<OrganizerDashboard />} />
-      <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      {/* Protected Dashboards */}
+      <Route
+        path="/visitor/dashboard"
+        element={
+          <ProtectedRoute role="VISITOR">
+            <VisitorDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/organizer/dashboard"
+        element={
+          <ProtectedRoute role="ORGANIZER">
+            <OrganizerDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute role="ADMIN">
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Fallback */}
       <Route path="*" element={<h1>404 - Page Not Found</h1>} />
