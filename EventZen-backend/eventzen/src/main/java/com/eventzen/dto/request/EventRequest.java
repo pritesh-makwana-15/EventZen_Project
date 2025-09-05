@@ -9,9 +9,22 @@ public class EventRequest {
     private String location;
     private String category;
     private String imageUrl;
-    private Long organizerId;
 
-    // Getters & Setters
+    // Constructors
+    public EventRequest() {
+    }
+
+    public EventRequest(String title, String description, LocalDateTime date,
+            String location, String category, String imageUrl) {
+        this.title = title;
+        this.description = description;
+        this.date = date;
+        this.location = location;
+        this.category = category;
+        this.imageUrl = imageUrl;
+    }
+
+    // Getters and Setters
     public String getTitle() {
         return title;
     }
@@ -58,13 +71,5 @@ public class EventRequest {
 
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
-    }
-
-    public Long getOrganizerId() {
-        return organizerId;
-    }
-
-    public void setOrganizerId(Long organizerId) {
-        this.organizerId = organizerId;
     }
 }

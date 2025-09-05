@@ -7,7 +7,7 @@ export default function EventDetails() {
   // Dummy event details
   const event = {
     id: 1,
-    title: "Tech Conference 2025",
+    title: "Tech Conference 2025",  
     date: "2025-09-25",
     time: "10:00 AM - 5:00 PM", 
     location: "Bangalore Convention Center",
