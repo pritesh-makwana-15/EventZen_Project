@@ -69,7 +69,10 @@ public class SecurityConfig {
                             // Role-based access for other APIs
                             .requestMatchers("/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER", "VISITOR")
                             .requestMatchers("/api/registrations/**").hasAnyAuthority("ADMIN", "VISITOR")
-                            .requestMatchers("/api/users/**").hasAnyAuthority("ADMIN", "VISITOR")
+
+                            // 🔧 FIXED: Include ORGANIZER for user profile access
+                            .requestMatchers("/api/users/**").hasAnyAuthority("ADMIN", "ORGANIZER", "VISITOR")
+
                             .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 
                             // Any other request needs authentication
