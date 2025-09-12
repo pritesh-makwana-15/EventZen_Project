@@ -20,7 +20,7 @@ public class UserServiceImpl implements UserService {
     private UserRepository userRepository;
 
     @Autowired
-    private PasswordEncoder passwordEncoder; // ✅ inject password encoder
+    private PasswordEncoder passwordEncoder;
 
     @Override
     public UserResponse getUserProfile(Long userId) throws Exception {
@@ -34,12 +34,17 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new Exception("User not found"));
 
-        if (request.getName() != null)
-            user.setName(request.getName());
-        if (request.getEmail() != null)
-            user.setEmail(request.getEmail());
-        if (request.getPassword() != null)
-            user.setPassword(passwordEncoder.encode(request.getPassword())); // ✅ encode password
+        if (request.getName() != null && !request.getName().trim().isEmpty()) {
+            user.setName(request.getName().trim());
+        }
+
+        if (request.getEmail() != null && !request.getEmail().trim().isEmpty()) {
+            user.setEmail(request.getEmail().trim());
+        }
+
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
 
         userRepository.save(user);
         return mapToResponse(user);
@@ -67,6 +72,11 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserResponse mapToResponse(User user) {
-        return new UserResponse(user.getId(), user.getName(), user.getEmail(), user.getRole());
+        return new UserResponse(
+                user.getId(),
+                user.getName(),
+                user.getEmail(),
+                user.getRole().name() // Convert enum to String
+        );
     }
 }

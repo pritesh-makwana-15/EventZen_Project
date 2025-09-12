@@ -1,10 +1,29 @@
+// =====================================
+// ProfileUpdateRequest.java
+// =====================================
 package com.eventzen.dto.request;
 
 public class ProfileUpdateRequest {
     private String name;
     private String email;
-    private String password; // optional, can be null if not updating
+    private String password;
+    private String mobileNumber;
+    private String profileImage;
 
+    // Constructors
+    public ProfileUpdateRequest() {
+    }
+
+    public ProfileUpdateRequest(String name, String email, String password,
+            String mobileNumber, String profileImage) {
+        this.name = name;
+        this.email = email;
+        this.password = password;
+        this.mobileNumber = mobileNumber;
+        this.profileImage = profileImage;
+    }
+
+    // Getters and Setters
     public String getName() {
         return name;
     }
@@ -27,5 +46,30 @@ public class ProfileUpdateRequest {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getMobileNumber() {
+        return mobileNumber;
+    }
+
+    public void setMobileNumber(String mobileNumber) {
+        this.mobileNumber = mobileNumber;
+    }
+
+    public String getProfileImage() {
+        return profileImage;
+    }
+
+    public void setProfileImage(String profileImage) {
+        this.profileImage = profileImage;
+    }
+
+    @Override
+    public String toString() {
+        return "ProfileUpdateRequest{" +
+                "name='" + name + '\'' +
+                ", email='" + email + '\'' +
+                ", mobileNumber='" + mobileNumber + '\'' +
+                '}';
     }
 }

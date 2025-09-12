@@ -43,7 +43,7 @@ public class UserController {
                     user.getId(),
                     user.getName(),
                     user.getEmail(),
-                    user.getRole(),
+                    user.getRole().name(), // Convert enum to String
                     user.getMobileNumber(),
                     user.getImageUrl());
 
@@ -95,7 +95,7 @@ public class UserController {
                     updatedUser.getId(),
                     updatedUser.getName(),
                     updatedUser.getEmail(),
-                    updatedUser.getRole(),
+                    updatedUser.getRole().name(), // Convert enum to String
                     updatedUser.getMobileNumber(),
                     updatedUser.getImageUrl());
 

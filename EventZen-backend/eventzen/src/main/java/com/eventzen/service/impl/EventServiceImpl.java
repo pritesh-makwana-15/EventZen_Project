@@ -1,12 +1,18 @@
 package com.eventzen.service.impl;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 
 import com.eventzen.dto.request.EventRequest;
 import com.eventzen.dto.response.EventResponse;
@@ -40,15 +46,27 @@ public class EventServiceImpl implements EventService {
             throw new Exception("Only organizers can create events");
         }
 
+        // Validate date is not in the past
+        if (request.getDate().isBefore(LocalDate.now())) {
+            throw new Exception("Event date cannot be in the past");
+        }
+
         // Create new event
         Event event = new Event();
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
         event.setDate(request.getDate());
-        event.setLocation(request.getLocation());
+        event.setTime(request.getTime());
+        event.setState(request.getState());
+        event.setCity(request.getCity());
+        event.setAddress(request.getAddress());
         event.setCategory(request.getCategory());
         event.setImageUrl(request.getImageUrl());
         event.setOrganizerId(organizerId);
+        event.setMaxAttendees(request.getMaxAttendees());
+        event.setEventType(request.getEventType() != null ? request.getEventType() : "PUBLIC");
+        event.setPrivateCode(request.getPrivateCode());
+        event.setIsActive(true);
 
         Event savedEvent = eventRepository.save(event);
         System.out.println("Event created successfully with ID: " + savedEvent.getId());
@@ -71,13 +89,24 @@ public class EventServiceImpl implements EventService {
             throw new Exception("You can only update your own events");
         }
 
+        // Validate date is not in the past
+        if (request.getDate().isBefore(LocalDate.now())) {
+            throw new Exception("Event date cannot be in the past");
+        }
+
         // Update event fields
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
         event.setDate(request.getDate());
-        event.setLocation(request.getLocation());
+        event.setTime(request.getTime());
+        event.setState(request.getState());
+        event.setCity(request.getCity());
+        event.setAddress(request.getAddress());
         event.setCategory(request.getCategory());
         event.setImageUrl(request.getImageUrl());
+        event.setMaxAttendees(request.getMaxAttendees());
+        event.setEventType(request.getEventType());
+        event.setPrivateCode(request.getPrivateCode());
 
         Event updatedEvent = eventRepository.save(event);
 
@@ -150,6 +179,45 @@ public class EventServiceImpl implements EventService {
     }
 
     /**
+     * Get upcoming events for specific organizer
+     */
+    public List<EventResponse> getUpcomingEventsByOrganizer(Long organizerId) throws Exception {
+        LocalDate today = LocalDate.now();
+        List<Event> events = eventRepository.findByOrganizerIdAndDateGreaterThanEqualOrderByDateAsc(organizerId, today);
+        User organizer = userRepository.findById(organizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get past events for specific organizer
+     */
+    public List<EventResponse> getPastEventsByOrganizer(Long organizerId) throws Exception {
+        LocalDate today = LocalDate.now();
+        List<Event> events = eventRepository.findByOrganizerIdAndDateLessThanOrderByDateDesc(organizerId, today);
+        User organizer = userRepository.findById(organizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Helper method to process validation errors
+     */
+    public Map<String, String> processValidationErrors(BindingResult bindingResult) {
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError error : bindingResult.getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+        return errors;
+    }
+
+    /**
      * Helper method to get current user ID from JWT token
      */
     private Long getCurrentUserId() throws Exception {
@@ -169,15 +237,29 @@ public class EventServiceImpl implements EventService {
      * Helper method to convert Event entity to EventResponse DTO
      */
     private EventResponse convertToResponse(Event event, String organizerName) {
-        return new EventResponse(
-                event.getId(),
-                event.getTitle(),
-                event.getDescription(),
-                event.getDate(),
-                event.getLocation(),
-                event.getCategory(),
-                event.getImageUrl(),
-                event.getOrganizerId(),
-                organizerName);
+        EventResponse response = new EventResponse();
+        response.setId(event.getId());
+        response.setTitle(event.getTitle());
+        response.setDescription(event.getDescription());
+
+        // Combine date and time for datetime field
+        LocalDateTime dateTime = LocalDateTime.of(event.getDate(), event.getTime());
+        response.setDate(dateTime);
+
+        // Use the combined location for backward compatibility
+        response.setLocation(event.getLocation());
+        response.setCategory(event.getCategory());
+        response.setImageUrl(event.getImageUrl());
+        response.setOrganizerId(event.getOrganizerId());
+        response.setOrganizerName(organizerName);
+        response.setMaxAttendees(event.getMaxAttendees());
+        response.setCurrentAttendees(event.getCurrentAttendees());
+        response.setIsActive(event.getIsActive());
+        response.setEventType(event.getEventType());
+        response.setPrivateCode(event.getPrivateCode());
+        response.setCreatedAt(event.getCreatedAt());
+        response.setUpdatedAt(event.getUpdatedAt());
+
+        return response;
     }
 }

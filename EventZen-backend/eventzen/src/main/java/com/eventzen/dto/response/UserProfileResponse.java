@@ -1,21 +1,20 @@
+// =====================================
 // UserProfileResponse.java
+// =====================================
 package com.eventzen.dto.response;
-
-import com.eventzen.entity.Role;
 
 public class UserProfileResponse {
     private Long id;
     private String name;
     private String email;
-    private Role role;
+    private String role;
     private String mobileNumber;
     private String imageUrl;
 
-    // Constructors
     public UserProfileResponse() {
     }
 
-    public UserProfileResponse(Long id, String name, String email, Role role,
+    public UserProfileResponse(Long id, String name, String email, String role,
             String mobileNumber, String imageUrl) {
         this.id = id;
         this.name = name;
@@ -50,11 +49,11 @@ public class UserProfileResponse {
         this.email = email;
     }
 
-    public Role getRole() {
+    public String getRole() {
         return role;
     }
 
-    public void setRole(Role role) {
+    public void setRole(String role) {
         this.role = role;
     }
 

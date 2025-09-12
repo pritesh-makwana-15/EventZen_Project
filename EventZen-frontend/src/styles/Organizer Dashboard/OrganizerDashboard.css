@@ -210,6 +210,30 @@ td {
   background: #f29d0e;
 }
 
+.event-thumbnail{
+  width: 100px;
+  height: 50px;
+}
+
+.image-upload-section {
+  display: flex;
+  justify-content: center;
+  /* align-items: center; */
+  flex-direction: column;
+
+}
+.filter-section{
+  display: flex;
+  align-items: center;
+  gap: 100px;
+}
+
+.event-filter{
+      display: flex
+;
+    align-items: center;
+    gap: 10px;
+}
 /* ===== Responsive Styling ===== */
 @media (max-width: 768px) {
   .create-event {
