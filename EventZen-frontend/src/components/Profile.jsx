@@ -1,6 +1,7 @@
 // src/components/Profile.jsx
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
+import "../styles/main pages/profile.css";
 
 export default function Profile({ onCancel, onSuccess }) {
   const [profile, setProfile] = useState({
@@ -98,7 +99,7 @@ export default function Profile({ onCancel, onSuccess }) {
   if (loading && !profile.id) {
     return <div className="loading">Loading profile...</div>;
   }
-
+console.log(profile.imageUrl);
   return (
     <div className="profile-settings">
       <h3>My Profile</h3>
@@ -111,6 +112,7 @@ export default function Profile({ onCancel, onSuccess }) {
           <div className="profile-avatar">
             <img 
               src={profile.imageUrl || "/src/assets/EZ-logo1.png"} 
+              // src={"/src/assets/EZ-logo1.png"} 
               alt="Profile" 
             />
           </div>
@@ -193,7 +195,7 @@ export default function Profile({ onCancel, onSuccess }) {
           
           <div className="form-actions">
             <button type="submit" className="save-btn" disabled={loading}>
-              {loading ? "Saving..." : "Save Changes"}
+              {loading ? "Saving..." : "Save"}
             </button>
             <button
               type="button"

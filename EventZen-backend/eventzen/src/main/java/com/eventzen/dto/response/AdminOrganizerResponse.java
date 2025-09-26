@@ -1,22 +1,18 @@
+// ================== AdminOrganizerResponse.java ==================
 package com.eventzen.dto.response;
 
 import java.time.LocalDateTime;
 
-import com.eventzen.entity.Role;
-
 import lombok.Data;
 
 @Data
-public class UserResponse {
+public class AdminOrganizerResponse {
     private Long id;
     private String name;
     private String email;
-    private Role role;
-    private String mobileNumber;
     private String phone;
     private String organization;
     private boolean active;
-    private String imageUrl;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    private int eventsCreated;
 }

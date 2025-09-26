@@ -1,3 +1,4 @@
+// JwtAuthenticationFilter.java (REPLACE)
 package com.eventzen.security;
 
 import java.io.IOException;
@@ -37,7 +38,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = jwtService.getRoleFromToken(token);
 
                 if (email != null && role != null) {
-                    // ✅ Build authority list from role claim
                     GrantedAuthority authority = new SimpleGrantedAuthority(role);
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email,
                             null, Collections.singletonList(authority));
@@ -47,25 +47,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
         } catch (Exception ex) {
-            // Just log & continue — don’t block request on token failure
             System.out.println("JWT filter error: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Skip authentication for public endpoints (register/login).
-     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         return path.startsWith("/api/auth/");
     }
 
-    /**
-     * Extract Bearer token from Authorization header.
-     */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {

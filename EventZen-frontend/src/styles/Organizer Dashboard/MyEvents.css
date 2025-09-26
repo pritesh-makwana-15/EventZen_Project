@@ -1,0 +1,109 @@
+/* ===== Events Table ===== */
+.my-events {
+  padding: 20px;
+}
+
+.section-title {
+  margin: 20px 0;
+  font-size: 20px;
+  color: #1e2c38;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+th,
+td {
+  padding: 12px 15px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+}
+
+th {
+  background: #1e2c38;
+  color: #fff;
+}
+
+td {
+  color: #333;
+}
+
+.action-btn {
+  margin: 0 5px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.action-btn.edit {
+  background: #44a0b9;
+  color: #fff;
+}
+
+.action-btn.delete {
+  background: #f29d0e;
+  color: #fff;
+}
+
+.action-btn.view {
+  background: #675f02;
+  color: #fff;
+}
+
+.action-btn:hover {
+  opacity: 0.8;
+}
+
+.event-thumbnail{
+    width: 150px;
+    height: 100px;
+}
+
+.filter-section{
+  display: flex;
+  gap: 20px;
+}
+
+.event-filter{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Responsive Table */
+@media (max-width: 768px) {
+  table,
+  thead,
+  tbody,
+  th,
+  td,
+  tr {
+    display: block;
+  }
+
+  tr {
+    margin-bottom: 15px;
+  }
+
+  td {
+    text-align: left;
+    padding-left: 50%;
+    position: relative;
+  }
+
+  td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 15px;
+    font-weight: bold;
+  }
+}

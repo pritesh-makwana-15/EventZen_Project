@@ -1,3 +1,4 @@
+// RegistrationController.java (REPLACE)
 package com.eventzen.controller;
 
 import java.util.List;
@@ -22,25 +23,21 @@ public class RegistrationController {
     @Autowired
     private RegistrationService registrationService;
 
-    // Visitor registers for an event
     @PostMapping
     public RegistrationResponse register(@RequestBody RegistrationRequest request) throws Exception {
         return registrationService.registerForEvent(request);
     }
 
-    // Get registrations by visitor
     @GetMapping("/visitor/{visitorId}")
     public List<RegistrationResponse> getByVisitor(@PathVariable Long visitorId) throws Exception {
         return registrationService.getRegistrationsByVisitor(visitorId);
     }
 
-    // Get registrations by event
     @GetMapping("/event/{eventId}")
     public List<RegistrationResponse> getByEvent(@PathVariable Long eventId) throws Exception {
         return registrationService.getRegistrationsByEvent(eventId);
     }
 
-    // Cancel a registration
     @PutMapping("/cancel/{registrationId}")
     public void cancelRegistration(@PathVariable Long registrationId) throws Exception {
         registrationService.cancelRegistration(registrationId);

@@ -1,6 +1,6 @@
 package com.eventzen.controller;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -70,40 +70,6 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
 
-    // ===== NEW ORGANIZER DASHBOARD ENDPOINTS =====
-
-    /**
-     * Get current organizer's upcoming events
-     */
-    @GetMapping("/organizer/{organizerId}/upcoming")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
-    public ResponseEntity<List<EventResponse>> getUpcomingEvents(@PathVariable Long organizerId) {
-        try {
-            System.out.println("Fetching upcoming events for organizer: " + organizerId);
-            List<EventResponse> events = eventServiceImpl.getUpcomingEventsByOrganizer(organizerId);
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            System.out.println("Error fetching upcoming events: " + e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    /**
-     * Get current organizer's past events
-     */
-    @GetMapping("/organizer/{organizerId}/past")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
-    public ResponseEntity<List<EventResponse>> getPastEvents(@PathVariable Long organizerId) {
-        try {
-            System.out.println("Fetching past events for organizer: " + organizerId);
-            List<EventResponse> events = eventServiceImpl.getPastEventsByOrganizer(organizerId);
-            return ResponseEntity.ok(events);
-        } catch (Exception e) {
-            System.out.println("Error fetching past events: " + e.getMessage());
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
     /**
      * Get current organizer's events (for dashboard)
      */
@@ -134,9 +100,9 @@ public class EventController {
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            // Additional business validation
-            if (request.getDate().isBefore(LocalDate.now())) {
-                return ResponseEntity.badRequest().body(Map.of("date", "Date must be today or later"));
+            // Fixed: Use LocalDateTime instead of LocalDate for comparison
+            if (request.getDate().isBefore(LocalDateTime.now())) {
+                return ResponseEntity.badRequest().body(Map.of("date", "Date must be in the future"));
             }
 
             if ("PRIVATE".equalsIgnoreCase(request.getEventType()) &&
@@ -167,9 +133,9 @@ public class EventController {
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            // Additional business validation
-            if (request.getDate().isBefore(LocalDate.now())) {
-                return ResponseEntity.badRequest().body(Map.of("date", "Date must be today or later"));
+            // Fixed: Use LocalDateTime instead of LocalDate for comparison
+            if (request.getDate().isBefore(LocalDateTime.now())) {
+                return ResponseEntity.badRequest().body(Map.of("date", "Date must be in the future"));
             }
 
             if ("PRIVATE".equalsIgnoreCase(request.getEventType()) &&

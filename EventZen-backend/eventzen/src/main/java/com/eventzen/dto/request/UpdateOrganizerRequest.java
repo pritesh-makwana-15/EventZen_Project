@@ -1,16 +1,14 @@
-// ProfileUpdateRequest.java (REPLACE)
+// UpdateOrganizerRequest.java (REPLACE)
 package com.eventzen.dto.request;
 
-import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 @Data
-public class ProfileUpdateRequest {
+public class UpdateOrganizerRequest {
 
-    @Email(message = "Invalid email format")
-    private String email;
-
+    @NotBlank(message = "Name is required")
     @Size(max = 100, message = "Name must not exceed 100 characters")
     private String name;
 
@@ -20,6 +18,6 @@ public class ProfileUpdateRequest {
     @Size(max = 100, message = "Organization must not exceed 100 characters")
     private String organization;
 
-    @Size(min = 6, message = "Password must be at least 6 characters")
-    private String password;
+    @Size(max = 255, message = "Image URL must not exceed 255 characters")
+    private String imageUrl;
 }

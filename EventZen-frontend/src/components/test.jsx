@@ -21,9 +21,9 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [fieldErrors, setFieldErrors] = useState({});
   const [imageFile, setImageFile] = useState(null);
 
+  // State and city data
   const stateCityData = {
     Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik"],
     Gujarat: ["Ahmedabad", "Surat", "Vadodara", "Rajkot"],
@@ -56,13 +56,19 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
     "Other": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=300&fit=crop"
   };
 
+  // Load editing event data
   useEffect(() => {
     if (editingEvent) {
       const eventDate = new Date(editingEvent.date);
-      const dateStr = eventDate.toISOString().slice(0, 10);
-      const timeStr = eventDate.toTimeString().slice(0, 5);
+      
+      // Extract date and time components
+      const dateStr = eventDate.toISOString().slice(0, 10); // YYYY-MM-DD
+      const timeStr = eventDate.toTimeString().slice(0, 5); // HH:MM
+
+      // Parse location to extract state/city/address
       const locationParts = editingEvent.location.split(", ");
       let state = "", city = "", address = editingEvent.location;
+      
       if (locationParts.length >= 3) {
         state = locationParts[locationParts.length - 1];
         city = locationParts[locationParts.length - 2];
@@ -71,6 +77,7 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
         city = locationParts[locationParts.length - 1];
         address = locationParts[0];
       }
+
       setFormData({
         title: editingEvent.title,
         description: editingEvent.description,
@@ -88,42 +95,38 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
     }
   }, [editingEvent]);
 
-  const clearFieldError = (fieldName) => {
-    if (fieldErrors[fieldName]) {
-      setFieldErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[fieldName];
-        return newErrors;
-      });
-    }
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    clearFieldError(name);
+
+    // Reset city when state changes
     if (name === "state") {
       setFormData(prev => ({ ...prev, city: "" }));
-      clearFieldError("city");
     }
   };
 
   const handleImageUpload = async (file) => {
     if (!file) return;
+    
+    // Validate file
     if (!file.type.startsWith('image/')) {
       setError("Please upload a valid image file");
       return;
     }
+    
     if (file.size > 5 * 1024 * 1024) {
       setError("Image size must be less than 5MB");
       return;
     }
+
     try {
       const formData = new FormData();
       formData.append('file', file);
+      
       const response = await API.post('/uploads', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
+      
       setFormData(prev => ({ ...prev, imageUrl: response.data.url }));
       setError("");
     } catch (err) {
@@ -133,45 +136,53 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   };
 
   const validateForm = () => {
-    const errors = {};
-    if (!formData.title.trim()) errors.title = " ";
-    if (!formData.description.trim()) errors.description = " ";
-    if (!formData.date) errors.date = " ";
-    if (!formData.time) errors.time = " ";
-    if (!formData.address.trim()) errors.address = " ";
-    if (!formData.category) errors.category = " ";
-    if (formData.date && formData.time) {
-      const eventDateTime = new Date(`${formData.date}T${formData.time}`);
-      if (eventDateTime <= new Date()) {
-        errors.date = "Event date must be in the future";
-        errors.time = "Event time must be in the future";
-      }
+    const errors = [];
+    
+    if (!formData.title.trim()) errors.push("Event title is required");
+    if (!formData.description.trim()) errors.push("Description is required");
+    if (!formData.date) errors.push("Date is required");
+    if (!formData.time) errors.push("Time is required");
+    if (!formData.address.trim()) errors.push("Address is required");
+    if (!formData.category) errors.push("Category is required");
+    
+    // Check if date/time is in the future
+    const eventDateTime = new Date(`${formData.date}T${formData.time}`);
+    if (eventDateTime <= new Date()) {
+      errors.push("Event date and time must be in the future");
     }
+    
+    // Validate max attendees
     if (formData.maxAttendees && (isNaN(formData.maxAttendees) || parseInt(formData.maxAttendees) <= 0)) {
-      errors.maxAttendees = "Max attendees must be a positive number";
+      errors.push("Max attendees must be a positive number");
     }
+    
+    // Validate private code for private events
     if (formData.eventType === "PRIVATE" && !formData.privateCode.trim()) {
-      errors.privateCode = "Private code is required for private events";
+      errors.push("Private code is required for private events");
     }
+    
     return errors;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setFieldErrors({});
+    
     const validationErrors = validateForm();
-    if (Object.keys(validationErrors).length > 0) {
-      setFieldErrors(validationErrors);
+    if (validationErrors.length > 0) {
+      setError(validationErrors.join(", "));
       return;
     }
+
     try {
       setLoading(true);
+      setError("");
+
+      // Prepare request data - convert to backend expected format
       const requestData = {
         title: formData.title,
         description: formData.description,
-        date: formData.date,
-        time: formData.time,
+        date: formData.date, // ISO date format (YYYY-MM-DD)
+        time: formData.time, // ISO time format (HH:MM)
         state: formData.state,
         city: formData.city,
         address: formData.address,
@@ -181,14 +192,19 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
         eventType: formData.eventType,
         privateCode: formData.eventType === "PRIVATE" ? formData.privateCode : null
       };
+
       if (editingEvent) {
         await API.put(`/events/${editingEvent.id}`, requestData);
       } else {
         await API.post("/events", requestData);
       }
+
       onSuccess(editingEvent ? "Event updated successfully!" : "Event created successfully!");
+      
     } catch (err) {
       console.error("Error saving event:", err);
+      
+      // Handle validation errors from backend
       if (err.response?.data && typeof err.response.data === 'object') {
         const errorMessages = Object.values(err.response.data).join(", ");
         setError(errorMessages);
@@ -209,8 +225,11 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   return (
     <div className="create-event">
       <h3>{editingEvent ? "Edit Event" : "Create New Event"}</h3>
+      
       {error && <div className="alert error">{error}</div>}
+
       <form className="event-form" onSubmit={handleSubmit}>
+        {/* Image Upload */}
         <div className="form-group">
           <label>Event Image</label>
           <div className="image-upload-section">
@@ -242,7 +261,7 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className={fieldErrors.category ? 'error' : ''}
+              required
             >
               <option value="">Select Category</option>
               {eventCategories.map((category) => (
@@ -251,9 +270,6 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
                 </option>
               ))}
             </select>
-            {fieldErrors.category && (
-              <span className="field-error">{fieldErrors.category}</span>
-            )}
           </div>
           <div className="form-group">
             <label>Event Name *</label>
@@ -262,29 +278,25 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="title"
               value={formData.title}
               onChange={handleChange}
-              className={fieldErrors.title ? 'error' : ''}
               placeholder="Enter event name"
+              required
             />
-            {fieldErrors.title && (
-              <span className="field-error">{fieldErrors.title}</span>
-            )}
           </div>
         </div>
 
+        {/* Address */}
         <div className="form-group">
           <label>Address *</label>
           <textarea 
             name="address"
             value={formData.address}
             onChange={handleChange}
-            className={fieldErrors.address ? 'error' : ''}
             placeholder="Enter venue details, landmark, or address"
+            required
           />
-          {fieldErrors.address && (
-            <span className="field-error">{fieldErrors.address}</span>
-          )}
         </div>
 
+        {/* State and City */}
         <div className="form-row">
           <div className="form-group">
             <label>State</label>
@@ -292,7 +304,6 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="state"
               value={formData.state}
               onChange={handleChange}
-              className={fieldErrors.state ? 'error' : ''}
             >
               <option value="">Select State</option>
               {Object.keys(stateCityData).map((state) => (
@@ -301,9 +312,6 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
                 </option>
               ))}
             </select>
-            {fieldErrors.state && (
-              <span className="field-error">{fieldErrors.state}</span>
-            )}
           </div>
           <div className="form-group">
             <label>City</label>
@@ -311,7 +319,6 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="city"
               value={formData.city}
               onChange={handleChange}
-              className={fieldErrors.city ? 'error' : ''}
               disabled={!formData.state}
             >
               <option value="">Select City</option>
@@ -322,12 +329,10 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
                   </option>
                 ))}
             </select>
-            {fieldErrors.city && (
-              <span className="field-error">{fieldErrors.city}</span>
-            )}
           </div>
         </div>
 
+        {/* Date and Time */}
         <div className="form-row">
           <div className="form-group">
             <label>Date *</label>
@@ -336,12 +341,9 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="date"
               value={formData.date}
               onChange={handleChange}
-              className={fieldErrors.date ? 'error' : ''}
               min={getTomorrowDate()}
+              required
             />
-            {fieldErrors.date && (
-              <span className="field-error">{fieldErrors.date}</span>
-            )}
           </div>
           <div className="form-group">
             <label>Time *</label>
@@ -350,14 +352,12 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="time"
               value={formData.time}
               onChange={handleChange}
-              className={fieldErrors.time ? 'error' : ''}
+              required
             />
-            {fieldErrors.time && (
-              <span className="field-error">{fieldErrors.time}</span>
-            )}
           </div>
         </div>
 
+        {/* Max Attendees */}
         <div className="form-row">
           <div className="form-group">
             <label>Max Attendees</label>
@@ -366,66 +366,62 @@ export default function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="maxAttendees"
               value={formData.maxAttendees}
               onChange={handleChange}
-              className={fieldErrors.maxAttendees ? 'error' : ''}
               placeholder="e.g. 100"
               min="1"
             />
-            {fieldErrors.maxAttendees && (
-              <span className="field-error">{fieldErrors.maxAttendees}</span>
-            )}
-          </div>
-          <div className="form-group">
-            <label>Event Type *</label>
-            <select 
-              name="eventType"
-              value={formData.eventType}
-              onChange={handleChange}
-              className={fieldErrors.eventType ? 'error' : ''}
-            >
-              <option value="PUBLIC">Public</option>
-              <option value="PRIVATE">Private</option>
-            </select>
-            {fieldErrors.eventType && (
-              <span className="field-error">{fieldErrors.eventType}</span>
-            )}
           </div>
         </div>
 
-        {formData.eventType === "PRIVATE" && (
-          <div className="form-group">
-            <label>Private Code *</label>
-            <input 
-              type="text" 
-              name="privateCode"
-              value={formData.privateCode}
-              onChange={handleChange}
-              className={fieldErrors.privateCode ? 'error' : ''}
-              placeholder="Enter private access code"
-            />
-            {fieldErrors.privateCode && (
-              <span className="field-error">{fieldErrors.privateCode}</span>
-            )}
-            <small className="form-hint">
-              Attendees will need this code to register for the event
-            </small>
+        {/* Event Type */}
+        <div className="form-event-type">
+          <div className="form-row">
+            <div className="form-group">
+              <label>Event Type *</label>
+              <select 
+                name="eventType"
+                value={formData.eventType}
+                onChange={handleChange}
+                required
+              >
+                <option value="PUBLIC">Public</option>
+                <option value="PRIVATE">Private</option>
+              </select>
+            </div>
           </div>
-        )}
 
+          {/* Private Code */}
+          {formData.eventType === "PRIVATE" && (
+            <div className="form-group">
+              <label>Private Code *</label>
+              <input 
+                type="text" 
+                name="privateCode"
+                value={formData.privateCode}
+                onChange={handleChange}
+                placeholder="Enter private access code"
+                required
+              />
+              <small className="form-hint">
+                Attendees will need this code to register for the event
+              </small>
+            </div>
+          )}
+        </div>
+
+        {/* Description */}
         <div className="form-group">
           <label>Description *</label>
           <textarea 
             name="description"
             value={formData.description}
             onChange={handleChange}
-            className={fieldErrors.description ? 'error' : ''}
             placeholder="Event description"
             rows="4"
+            required
           />
-          {fieldErrors.description && (
-            <span className="field-error">{fieldErrors.description}</span>
-          )}
         </div>
 
+        {/* Form Actions */}
         <div className="form-actions">
           <button type="submit" className="save-btn" disabled={loading}>
             {loading ? "Saving..." : (editingEvent ? "Update Event" : "Create Event")}

@@ -1,8 +1,17 @@
-// =====================================
-// Role.java (Enum)
-// =====================================
 package com.eventzen.entity;
 
 public enum Role {
-    VISITOR, ORGANIZER, ADMIN
+    ADMIN("ADMIN"),
+    ORGANIZER("ORGANIZER"),
+    VISITOR("VISITOR");
+
+    private final String name;
+
+    Role(String name) {
+        this.name = name;
+    }
+
+    public String getName() {
+        return name;
+    }
 }

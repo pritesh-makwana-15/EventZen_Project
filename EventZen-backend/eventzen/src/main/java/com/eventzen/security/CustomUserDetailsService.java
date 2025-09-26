@@ -1,3 +1,4 @@
+// CustomUserDetailsService.java (REPLACE)
 package com.eventzen.security;
 
 import java.util.Collections;
@@ -26,7 +27,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
                 .password(user.getPassword())
-                .authorities(Collections.singletonList(new SimpleGrantedAuthority(user.getRole().name())))
+                .authorities(Collections.singletonList(new SimpleGrantedAuthority(user.getRole().getName())))
                 .build();
     }
 }

@@ -1,6 +1,7 @@
 // src/components/MyEvents.jsx
 import React, { useState, useEffect } from "react";
 import API from "../services/api";
+import "../styles/Organizer Dashboard/MyEvents.css";
 
 export default function MyEvents({ onEditEvent }) {
   const [events, setEvents] = useState([]);

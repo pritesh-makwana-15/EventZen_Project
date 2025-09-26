@@ -27,6 +27,73 @@ API.interceptors.response.use(
   }
 );
 
+// ===== ADMIN SERVICES =====
+
+// Admin Events
+export const getAdminEvents = async () => {
+  const { data } = await API.get("/admin/events");
+  return data;
+};
+
+export const getAdminEventById = async (eventId) => {
+  const { data } = await API.get(`/admin/events/${eventId}`);
+  return data;
+};
+
+export const updateAdminEvent = async (eventId, eventData) => {
+  const { data } = await API.put(`/admin/events/${eventId}`, eventData);
+  return data;
+};
+
+export const deleteAdminEvent = async (eventId) => {
+  await API.delete(`/admin/events/${eventId}`);
+};
+
+// Admin Organizers
+export const getAdminOrganizers = async () => {
+  const { data } = await API.get("/admin/organizers");
+  return data;
+};
+
+export const getAdminOrganizerById = async (organizerId) => {
+  const { data } = await API.get(`/admin/organizers/${organizerId}`);
+  return data;
+};
+
+export const createAdminOrganizer = async (organizerData) => {
+  const { data } = await API.post("/admin/organizers", organizerData);
+  return data;
+};
+
+export const updateAdminOrganizer = async (organizerId, organizerData) => {
+  const { data } = await API.put(`/admin/organizers/${organizerId}`, organizerData);
+  return data;
+};
+
+export const deleteAdminOrganizer = async (organizerId) => {
+  await API.delete(`/admin/organizers/${organizerId}`);
+};
+
+export const toggleOrganizerStatus = async (organizerId) => {
+  const { data } = await API.patch(`/admin/organizers/${organizerId}/toggle-status`);
+  return data;
+};
+
+// Admin Visitors
+export const getAdminVisitors = async () => {
+  const { data } = await API.get("/admin/visitors");
+  return data;
+};
+
+export const getAdminVisitorById = async (visitorId) => {
+  const { data } = await API.get(`/admin/visitors/${visitorId}`);
+  return data;
+};
+
+export const deleteAdminVisitor = async (visitorId) => {
+  await API.delete(`/admin/visitors/${visitorId}`);
+};
+
 // ===== EVENT SERVICES =====
 
 // Get current organizer's events

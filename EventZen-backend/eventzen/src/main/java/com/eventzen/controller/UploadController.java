@@ -63,8 +63,8 @@ public class UploadController {
             Path filePath = uploadPath.resolve(filename);
             Files.copy(file.getInputStream(), filePath);
 
-            // Return file URL
-            String fileUrl = "/uploads/" + filename;
+            // FIXED: Return correct URL path that matches static file configuration
+            String fileUrl = "/files/" + filename;  // Changed from /uploads/ to /files/
             System.out.println("File uploaded successfully: " + fileUrl);
 
             return ResponseEntity.ok(Map.of("url", fileUrl));

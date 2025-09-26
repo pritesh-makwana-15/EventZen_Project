@@ -1,3 +1,4 @@
+// ================== RegistrationRepository.java ==================
 package com.eventzen.repository;
 
 import java.util.List;
@@ -12,5 +13,8 @@ import com.eventzen.entity.User;
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, Long> {
     List<Registration> findByVisitor(User visitor);
+
     List<Registration> findByEvent(Event event);
+
+    boolean existsByVisitorAndEvent(User visitor, Event event);
 }
