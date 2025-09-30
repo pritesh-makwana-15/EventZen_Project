@@ -6,12 +6,14 @@ import {
   User,
   UserPlus,
   LogOut,
-  MoreHorizontal,
   Trash2,
   Edit,
   X,
   Save,
   Loader,
+  Eye,
+  Filter,
+  RotateCcw,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Admin Dashborad/AdminDashboard.css";
@@ -39,16 +41,26 @@ const AdminDashboard = () => {
   const [visitors, setVisitors] = useState([]);
   const [organizers, setOrganizers] = useState([]);
   const [events, setEvents] = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState([]);
   const [adminProfile, setAdminProfile] = useState(null);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    organizer: "",
+    category: "",
+    type: "",
+    status: "",
+  });
 
   // Modal states
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
-  const [editType, setEditType] = useState(""); // "visitor", "organizer", "event"
+  const [editType, setEditType] = useState("");
 
-  // Form state for creating organizer
+  // Form states
   const [newOrganizer, setNewOrganizer] = useState({
     name: "",
     role: "",
@@ -56,29 +68,29 @@ const AdminDashboard = () => {
     password: "",
   });
 
-  // Edit form state
   const [editForm, setEditForm] = useState({
     name: "",
     email: "",
     password: "",
   });
 
-  // Profile edit form
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
     password: "",
   });
 
-  // Load data on component mount and section change
   useEffect(() => {
     loadData();
   }, [activeSection]);
 
-  // Load admin profile on mount
   useEffect(() => {
     loadAdminProfile();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [filters, events]);
 
   const loadAdminProfile = async () => {
     try {
@@ -107,6 +119,7 @@ const AdminDashboard = () => {
       } else if (activeSection === "events") {
         const data = await getAllEventsAdmin();
         setEvents(data);
+        setFilteredEvents(data);
       }
     } catch (err) {
       setError("Failed to load data. Please try again.");
@@ -114,6 +127,64 @@ const AdminDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...events];
+
+    if (filters.organizer) {
+      filtered = filtered.filter((e) =>
+        e.organizerName?.toLowerCase().includes(filters.organizer.toLowerCase())
+      );
+    }
+
+    if (filters.category) {
+      filtered = filtered.filter((e) =>
+        e.category?.toLowerCase() === filters.category.toLowerCase()
+      );
+    }
+
+    if (filters.type) {
+      filtered = filtered.filter((e) =>
+        e.eventType?.toLowerCase() === filters.type.toLowerCase()
+      );
+    }
+
+    if (filters.status) {
+      filtered = filtered.filter((e) => getEventStatus(e) === filters.status);
+    }
+
+    setFilteredEvents(filtered);
+  };
+
+  const resetFilters = () => {
+    setFilters({
+      organizer: "",
+      category: "",
+      type: "",
+      status: "",
+    });
+  };
+
+  const getEventStatus = (event) => {
+    if (!event.date) return "Unknown";
+    const eventDate = new Date(event.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return eventDate >= today ? "Upcoming" : "Completed";
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    const date = new Date(dateString);
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  const getOrganizerEventCount = (organizerId) => {
+    return events.filter((e) => e.organizerId === organizerId).length;
   };
 
   const handleCreateOrganizer = async (e) => {
@@ -141,6 +212,7 @@ const AdminDashboard = () => {
       if (editType === "event") {
         await deleteEventAdmin(currentItem.id);
         setEvents(events.filter((e) => e.id !== currentItem.id));
+        setSuccess("Event deleted successfully!");
       } else {
         await deleteUser(currentItem.id);
         if (editType === "visitor") {
@@ -148,9 +220,9 @@ const AdminDashboard = () => {
         } else if (editType === "organizer") {
           setOrganizers(organizers.filter((o) => o.id !== currentItem.id));
         }
+        setSuccess(`${editType} deleted successfully!`);
       }
       setShowDeleteModal(false);
-      setSuccess(`${editType} deleted successfully!`);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError(`Failed to delete ${editType}`);
@@ -165,13 +237,13 @@ const AdminDashboard = () => {
     setError("");
     try {
       const updatedUser = await updateUser(currentItem.id, editForm);
-      
+
       if (editType === "visitor") {
         setVisitors(visitors.map((v) => (v.id === currentItem.id ? updatedUser : v)));
       } else if (editType === "organizer") {
         setOrganizers(organizers.map((o) => (o.id === currentItem.id ? updatedUser : o)));
       }
-      
+
       setShowEditModal(false);
       setSuccess("Updated successfully!");
       setTimeout(() => setSuccess(""), 3000);
@@ -216,17 +288,22 @@ const AdminDashboard = () => {
     setShowDeleteModal(true);
   };
 
+  const openEventDetailModal = (event) => {
+    setCurrentItem(event);
+    setShowEventDetailModal(true);
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  // ===== Sidebar =====
+  // Sidebar
   const renderSidebar = () => (
     <div className="sidebar">
       <div className="logo-section">
         <div className="logo-box">
-          <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img" />
+          <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
         </div>
         <span className="logo-text">EventZen</span>
       </div>
@@ -236,19 +313,31 @@ const AdminDashboard = () => {
           className={`nav-btn ${activeSection === "events" ? "active" : ""}`}
           onClick={() => setActiveSection("events")}
         >
-          <Calendar size={18} /> Events
+          <Calendar size={18} />
+          <div className="nav-btn-content">
+            <span>Events</span>
+            <span className="nav-count">{events.length}</span>
+          </div>
         </button>
         <button
           className={`nav-btn ${activeSection === "organizers" ? "active" : ""}`}
           onClick={() => setActiveSection("organizers")}
         >
-          <User size={18} /> Organizers
+          <User size={18} />
+          <div className="nav-btn-content">
+            <span>Organizers</span>
+            <span className="nav-count">{organizers.length}</span>
+          </div>
         </button>
         <button
           className={`nav-btn ${activeSection === "visitors" ? "active" : ""}`}
           onClick={() => setActiveSection("visitors")}
         >
-          <Users size={18} /> Visitors
+          <Users size={18} />
+          <div className="nav-btn-content">
+            <span>Visitors</span>
+            <span className="nav-count">{visitors.length}</span>
+          </div>
         </button>
         <button
           className={`nav-btn ${activeSection === "create-organizer" ? "active" : ""}`}
@@ -260,7 +349,7 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // ===== Topbar =====
+  // Topbar
   const renderTopbar = () => (
     <div className="topbar">
       <h1>Admin Dashboard</h1>
@@ -275,12 +364,217 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // ===== Visitors =====
+  // Events with Filters
+  const renderEvents = () => (
+    <div className="content">
+      {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
+
+      <div className="card">
+        <h2>Events ({filteredEvents.length})</h2>
+
+        {/* Filters */}
+        <div className="filters-section">
+          <div className="filter-group">
+            <label>
+              <Filter size={14} /> Organizer
+            </label>
+            <input
+              type="text"
+              placeholder="Search by organizer"
+              value={filters.organizer}
+              onChange={(e) => setFilters({ ...filters, organizer: e.target.value })}
+            />
+          </div>
+
+          <div className="filter-group">
+            <label>Category</label>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+            >
+              <option value="">All Categories</option>
+              {[...new Set(events.map((e) => e.category))].map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Type</label>
+            <select
+              value={filters.type}
+              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
+            >
+              <option value="">All Types</option>
+              <option value="public">Public</option>
+              <option value="private">Private</option>
+            </select>
+          </div>
+
+          <div className="filter-group">
+            <label>Status</label>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+            >
+              <option value="">All Status</option>
+              <option value="Upcoming">Upcoming</option>
+              <option value="Completed">Completed</option>
+            </select>
+          </div>
+
+          <button className="btn-reset" onClick={resetFilters}>
+            <RotateCcw size={14} /> Reset
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="loading-container">
+            <Loader className="spinner" size={32} />
+            <p>Loading events...</p>
+          </div>
+        ) : filteredEvents.length === 0 ? (
+          <p className="no-data">No events found</p>
+        ) : (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Title</th>
+                  <th>Organizer</th>
+                  <th>Date</th>
+                  <th>Category</th>
+                  <th>Type</th>
+                  <th>Attendees</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEvents.map((e) => (
+                  <tr key={e.id}>
+                    <td>{e.id}</td>
+                    <td>{e.title}</td>
+                    <td>{e.organizerName}</td>
+                    <td>{formatDate(e.date)}</td>
+                    <td>{e.category || "N/A"}</td>
+                    <td>
+                      <span className={`type-badge ${e.eventType?.toLowerCase()}`}>
+                        {e.eventType || "Public"}
+                      </span>
+                    </td>
+                    <td>
+                      {e.currentAttendees || 0}/{e.maxAttendees || "∞"}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${getEventStatus(e).toLowerCase()}`}>
+                        {getEventStatus(e)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="btn-icon"
+                          onClick={() => openEventDetailModal(e)}
+                          title="View Details"
+                        >
+                          <Eye size={16} />
+                        </button>
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => openDeleteModal(e, "event")}
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Organizers
+  const renderOrganizers = () => (
+    <div className="content">
+      {error && <div className="alert alert-error">{error}</div>}
+      {success && <div className="alert alert-success">{success}</div>}
+
+      <div className="card">
+        <h2>Organizers ({organizers.length})</h2>
+        {loading ? (
+          <div className="loading-container">
+            <Loader className="spinner" size={32} />
+            <p>Loading organizers...</p>
+          </div>
+        ) : organizers.length === 0 ? (
+          <p className="no-data">No organizers found</p>
+        ) : (
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Name</th>
+                  <th>Email</th>
+                  <th>Total Events</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {organizers.map((o) => (
+                  <tr key={o.id}>
+                    <td>{o.id}</td>
+                    <td>{o.name}</td>
+                    <td>{o.email}</td>
+                    <td>
+                      <span className="event-count-badge">
+                        {getOrganizerEventCount(o.id)}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="action-buttons">
+                        <button
+                          className="btn-icon"
+                          onClick={() => openEditModal(o, "organizer")}
+                          title="Edit"
+                        >
+                          <Edit size={16} />
+                        </button>
+                        <button
+                          className="btn-icon btn-delete"
+                          onClick={() => openDeleteModal(o, "organizer")}
+                          title="Delete"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  // Visitors
   const renderVisitors = () => (
     <div className="content">
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
-      
+
       <div className="card">
         <h2>Visitors ({visitors.length})</h2>
         {loading ? (
@@ -335,130 +629,7 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // ===== Organizers =====
-  const renderOrganizers = () => (
-    <div className="content">
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
-      
-      <div className="card">
-        <h2>Organizers ({organizers.length})</h2>
-        {loading ? (
-          <div className="loading-container">
-            <Loader className="spinner" size={32} />
-            <p>Loading organizers...</p>
-          </div>
-        ) : organizers.length === 0 ? (
-          <p className="no-data">No organizers found</p>
-        ) : (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {organizers.map((o) => (
-                  <tr key={o.id}>
-                    <td>{o.id}</td>
-                    <td>{o.name}</td>
-                    <td>{o.email}</td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          className="btn-icon"
-                          onClick={() => openEditModal(o, "organizer")}
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          className="btn-icon btn-delete"
-                          onClick={() => openDeleteModal(o, "organizer")}
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // ===== Events =====
-  const renderEvents = () => (
-    <div className="content">
-      {error && <div className="alert alert-error">{error}</div>}
-      {success && <div className="alert alert-success">{success}</div>}
-      
-      <div className="card">
-        <h2>Events ({events.length})</h2>
-        {loading ? (
-          <div className="loading-container">
-            <Loader className="spinner" size={32} />
-            <p>Loading events...</p>
-          </div>
-        ) : events.length === 0 ? (
-          <p className="no-data">No events found</p>
-        ) : (
-          <div className="table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Title</th>
-                  <th>Organizer</th>
-                  <th>Date</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {events.map((e) => (
-                  <tr key={e.id}>
-                    <td>{e.id}</td>
-                    <td>{e.title}</td>
-                    <td>{e.organizerName}</td>
-                    <td>{new Date(e.date).toLocaleDateString()}</td>
-                    <td>{e.location}</td>
-                    <td>
-                      <span className={`status-badge ${e.isActive ? "active" : "inactive"}`}>
-                        {e.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="action-buttons">
-                        <button
-                          className="btn-icon btn-delete"
-                          onClick={() => openDeleteModal(e, "event")}
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // ===== Create Organizer Form =====
+  // Create Organizer Form
   const renderCreateOrganizer = () => (
     <section className="create-organizer">
       {error && <div className="alert alert-error">{error}</div>}
@@ -533,7 +704,9 @@ const AdminDashboard = () => {
           <button
             type="button"
             className="btn-outline"
-            onClick={() => setNewOrganizer({ name: "", role: "", email: "", password: "" })}
+            onClick={() =>
+              setNewOrganizer({ name: "", role: "", email: "", password: "" })
+            }
           >
             Clear
           </button>
@@ -553,7 +726,84 @@ const AdminDashboard = () => {
     </section>
   );
 
-  // ===== Edit Modal =====
+  // Event Detail Modal
+  const renderEventDetailModal = () => (
+    <div className="modal-overlay" onClick={() => setShowEventDetailModal(false)}>
+      <div className="modal-content event-detail-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h3>Event Details</h3>
+          <button className="modal-close" onClick={() => setShowEventDetailModal(false)}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {currentItem && (
+          <div className="event-details">
+            <div className="detail-row">
+              <strong>Title:</strong>
+              <span>{currentItem.title}</span>
+            </div>
+            <div className="detail-row">
+              <strong>Description:</strong>
+              <span>{currentItem.description || "No description"}</span>
+            </div>
+            <div className="detail-row">
+              <strong>Organizer:</strong>
+              <span>{currentItem.organizerName}</span>
+            </div>
+            <div className="detail-row">
+              <strong>Date:</strong>
+              <span>{formatDate(currentItem.date)}</span>
+            </div>
+            <div className="detail-row">
+              <strong>Location:</strong>
+              <span>{currentItem.location || "N/A"}</span>
+            </div>
+            <div className="detail-row">
+              <strong>Category:</strong>
+              <span>{currentItem.category || "N/A"}</span>
+            </div>
+            <div className="detail-row">
+              <strong>Type:</strong>
+              <span className={`type-badge ${currentItem.eventType?.toLowerCase()}`}>
+                {currentItem.eventType || "Public"}
+              </span>
+            </div>
+            <div className="detail-row">
+              <strong>Attendees:</strong>
+              <span>
+                {currentItem.currentAttendees || 0} / {currentItem.maxAttendees || "Unlimited"}
+              </span>
+            </div>
+            <div className="detail-row">
+              <strong>Status:</strong>
+              <span className={`status-badge ${getEventStatus(currentItem).toLowerCase()}`}>
+                {getEventStatus(currentItem)}
+              </span>
+            </div>
+            {currentItem.imageUrl && (
+              <div className="detail-row">
+                <strong>Image:</strong>
+                <img
+                  src={currentItem.imageUrl}
+                  alt={currentItem.title}
+                  className="event-detail-image"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        <div className="modal-actions">
+          <button className="btn-outline" onClick={() => setShowEventDetailModal(false)}>
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Edit Modal
   const renderEditModal = () => (
     <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -612,7 +862,7 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // ===== Delete Confirmation Modal =====
+  // Delete Modal
   const renderDeleteModal = () => (
     <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -644,7 +894,7 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // ===== Profile Modal =====
+  // Profile Modal
   const renderProfileModal = () => (
     <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -703,7 +953,7 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // ===== Content Switcher =====
+  // Content Switcher
   const renderContent = () => {
     switch (activeSection) {
       case "visitors":
@@ -727,10 +977,10 @@ const AdminDashboard = () => {
         {renderContent()}
       </div>
 
-      {/* Modals */}
       {showEditModal && renderEditModal()}
       {showDeleteModal && renderDeleteModal()}
       {showProfileModal && renderProfileModal()}
+      {showEventDetailModal && renderEventDetailModal()}
     </div>
   );
 };

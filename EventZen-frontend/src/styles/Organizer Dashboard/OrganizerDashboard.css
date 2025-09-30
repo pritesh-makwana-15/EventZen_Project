@@ -44,7 +44,7 @@
   padding: 20px;
 }
 
-.card {
+.card-organer {
   background: #f8f8f8;
   padding: 20px;
   border-radius: 10px;
@@ -54,7 +54,7 @@
   box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.card span {
+.card-organer span {
   display: block;
   font-size: 24px;
   color: #44a0b9;

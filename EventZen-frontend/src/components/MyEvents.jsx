@@ -112,13 +112,13 @@ export default function MyEvents({ onEditEvent }) {
 
       {/* Overview Stats */}
       <div className="overview">
-        <div className="card">
+        <div className="card-organer">
           Total Events <span>{totalEvents}</span>
         </div>
-        <div className="card">
+        <div className="card-organer">
           Upcoming Events <span>{upcomingEvents}</span>
         </div>
-        <div className="card">
+        <div className="card-organer">
           Past Events <span>{pastEvents}</span>
         </div>
       </div>

@@ -22,8 +22,10 @@ import com.eventzen.dto.request.CreateOrganizerRequest;
 import com.eventzen.dto.request.ProfileUpdateRequest;
 import com.eventzen.dto.response.EventResponse;
 import com.eventzen.dto.response.UserResponse;
+import com.eventzen.entity.Event;
 import com.eventzen.entity.Role;
 import com.eventzen.entity.User;
+import com.eventzen.repository.EventRepository;
 import com.eventzen.repository.UserRepository;
 import com.eventzen.service.EventService;
 import com.eventzen.service.UserService;
@@ -45,6 +47,9 @@ public class AdminController {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private EventRepository eventRepository;
 
     // ==================== USERS MANAGEMENT ====================
 
@@ -190,12 +195,16 @@ public class AdminController {
     }
 
     /**
-     * Delete event (Admin can delete any event)
+     * Delete event (Admin can delete any event - bypasses organizer check)
      */
     @DeleteMapping("/events/{id}")
     public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
         try {
-            eventService.deleteEvent(id);
+            // Admin can delete any event, so we directly delete from repository
+            Event event = eventRepository.findById(id)
+                    .orElseThrow(() -> new Exception("Event not found"));
+
+            eventRepository.delete(event);
             return ResponseEntity.ok("Event deleted successfully");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
