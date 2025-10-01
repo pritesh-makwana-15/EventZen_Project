@@ -10,22 +10,34 @@ export default function LoginForm() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
     try {
+      // Step 1: Login and get token
       const res = await API.post("/auth/login", { email, password });
-
       const { token, role } = res.data;
 
-      // Save token & role in localStorage
+      // Step 2: Save token & role
       localStorage.setItem("token", token);
       localStorage.setItem("role", role);
+      localStorage.setItem("email", email);
 
-      // Redirect based on role
+      // Step 3: Fetch user profile to get userId
+      try {
+        const profileRes = await API.get("/users/profile");
+        localStorage.setItem("userId", profileRes.data.id);
+        console.log("✅ User ID saved:", profileRes.data.id);
+      } catch (profileErr) {
+        console.warn("⚠️ Could not fetch user profile, but login succeeded");
+      }
+
+      // Step 4: Redirect based on role
       if (role === "VISITOR") {
         navigate("/visitor/dashboard");
       } else if (role === "ORGANIZER") {
@@ -36,7 +48,10 @@ export default function LoginForm() {
         navigate("/");
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed. Try again.");
+      console.error("❌ Login error:", err);
+      setError(err.response?.data?.message || "Login failed. Please check your credentials.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,6 +81,7 @@ export default function LoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-field"
                 required
+                disabled={loading}
               />
 
               <div className="password-box">
@@ -76,27 +92,44 @@ export default function LoginForm() {
                   onChange={(e) => setPassword(e.target.value)}
                   className="input-field"
                   required
+                  disabled={loading}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   className="eye-btn"
+                  disabled={loading}
                 >
                   {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                 </button>
               </div>
 
-              <button type="submit" className="login-form-btn">Login</button>
+              <button 
+                type="submit" 
+                className="login-form-btn"
+                disabled={loading}
+              >
+                {loading ? "Logging in..." : "Login"}
+              </button>
+              
               {error && <p className="error-msg">{error}</p>}
 
               <Link to={"/"}>
-                <button type="button" className="login-form-back-btn">Back</button>
+                <button 
+                  type="button" 
+                  className="login-form-back-btn"
+                  disabled={loading}
+                >
+                  Back
+                </button>
               </Link>
             </form>
 
             <div className="forgot-box">
               <Link to={"/forgotpassword"}>
-                <button type="button" className="forgot-btn">Forgot Password?</button>
+                <button type="button" className="forgot-btn">
+                  Forgot Password?
+                </button>
               </Link>
             </div>
 

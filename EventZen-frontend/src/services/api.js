@@ -20,8 +20,8 @@ API.interceptors.response.use(
       localStorage.removeItem("token");
       localStorage.removeItem("role");
       localStorage.removeItem("email");
-      // Optional: redirect to login
-      // window.location.href = "/login";
+      localStorage.removeItem("userId");
+      window.location.href = "/login";
     }
     return Promise.reject(err);
   }
@@ -135,6 +135,7 @@ export const logout = () => {
   localStorage.removeItem("token");
   localStorage.removeItem("role");
   localStorage.removeItem("email");
+  localStorage.removeItem("userId");
 };
 
 export default API;

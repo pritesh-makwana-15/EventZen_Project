@@ -1,22 +1,36 @@
 // src/services/registrations.js
 import API from "./api";
 
-export const registerForEvent = async (registrationData) => {
-  const { data } = await API.post("/registrations", registrationData);
+/**
+ * Register visitor for an event
+ */
+export const registerForEvent = async (eventId, visitorId) => {
+  const { data } = await API.post("/registrations", {
+    eventId,
+    visitorId
+  });
   return data;
 };
 
-export const getRegistrationsByVisitor = async (visitorId) => {
+/**
+ * Get all registrations for current visitor
+ */
+export const getMyRegistrations = async (visitorId) => {
   const { data } = await API.get(`/registrations/visitor/${visitorId}`);
   return data;
 };
 
-export const getRegistrationsByEvent = async (eventId) => {
+/**
+ * Get registrations for specific event
+ */
+export const getEventRegistrations = async (eventId) => {
   const { data } = await API.get(`/registrations/event/${eventId}`);
   return data;
 };
 
-// ✅ Use DELETE for cancel (matches REST convention)
+/**
+ * Cancel a registration
+ */
 export const cancelRegistration = async (registrationId) => {
-  await API.delete(`/registrations/${registrationId}`);
+  await API.put(`/registrations/cancel/${registrationId}`);
 };
