@@ -3,11 +3,13 @@ import API from "./api";
 
 /**
  * Register visitor for an event
+ * Now supports private event code
  */
-export const registerForEvent = async (eventId, visitorId) => {
+export const registerForEvent = async (eventId, visitorId, privateCode = null) => {
   const { data } = await API.post("/registrations", {
     eventId,
-    visitorId
+    visitorId,
+    privateCode  // Send private code if provided
   });
   return data;
 };

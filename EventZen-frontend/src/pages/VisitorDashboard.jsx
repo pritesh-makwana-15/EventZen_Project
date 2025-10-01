@@ -24,6 +24,12 @@ export default function VisitorDashboard() {
   const [success, setSuccess] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
   
+  // Private event popup states
+  const [showPrivateCodePopup, setShowPrivateCodePopup] = useState(false);
+  const [privateEventToRegister, setPrivateEventToRegister] = useState(null);
+  const [privateCode, setPrivateCode] = useState("");
+  const [privateCodeError, setPrivateCodeError] = useState("");
+  
   // Filters
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -150,6 +156,7 @@ export default function VisitorDashboard() {
     }
   };
 
+  // Handle registration - check if private event
   const handleRegister = async (eventId) => {
     try {
       const storedUserId = userId || localStorage.getItem("userId");
@@ -158,7 +165,21 @@ export default function VisitorDashboard() {
         return;
       }
 
-      await registerForEvent(eventId, storedUserId);
+      // Find the event
+      const event = allEvents.find(e => e.id === eventId);
+      
+      // Check if it's a private event
+      if (event && event.eventType === "PRIVATE") {
+        // Show private code popup
+        setPrivateEventToRegister(event);
+        setShowPrivateCodePopup(true);
+        setPrivateCode("");
+        setPrivateCodeError("");
+        return;
+      }
+
+      // Public event - register directly
+      await registerForEvent(eventId, storedUserId, null);
       setRegisteredEventIds(prev => new Set([...prev, eventId]));
       setSuccess("Successfully registered for the event!");
       setTimeout(() => setSuccess(""), 3000);
@@ -168,6 +189,43 @@ export default function VisitorDashboard() {
       console.error("Error registering for event:", err);
       setError(err.response?.data?.message || "Failed to register. Please try again.");
       setTimeout(() => setError(""), 5000);
+    }
+  };
+
+  // Handle private event registration with code
+  const handlePrivateEventRegister = async () => {
+    if (!privateCode.trim()) {
+      setPrivateCodeError("Please enter the private code");
+      return;
+    }
+
+    try {
+      const storedUserId = userId || localStorage.getItem("userId");
+      
+      // Register with private code
+      await registerForEvent(privateEventToRegister.id, storedUserId, privateCode);
+      
+      // Success
+      setRegisteredEventIds(prev => new Set([...prev, privateEventToRegister.id]));
+      setSuccess("Successfully registered for the event!");
+      setTimeout(() => setSuccess(""), 3000);
+      
+      // Close popup and reset
+      setShowPrivateCodePopup(false);
+      setPrivateEventToRegister(null);
+      setPrivateCode("");
+      setPrivateCodeError("");
+      
+      loadAllEvents();
+    } catch (err) {
+      console.error("Error registering for private event:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to register";
+      
+      if (errorMsg.includes("Private code is not correct")) {
+        setPrivateCodeError("Private code is not correct");
+      } else {
+        setPrivateCodeError(errorMsg);
+      }
     }
   };
 
@@ -619,7 +677,7 @@ export default function VisitorDashboard() {
         </footer>
       </main>
 
-      {/* Modal */}
+      {/* Event Details Modal */}
       {selectedEvent && (
         <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -663,6 +721,75 @@ export default function VisitorDashboard() {
               )}
               <button className="btn btn-secondary" onClick={() => setSelectedEvent(null)}>
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Private Event Code Popup */}
+      {showPrivateCodePopup && privateEventToRegister && (
+        <div className="modal-overlay" onClick={() => {
+          setShowPrivateCodePopup(false);
+          setPrivateEventToRegister(null);
+          setPrivateCode("");
+          setPrivateCodeError("");
+        }}>
+          <div className="private-code-modal" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="modal-close" 
+              onClick={() => {
+                setShowPrivateCodePopup(false);
+                setPrivateEventToRegister(null);
+                setPrivateCode("");
+                setPrivateCodeError("");
+              }}
+            >
+              ×
+            </button>
+            
+            <div className="private-code-header">
+              <h2>🔒 Private Event</h2>
+              <p>Enter the private code to register for <strong>{privateEventToRegister.title}</strong></p>
+            </div>
+            
+            <div className="private-code-body">
+              <div className="form-group">
+                <label>Private Code *</label>
+                <input
+                  type="text"
+                  value={privateCode}
+                  onChange={(e) => {
+                    setPrivateCode(e.target.value);
+                    setPrivateCodeError("");
+                  }}
+                  placeholder="Enter private code"
+                  className={privateCodeError ? "error-input" : ""}
+                  autoFocus
+                />
+                {privateCodeError && (
+                  <p className="error-message">{privateCodeError}</p>
+                )}
+              </div>
+            </div>
+            
+            <div className="private-code-footer">
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowPrivateCodePopup(false);
+                  setPrivateEventToRegister(null);
+                  setPrivateCode("");
+                  setPrivateCodeError("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn btn-primary-visitor"
+                onClick={handlePrivateEventRegister}
+              >
+                Register
               </button>
             </div>
           </div>

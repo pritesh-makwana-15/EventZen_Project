@@ -488,6 +488,91 @@
   margin-bottom: 20px;
 }
 
+/* Private Event Code Popup */
+.private-code-modal {
+  background: white;
+  border-radius: 16px;
+  max-width: 500px;
+  width: 90%;
+  position: relative;
+  animation: modalSlideIn 0.3s ease;
+}
+
+.private-code-header {
+  padding: 30px 30px 20px;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.private-code-header h2 {
+  margin: 0 0 10px 0;
+  color: #333;
+  font-size: 24px;
+}
+
+private-code-header p {
+  margin: 0;
+  color: #666;
+  font-size: 15px;
+}
+
+.private-code-body {
+  padding: 30px;
+}
+
+.private-code-body .form-group {
+  margin-bottom: 0;
+}
+
+.private-code-body label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #333;
+}
+
+.private-code-body input {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 15px;
+  transition: border-color 0.3s;
+}
+
+.private-code-body input:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.private-code-body input.error-input {
+  border-color: #ff5252;
+}
+
+.error-message {
+  color: #ff5252;
+  font-size: 13px;
+  margin-top: 8px;
+  margin-bottom: 0;
+}
+
+.private-code-footer {
+  padding: 20px 30px;
+  display: flex;
+  gap: 15px;
+  justify-content: flex-end;
+  border-top: 1px solid #f0f0f0;
+}
+
+.private-code-footer .btn {
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+}
+
 /* ===== PROFILE SECTION ===== */
 .profile-section {
   max-width: 600px;

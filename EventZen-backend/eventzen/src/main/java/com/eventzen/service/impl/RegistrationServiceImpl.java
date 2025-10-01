@@ -31,15 +31,13 @@ public class RegistrationServiceImpl implements RegistrationService {
         @Autowired
         private EventRepository eventRepository;
 
-        /**
-         * Register visitor for an event
-         * Includes validation, capacity check, and attendee count increment
-         */
         @Override
         @Transactional
         public RegistrationResponse registerForEvent(RegistrationRequest request) throws Exception {
-                System.out.println("Registration request - Visitor ID: " + request.getVisitorId()
-                                + ", Event ID: " + request.getEventId());
+                System.out.println("=== REGISTRATION START ===");
+                System.out.println("Visitor ID: " + request.getVisitorId());
+                System.out.println("Event ID: " + request.getEventId());
+                System.out.println("Provided Private Code: " + request.getPrivateCode());
 
                 // Step 1: Fetch visitor
                 User visitor = userRepository.findById(request.getVisitorId())
@@ -49,12 +47,39 @@ public class RegistrationServiceImpl implements RegistrationService {
                 Event event = eventRepository.findById(request.getEventId())
                                 .orElseThrow(() -> new Exception("Event not found"));
 
+                System.out.println("Event Type: " + event.getEventType());
+                System.out.println("Event Private Code: " + event.getPrivateCode());
+
                 // Step 3: Validate event is active
                 if (event.getIsActive() == null || !event.getIsActive()) {
                         throw new Exception("This event is no longer active");
                 }
 
-                // Step 4: Check if already registered (excluding cancelled registrations)
+                // Step 4: VALIDATE PRIVATE EVENT CODE (CRITICAL CHECK)
+                if ("PRIVATE".equalsIgnoreCase(event.getEventType())) {
+                        String providedCode = request.getPrivateCode();
+                        String actualCode = event.getPrivateCode();
+
+                        System.out.println("Private event detected!");
+                        System.out.println("Provided code: '" + providedCode + "'");
+                        System.out.println("Actual code: '" + actualCode + "'");
+
+                        // Check if code was provided
+                        if (providedCode == null || providedCode.trim().isEmpty()) {
+                                System.out.println("ERROR: No private code provided");
+                                throw new Exception("Private code is required for this event");
+                        }
+
+                        // Check if code matches
+                        if (!providedCode.trim().equals(actualCode)) {
+                                System.out.println("ERROR: Private code does not match");
+                                throw new Exception("Private code is not correct");
+                        }
+
+                        System.out.println("SUCCESS: Private code validated");
+                }
+
+                // Step 5: Check if already registered
                 boolean alreadyRegistered = registrationRepository.findByVisitor(visitor)
                                 .stream()
                                 .anyMatch(reg -> reg.getEvent().getId().equals(event.getId())
@@ -64,7 +89,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                         throw new Exception("You are already registered for this event");
                 }
 
-                // Step 5: Check capacity limit
+                // Step 6: Check capacity limit
                 Integer maxAttendees = event.getMaxAttendees();
                 Integer currentAttendees = event.getCurrentAttendees() != null
                                 ? event.getCurrentAttendees()
@@ -74,7 +99,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                         throw new Exception("Registration closed - maximum attendees reached");
                 }
 
-                // Step 6: Create registration
+                // Step 7: Create registration
                 Registration registration = new Registration();
                 registration.setVisitor(visitor);
                 registration.setEvent(event);
@@ -83,19 +108,17 @@ public class RegistrationServiceImpl implements RegistrationService {
 
                 Registration saved = registrationRepository.save(registration);
 
-                // Step 7: Increment attendee count
+                // Step 8: Increment attendee count
                 event.setCurrentAttendees(currentAttendees + 1);
                 eventRepository.save(event);
 
-                System.out.println("Registration successful - New attendee count: "
+                System.out.println("Registration successful - Attendee count: "
                                 + event.getCurrentAttendees() + "/" + maxAttendees);
+                System.out.println("=== REGISTRATION END ===");
 
                 return mapToResponse(saved);
         }
 
-        /**
-         * Get all registrations for a specific visitor
-         */
         @Override
         public List<RegistrationResponse> getRegistrationsByVisitor(Long visitorId) throws Exception {
                 User visitor = userRepository.findById(visitorId)
@@ -107,9 +130,6 @@ public class RegistrationServiceImpl implements RegistrationService {
                                 .collect(Collectors.toList());
         }
 
-        /**
-         * Get all registrations for a specific event
-         */
         @Override
         public List<RegistrationResponse> getRegistrationsByEvent(Long eventId) throws Exception {
                 Event event = eventRepository.findById(eventId)
@@ -121,10 +141,6 @@ public class RegistrationServiceImpl implements RegistrationService {
                                 .collect(Collectors.toList());
         }
 
-        /**
-         * Cancel a registration
-         * Decrements attendee count when cancelling
-         */
         @Override
         @Transactional
         public void cancelRegistration(Long registrationId) throws Exception {
@@ -135,7 +151,6 @@ public class RegistrationServiceImpl implements RegistrationService {
 
                 // Only process if registration is not already cancelled
                 if (registration.getStatus() != RegistrationStatus.CANCELLED) {
-                        // Mark as cancelled
                         registration.setStatus(RegistrationStatus.CANCELLED);
                         registrationRepository.save(registration);
 
@@ -149,7 +164,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                                 event.setCurrentAttendees(currentAttendees - 1);
                                 eventRepository.save(event);
 
-                                System.out.println("Registration cancelled - New attendee count: "
+                                System.out.println("Registration cancelled - Attendee count: "
                                                 + event.getCurrentAttendees() + "/" + event.getMaxAttendees());
                         }
                 } else {
@@ -157,9 +172,6 @@ public class RegistrationServiceImpl implements RegistrationService {
                 }
         }
 
-        /**
-         * Get all registrations (Admin only)
-         */
         @Override
         public List<RegistrationResponse> getAllRegistrations() {
                 return registrationRepository.findAll()
@@ -168,9 +180,6 @@ public class RegistrationServiceImpl implements RegistrationService {
                                 .collect(Collectors.toList());
         }
 
-        /**
-         * Helper method to map Registration entity to RegistrationResponse DTO
-         */
         private RegistrationResponse mapToResponse(Registration registration) {
                 return new RegistrationResponse(
                                 registration.getId(),
