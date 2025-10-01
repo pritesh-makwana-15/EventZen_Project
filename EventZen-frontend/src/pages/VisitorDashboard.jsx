@@ -383,7 +383,7 @@ export default function VisitorDashboard() {
                   <div className="events-grid">
                     {getFilteredEvents().length > 0 ? (
                       getFilteredEvents().map(event => (
-                        <div key={event.id} className="event-card">
+                        <div key={event.id} className="event-card-visitor">
                           <div className="event-image">
                             <img 
                               src={event.imageUrl || "https://via.placeholder.com/400x200?text=Event"} 
@@ -393,7 +393,7 @@ export default function VisitorDashboard() {
                               {registeredEventIds.has(event.id) ? '✓ Registered' : event.eventType}
                             </span>
                           </div>
-                          <div className="event-details">
+                          <div className="event-details-visitor">
                             <h3>{event.title}</h3>
                             <span className="event-category">{event.category}</span>
                             <div className="event-info-grid">
@@ -413,7 +413,7 @@ export default function VisitorDashboard() {
                                 </button>
                               ) : (
                                 <button
-                                  className="btn btn-primary"
+                                  className="btn btn-primary-visitor"
                                   onClick={() => handleRegister(event.id)}
                                   disabled={event.maxAttendees && event.currentAttendees >= event.maxAttendees}
                                 >
@@ -531,7 +531,7 @@ export default function VisitorDashboard() {
                   ) : (
                     <div className="no-registrations">
                       <p>You haven't registered for any events yet</p>
-                      <button className="btn btn-primary" onClick={() => setActivePage("events")}>
+                      <button className="btn btn-primary-visitor" onClick={() => setActivePage("events")}>
                         Browse Events
                       </button>
                     </div>
@@ -557,7 +557,7 @@ export default function VisitorDashboard() {
                         {userProfile.mobileNumber && (
                           <p className="profile-location">📱 {userProfile.mobileNumber}</p>
                         )}
-                        <button className="btn btn-primary" onClick={() => setEditing(true)}>
+                        <button className="btn btn-primary-visitor" onClick={() => setEditing(true)}>
                           Edit Profile
                         </button>
                       </div>
@@ -589,7 +589,7 @@ export default function VisitorDashboard() {
                           />
                         </div>
                         <div className="form-actions">
-                          <button type="submit" className="btn btn-primary">Save</button>
+                          <button type="submit" className="btn btn-primary-visitor">Save</button>
                           <button 
                             type="button" 
                             className="btn btn-secondary" 
@@ -651,7 +651,7 @@ export default function VisitorDashboard() {
             <div className="modal-footer">
               {!registeredEventIds.has(selectedEvent.id) && (
                 <button
-                  className="btn btn-primary"
+                  className="btn btn-primary-visitor"
                   onClick={() => {
                     handleRegister(selectedEvent.id);
                     setSelectedEvent(null);

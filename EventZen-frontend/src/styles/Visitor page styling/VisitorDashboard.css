@@ -50,9 +50,9 @@
   align-items: center;
   gap: 15px;
   padding: 15px 20px;
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(43, 47, 255, 0.5);
   border: none;
-  border-radius: 10px;
+  /* border-radius: 10px; */
   color: white;
   font-size: 16px;
   cursor: pointer;
@@ -62,12 +62,12 @@
 }
 
 .nav-item:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: translateX(5px);
+  background: rgba(43, 47, 255, 0.7);
+  /* transform: translateX(5px); */
 }
 
 .nav-item.active {
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(43, 47, 255, 0.7);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
@@ -77,11 +77,11 @@
 
 .nav-item.logout {
   margin-top: auto;
-  background: rgba(255, 59, 48, 0.2);
+  background: rgba(255, 13, 0, 0.5);
 }
 
 .nav-item.logout:hover {
-  background: rgba(255, 59, 48, 0.3);
+  background: rgba(255, 59, 48, 1);
 }
 
 /* ===== MAIN CONTENT ===== */
@@ -222,7 +222,7 @@
   gap: 25px;
 }
 
-.event-card {
+.event-card-visitor {
   background: white;
   border-radius: 12px;
   overflow: hidden;
@@ -230,9 +230,9 @@
   transition: transform 0.3s, box-shadow 0.3s;
 }
 
-.event-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+.event-card-visitor:hover {
+  /* transform: translateY(-5px); */
+  box-shadow: 0px 10px 25px rgba(0, 0, 0, 0.5);
 }
 
 .event-image {
@@ -268,7 +268,7 @@
   color: white;
 }
 
-.event-details {
+.event-details-visitor {
   padding: 20px;
 }
 
@@ -305,30 +305,31 @@
   margin-top: 15px;
 }
 
-.btn-primary,
+.btn-primary-visitor,
 .btn-secondary,
 .btn-registered {
   flex: 1;
   padding: 12px;
   border: none;
   border-radius: 8px;
+  text-align: center;
   cursor: pointer;
   font-weight: 600;
   font-size: 14px;
   transition: all 0.3s;
 }
 
-.btn-primary {
+.btn-primary-visitor {
   background: #667eea;
   color: white;
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary-visitor:hover:not(:disabled) {
   background: #5568d3;
-  transform: translateY(-2px);
+  /* transform: translateY(-2px); */
 }
 
-.btn-primary:disabled {
+.btn-primary-visitor:disabled {
   background: #ccc;
   cursor: not-allowed;
 }
@@ -541,7 +542,7 @@
   margin: 10px 0;
 }
 
-.profile-card .btn-primary {
+.profile-card .btn-primary-visitor {
   margin-top: 20px;
   padding: 12px 40px;
   width: auto;
@@ -666,7 +667,7 @@
   justify-content: flex-end;
 }
 
-.modal-footer .btn-primary,
+.modal-footer .btn-primary-visitor,
 .modal-footer .btn-secondary {
   padding: 12px 30px;
   width: auto;
