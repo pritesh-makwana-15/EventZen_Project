@@ -5,7 +5,6 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import EventsPage from "./pages/EventsPage";
-import EventDetails from "./pages/EventDetails";
 import VisitorDashboard from "./pages/VisitorDashboard";
 import OrganizerDashboard from "./pages/OrganizerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -23,7 +22,6 @@ export default function AppRoutes() {
 
       {/* Events */}
       <Route path="/events" element={<EventsPage />} />
-      <Route path="/events/:id" element={<EventDetails />} />
 
       {/* Protected Dashboards */}
       <Route

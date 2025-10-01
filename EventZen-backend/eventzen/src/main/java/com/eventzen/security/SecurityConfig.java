@@ -41,47 +41,41 @@ public class SecurityConfig {
         System.out.println("🔧 Configuring Security Filter Chain...");
 
         http
-                // Disable CSRF for APIs
                 .csrf(csrf -> csrf.disable())
-
-                // Disable default Spring login page
                 .formLogin(form -> form.disable())
-
-                // Disable HTTP Basic authentication
                 .httpBasic(basic -> basic.disable())
-
-                // Enable CORS with config
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // Use stateless session (JWT)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Authorize requests
                 .authorizeHttpRequests(auth -> {
                     System.out.println("🔧 Configuring authorization rules...");
                     auth
                             // Allow OPTIONS requests for CORS preflight
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                            // Allow register & login for everyone (NO AUTHENTICATION REQUIRED)
+                            // Allow register & login for everyone
                             .requestMatchers("/api/auth/**").permitAll()
 
-                            // Role-based access for other APIs
-                            .requestMatchers("/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER", "VISITOR")
+                            // 🔥 NEW: Allow public GET access to events (view events without login)
+                            .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
+
+                            // POST, PUT, DELETE on events require authentication
+                            .requestMatchers(HttpMethod.POST, "/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER")
+                            .requestMatchers(HttpMethod.PUT, "/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER")
+                            .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER")
+
+                            // Registrations require authentication
                             .requestMatchers("/api/registrations/**").hasAnyAuthority("ADMIN", "VISITOR")
 
-                            // 🔧 FIXED: Include ORGANIZER for user profile access
+                            // User profile access
                             .requestMatchers("/api/users/**").hasAnyAuthority("ADMIN", "ORGANIZER", "VISITOR")
 
+                            // Admin endpoints
                             .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
-
-                            .requestMatchers("/api/admin/**").hasRole("ADMIN")
 
                             // Any other request needs authentication
                             .anyRequest().authenticated();
                 });
 
-        // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         System.out.println("✅ Security Filter Chain configured successfully");
@@ -92,21 +86,16 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Frontend URLs - adjust as required
         configuration.setAllowedOrigins(
                 Arrays.asList("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
 
-        // Allowed HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
 
-        // Allowed headers (Authorization for JWT)
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
-        // Expose headers
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
 
-        // Allow sending cookies / credentials
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

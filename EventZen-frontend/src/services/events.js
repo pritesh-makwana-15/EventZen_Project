@@ -1,16 +1,37 @@
 // src/services/events.js
+import axios from "axios";
+
+// Create a separate axios instance WITHOUT authentication for public endpoints
+const PublicAPI = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api",
+});
+
+// Import the authenticated API for other operations
 import API from "./api";
 
+// Fetch all events WITHOUT authentication (public endpoint)
 export const fetchAllEvents = async () => {
-  const { data } = await API.get("/events");
-  return data;
+  try {
+    const { data } = await PublicAPI.get("/events");
+    return data;
+  } catch (error) {
+    console.error("Error fetching public events:", error);
+    throw error;
+  }
 };
 
+// Fetch event by ID WITHOUT authentication (public endpoint)
 export const fetchEventById = async (id) => {
-  const { data } = await API.get(`/events/${id}`);
-  return data;
+  try {
+    const { data } = await PublicAPI.get(`/events/${id}`);
+    return data;
+  } catch (error) {
+    console.error("Error fetching event details:", error);
+    throw error;
+  }
 };
 
+// Below functions still require authentication
 export const fetchEventsByOrganizer = async (organizerId) => {
   const { data } = await API.get(`/events/organizer/${organizerId}`);
   return data;

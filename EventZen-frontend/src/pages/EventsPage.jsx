@@ -1,148 +1,517 @@
-import React, { useState } from "react";
-import "../styles/Events styling/Events.css";
+// src/pages/Events.jsx
+import React, { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import "../styles/Events styling/EventsPage.css";
-import EventCard from "../components/Events/EventCard";
-import Filters from "../components/Events/Filters";
-import Footer from "../components/Footer";
-import eventsData from "../data/eventsData"; // import events
+import { fetchAllEvents } from "../services/events";
+import { registerForEvent } from "../services/registrations";
 
-export default function EventPage() {
-  const [currentPage, setCurrentPage] = useState(1);
-  const eventsPerPage = 8;
-
-  const [selectedEvent, setSelectedEvent] = useState(null);
-
-  // Filters
+export default function Events() {
+  const navigate = useNavigate();
+  
+  // State Management
+  const [events, setEvents] = useState([]);
+  const [filteredEvents, setFilteredEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Filter States
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   
-  const [events, setEvents] = useState(eventsData); // use imported data
+  // Modal State
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showModal, setShowModal] = useState(false);
   
-  // Toggle Register
-  const handleRegisterToggle = (id) => {
-    setEvents(
-      events.map((ev) =>
-        ev.id === id ? { ...ev, registered: !ev.registered } : ev
-      )
-    );
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const eventsPerPage = 9;
+
+  // Check if user is logged in
+  const token = localStorage.getItem("token");
+  const role = localStorage.getItem("role");
+  const userId = localStorage.getItem("userId");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("role");
+    localStorage.removeItem("email");
+    localStorage.removeItem("userId");
+    window.location.href = "/login";
   };
 
-  // Today's date (midnight)
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  // Fetch all events on component mount - NO TOKEN REQUIRED
+  useEffect(() => {
+    loadEvents();
+  }, []);
 
-  // Filtered & upcoming events
-  const filteredEvents = events
-    .filter((event) => {
-      const eventDate = new Date(event.date);
-      return (
-        eventDate >= today && // Only upcoming events
-        event.title.toLowerCase().includes(searchQuery.toLowerCase()) &&
-        (categoryFilter ? event.category === categoryFilter : true) &&
-        (locationFilter ? event.location === locationFilter : true)
+  const loadEvents = async () => {
+    try {
+      setLoading(true);
+      // Fetch events without authentication (public endpoint)
+      const data = await fetchAllEvents();
+      setEvents(data);
+      setFilteredEvents(data);
+      setError(null);
+    } catch (err) {
+      console.error("Error fetching events:", err);
+      // If 401 error, still try to show events (they might be public)
+      if (err.response?.status === 401) {
+        setError("Please login to see all events.");
+      } else {
+        setError("Failed to load events. Please try again later.");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Apply filters whenever filter state changes
+  useEffect(() => {
+    applyFilters();
+  }, [searchQuery, categoryFilter, locationFilter, events]);
+
+  const applyFilters = () => {
+    let filtered = [...events];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(event =>
+        event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.description?.toLowerCase().includes(searchQuery.toLowerCase())
       );
-    })
-    .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending
+    }
 
-  // Pagination
+    // Category filter
+    if (categoryFilter) {
+      filtered = filtered.filter(event => 
+        event.category?.toLowerCase() === categoryFilter.toLowerCase()
+      );
+    }
+
+    // Location filter
+    if (locationFilter) {
+      filtered = filtered.filter(event => 
+        event.location?.toLowerCase().includes(locationFilter.toLowerCase())
+      );
+    }
+
+    setFilteredEvents(filtered);
+    setCurrentPage(1);
+  };
+
+  // Reset filters
+  const handleReset = () => {
+    setSearchQuery("");
+    setCategoryFilter("");
+    setLocationFilter("");
+  };
+
+  // Pagination logic
+  const indexOfLastEvent = currentPage * eventsPerPage;
+  const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
+  const currentEvents = filteredEvents.slice(indexOfFirstEvent, indexOfLastEvent);
   const totalPages = Math.ceil(filteredEvents.length / eventsPerPage);
-  const indexOfLast = currentPage * eventsPerPage;
-  const indexOfFirst = indexOfLast - eventsPerPage;
-  const currentEvents = filteredEvents.slice(indexOfFirst, indexOfLast);
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Handle Details Button Click - ALLOW WITHOUT LOGIN
+  const handleDetails = (event) => {
+    setSelectedEvent(event);
+    setShowModal(true);
+  };
+
+  // Handle Register Button Click - REQUIRES LOGIN
+  const handleRegister = async (eventId) => {
+    // Check if user is logged in - REDIRECT IF NOT
+    if (!token) {
+      alert("Please login to register for events.");
+      navigate("/login");
+      return;
+    }
+
+    // Check if user is a visitor
+    if (role !== "VISITOR") {
+      alert("Only visitors can register for events.");
+      return;
+    }
+
+    try {
+      await registerForEvent(eventId, userId);
+      alert("Registration successful!");
+      setShowModal(false);
+      loadEvents();
+    } catch (err) {
+      console.error("Registration error:", err);
+      alert(err.response?.data?.message || "Failed to register. Please try again.");
+    }
+  };
+
+  // Close Modal
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedEvent(null);
+  };
+
+  // Format date
+  const formatDate = (dateString) => {
+    if (!dateString) return "TBA";
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
+    });
+  };
+
+  // Format time
+  const formatTime = (timeString) => {
+    if (!timeString) return "";
+    return timeString;
+  };
+
+  if (loading) {
+    return (
+      <div className="events-page">
+        {/* HEADER */}
+        <header className="navbar">
+          <div className="logo">
+            <Link to="/" className="logo-link">
+              <span className="logo-icon">🎉</span>
+              <span className="logo-text">EventZen</span>
+            </Link>
+          </div>
+          <nav className="nav-menu">
+            <Link to="/">Home</Link>
+            <Link to="/events">Events</Link>
+            <Link to="/gallery">Gallery</Link>
+            <Link to="/about">About Us</Link>
+            {token && role === "VISITOR" && <Link to="/visitor-dashboard">Dashboard</Link>}
+            {token && role === "ORGANIZER" && <Link to="/organizer-dashboard">Dashboard</Link>}
+            {token && role === "ADMIN" && <Link to="/admin-dashboard">Dashboard</Link>}
+          </nav>
+          <div className="nav-actions">
+            {!token && (
+              <>
+                <Link to="/login">Login</Link>
+                <Link to="/signup">Sign Up</Link>
+              </>
+            )}
+            {token && <button onClick={handleLogout}>Logout</button>}
+          </div>
+        </header>
+
+        <div className="loading-container">
+          <div className="loading-spinner"></div>
+          <p>Loading events...</p>
+        </div>
+
+        {/* FOOTER */}
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-logo">
+              <span className="footer-logo-icon">🎉</span>
+              <span className="footer-logo-text">EventZen</span>
+            </div>
+            <div className="footer-copyright">
+              © {new Date().getFullYear()} EventZen. All rights reserved.
+            </div>
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="events-page">
+        {/* HEADER */}
+        <header className="navbar">
+          <div className="logo">
+            <Link to="/" className="logo-link">
+              <span className="logo-icon">🎉</span>
+              <span className="logo-text">EventZen</span>
+            </Link>
+          </div>
+          <nav className="nav-menu">
+            <Link to="/">Home</Link>
+            <Link to="/events">Events</Link>
+            <Link to="/gallery">Gallery</Link>
+            <Link to="/about">About Us</Link>
+            {token && role === "VISITOR" && <Link to="/visitor-dashboard">Dashboard</Link>}
+            {token && role === "ORGANIZER" && <Link to="/organizer-dashboard">Dashboard</Link>}
+            {token && role === "ADMIN" && <Link to="/admin-dashboard">Dashboard</Link>}
+          </nav>
+          <div className="nav-actions">
+            {!token && (
+              <>
+                <Link to="/login">Login</Link>
+                <Link to="/signup">Sign Up</Link>
+              </>
+            )}
+            {token && <button onClick={handleLogout}>Logout</button>}
+          </div>
+        </header>
+
+        <div className="error-container">
+          <p>{error}</p>
+          <button onClick={loadEvents} className="retry-btn">Retry</button>
+        </div>
+
+        {/* FOOTER */}
+        <footer className="footer">
+          <div className="footer-content">
+            <div className="footer-logo">
+              <span className="footer-logo-icon">🎉</span>
+              <span className="footer-logo-text">EventZen</span>
+            </div>
+            <div className="footer-copyright">
+              © {new Date().getFullYear()} EventZen. All rights reserved.
+            </div>
+          </div>
+        </footer>
+      </div>
+    );
+  }
 
   return (
-    <div className="event-page">
-      {/* Event Page Navbar */}
-      <header className="ep-navbar">
-        {/* Logo Section */}
+    <div className="events-page">
+      {/* ===== HEADER/NAVBAR ===== */}
+      <header className="navbar">
         <div className="logo">
-          <img src="../src/assets/EZ-logo1.png" alt="logo" className="logo-img" />
-          <span className="header-logo-text">EventZen</span>
+          <Link to="/" className="logo-link">
+            <span className="logo-icon">🎉</span>
+            <span className="logo-text">EventZen</span>
+          </Link>
         </div>
-        {/* < div className="ep-logo">EventZen</> */}
-        <nav>
-          <a href="/" className={window.location.pathname === "/" ? "active" : ""}>Home</a>
-          <a href="/events" className={window.location.pathname === "/events" ? "active" : ""}>Events</a>
-          <a href="/login" className={window.location.pathname === "/login" ? "active" : ""}>Login</a>
-          <a href="/signup" className={window.location.pathname === "/signup" ? "active" : ""}>Sign Up</a>
+
+        <nav className="nav-menu">
+          <Link to="/">Home</Link>
+          <Link to="/events">Events</Link>
+          <Link to="/gallery">Gallery</Link>
+          <Link to="/about">About Us</Link>
+
+          {token && role === "VISITOR" && <Link to="/visitor-dashboard">Dashboard</Link>}
+          {token && role === "ORGANIZER" && <Link to="/organizer-dashboard">Dashboard</Link>}
+          {token && role === "ADMIN" && <Link to="/admin-dashboard">Dashboard</Link>}
         </nav>
+
+        <div className="nav-actions">
+          {!token && (
+            <>
+              <Link to="/login">Login</Link>
+              <Link to="/signup">Sign Up</Link>
+            </>
+          )}
+          {token && (
+            <button onClick={handleLogout}>Logout</button>
+          )}
+        </div>
       </header>
 
+      {/* ===== MAIN CONTENT ===== */}
+      <div className="main-content-events">
+        <h1 className="page-title">Upcoming Events</h1>
 
-      {/* Main Content */}
-      <main className="main-content">
-        <h2>Upcoming Events</h2>
+        {/* ===== FILTERS SECTION ===== */}
+        <div className="filters">
+          <input
+            type="text"
+            placeholder="Search events..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
 
-        {/* Filters */}
-        <Filters
-          searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
-          categoryFilter={categoryFilter}
-          setCategoryFilter={setCategoryFilter}
-          locationFilter={locationFilter}
-          setLocationFilter={setLocationFilter}
-        />
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+            <option value="">All Categories</option>
+            <option value="Music">Music</option>
+            <option value="Technology">Technology</option>
+            <option value="Business">Business</option>
+            <option value="Food">Food</option>
+            <option value="Dance">Dance</option>
+            <option value="Art">Art</option>
+            <option value="Sports">Sports</option>
+            <option value="Education">Education</option>
+            <option value="Entertainment">Entertainment</option>
+            <option value="Wellness">Wellness</option>
+            <option value="Literature">Literature</option>
+            <option value="Comedy">Comedy</option>
+            <option value="Photography">Photography</option>
+            <option value="Fashion">Fashion</option>
+            <option value="Gaming">Gaming</option>
+            <option value="Adventure">Adventure</option>
+            <option value="Science">Science</option>
+            <option value="Cultural">Cultural</option>
+            <option value="Festival">Festival</option>
+            <option value="Theatre">Theatre</option>
+            <option value="Travel">Travel</option>
+            <option value="Environment">Environment</option>
+          </select>
 
-        {/* Event Grid */}
-        <div className="event-grid">
-          {currentEvents.map((event) => (
-            <EventCard
-              key={event.id}
-              event={event}
-              onRegister={handleRegisterToggle}
-              onDetails={setSelectedEvent}
+          <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
+            <option value="">All Locations</option>
+            <option value="Mumbai">Mumbai</option>
+            <option value="Delhi">Delhi</option>
+            <option value="Bangalore">Bangalore</option>
+            <option value="Pune">Pune</option>
+            <option value="Chennai">Chennai</option>
+            <option value="Hyderabad">Hyderabad</option>
+            <option value="Goa">Goa</option>
+            <option value="Kolkata">Kolkata</option>
+          </select>
+
+          <div className="filter-actions">
+            <button onClick={handleReset} className="reset-btn">Reset</button>
+          </div>
+        </div>
+
+        {/* ===== EVENTS GRID ===== */}
+        {currentEvents.length === 0 ? (
+          <div className="no-events">
+            <p>No events found matching your criteria.</p>
+          </div>
+        ) : (
+          <div className="event-grid">
+            {currentEvents.map((event) => (
+              <div key={event.id} className="event-card">
+                <div className="event-image">
+                  <img 
+                    src={event.imageUrl || `https://picsum.photos/400/300?random=${event.id}`} 
+                    alt={event.title} 
+                  />
+                  <span className="event-tag">{event.type || "Public"}</span>
+                </div>
+
+                <div className="event-details">
+                  <h3>{event.title}</h3>
+                  <p><strong>Category:</strong> {event.category}</p>
+                  <p><strong>Date:</strong> {formatDate(event.eventDate)} {formatTime(event.eventTime)}</p>
+                  <p><strong>Location:</strong> {event.location}</p>
+                  <p><strong>Attendance:</strong> {event.currentParticipants || 0} / {event.maxParticipants || "Unlimited"}</p>
+                </div>
+
+                <div className="event-actions">
+                  <button 
+                    onClick={() => handleRegister(event.id)}
+                    className="register-btn"
+                  >
+                    Register
+                  </button>
+                  <button 
+                    onClick={() => handleDetails(event)}
+                    className="details-btn"
+                  >
+                    View Details
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ===== PAGINATION ===== */}
+        {totalPages > 1 && (
+          <div className="pagination">
+            <button 
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="page-btn"
+            >
+              Previous
+            </button>
+            
+            {[...Array(totalPages)].map((_, index) => (
+              <button
+                key={index + 1}
+                onClick={() => handlePageChange(index + 1)}
+                className={currentPage === index + 1 ? "page-btn active" : "page-btn"}
+              >
+                {index + 1}
+              </button>
+            ))}
+            
+            <button 
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="page-btn"
+            >
+              Next
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* ===== EVENT DETAILS MODAL - VIEWABLE WITHOUT LOGIN ===== */}
+      {showModal && selectedEvent && (
+        <div className="modal-overlay" onClick={closeModal}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={closeModal}>&times;</button>
+            
+            <img 
+              src={selectedEvent.imageUrl || `https://picsum.photos/600/400?random=${selectedEvent.id}`} 
+              alt={selectedEvent.title}
+              className="modal-image"
             />
-          ))}
-        </div>
-
-        {/* Pagination */}
-        <div className="pagination">
-          <button
-            onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-            disabled={currentPage === 1}
-          >
-            Prev
-          </button>
-          <span>
-            Page {currentPage} of {totalPages}
-          </span>
-          <button
-            onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </button>
-        </div>
-
-        {/* Modal */}
-        {selectedEvent && (
-          <div className="modal-overlay">
-            <div className="modal">
+            
+            <div className="modal-content">
               <h2>{selectedEvent.title}</h2>
-              <img src={selectedEvent.image} alt={selectedEvent.title} />
-              <p><strong>Category:</strong> {selectedEvent.category}</p>
-              <p><strong>Date:</strong> {selectedEvent.date} at {selectedEvent.time}</p>
-              <p><strong>Location:</strong> {selectedEvent.location}</p>
-              <p><strong>Participants Limit:</strong> {selectedEvent.participants}</p>
-              <p><strong>Organizer:</strong> {selectedEvent.organizer}</p>
-              <p><strong>Type:</strong> {selectedEvent.type}</p>
+              <p className="modal-description">{selectedEvent.description}</p>
+              
+              <div className="modal-info">
+                <div className="info-item">
+                  <strong>Category:</strong> {selectedEvent.category}
+                </div>
+                <div className="info-item">
+                  <strong>Date:</strong> {formatDate(selectedEvent.eventDate)}
+                </div>
+                <div className="info-item">
+                  <strong>Time:</strong> {formatTime(selectedEvent.eventTime)}
+                </div>
+                <div className="info-item">
+                  <strong>Location:</strong> {selectedEvent.location}
+                </div>
+                <div className="info-item">
+                  <strong>Organizer:</strong> {selectedEvent.organizerName || "EventZen"}
+                </div>
+                <div className="info-item">
+                  <strong>Participants:</strong> {selectedEvent.currentParticipants || 0} / {selectedEvent.maxParticipants || "Unlimited"}
+                </div>
+                <div className="info-item">
+                  <strong>Type:</strong> {selectedEvent.type || "Public"}
+                </div>
+              </div>
 
               <div className="modal-actions">
-                <button onClick={() => setSelectedEvent(null)}>Back</button>
-                <button
-                  onClick={() => handleRegisterToggle(selectedEvent.id)}
-                  className={selectedEvent.registered ? "unregister-btn" : "register-btn"}
+                <button onClick={closeModal} className="close-btn">
+                  Close
+                </button>
+                <button 
+                  onClick={() => handleRegister(selectedEvent.id)}
+                  className="register-btn"
                 >
-                  {selectedEvent.registered ? "Unregister" : "Register"}
+                  {token ? "Register Now" : "Login to Register"}
                 </button>
               </div>
             </div>
           </div>
-        )}
-      </main>
+        </div>
+      )}
 
-      <Footer />
+      {/* ===== FOOTER ===== */}
+      <footer className="footer">
+        <div className="footer-content">
+          <div className="footer-logo">
+            <span className="footer-logo-icon">🎉</span>
+            <span className="footer-logo-text">EventZen</span>
+          </div>
+          <div className="footer-copyright">
+            © {new Date().getFullYear()} EventZen. All rights reserved.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }
