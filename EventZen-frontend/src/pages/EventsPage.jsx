@@ -294,9 +294,9 @@ export default function Events() {
           <Link to="/gallery">Gallery</Link>
           <Link to="/about">About Us</Link>
 
-          {token && role === "VISITOR" && <Link to="/visitor-dashboard">Dashboard</Link>}
-          {token && role === "ORGANIZER" && <Link to="/organizer-dashboard">Dashboard</Link>}
-          {token && role === "ADMIN" && <Link to="/admin-dashboard">Dashboard</Link>}
+          {token && role === "VISITOR" && <Link to="/visitor/dashboard">Dashboard</Link>}
+          {token && role === "ORGANIZER" && <Link to="/organizer/dashboard">Dashboard</Link>}
+          {token && role === "ADMIN" && <Link to="/admin/dashboard">Dashboard</Link>}
         </nav>
 
         <div className="nav-actions">

@@ -298,9 +298,9 @@ const AdminDashboard = () => {
     navigate("/login");
   };
 
-  // Sidebar
-  const renderSidebar = () => (
-    <div className="sidebar">
+  // sidebrAdmin
+  const rendersidebrAdmin = () => (
+    <div className="sidebrAdmin">
       <div className="logo-section">
         <div className="logo-box">
           <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
@@ -313,7 +313,7 @@ const AdminDashboard = () => {
           className={`nav-btn ${activeSection === "events" ? "active" : ""}`}
           onClick={() => setActiveSection("events")}
         >
-          <Calendar size={18} />
+          <Calendar size={20} />
           <div className="nav-btn-content">
             <span>Events</span>
             <span className="nav-count">{events.length}</span>
@@ -323,7 +323,7 @@ const AdminDashboard = () => {
           className={`nav-btn ${activeSection === "organizers" ? "active" : ""}`}
           onClick={() => setActiveSection("organizers")}
         >
-          <User size={18} />
+          <User size={20} />
           <div className="nav-btn-content">
             <span>Organizers</span>
             <span className="nav-count">{organizers.length}</span>
@@ -333,7 +333,7 @@ const AdminDashboard = () => {
           className={`nav-btn ${activeSection === "visitors" ? "active" : ""}`}
           onClick={() => setActiveSection("visitors")}
         >
-          <Users size={18} />
+          <Users size={20} />
           <div className="nav-btn-content">
             <span>Visitors</span>
             <span className="nav-count">{visitors.length}</span>
@@ -343,7 +343,7 @@ const AdminDashboard = () => {
           className={`nav-btn ${activeSection === "create-organizer" ? "active" : ""}`}
           onClick={() => setActiveSection("create-organizer")}
         >
-          <UserPlus size={18} /> Create Organizer
+          <UserPlus size={20} /> Create Organizer
         </button>
       </nav>
     </div>
@@ -355,10 +355,11 @@ const AdminDashboard = () => {
       <h1>Admin Dashboard</h1>
       <div className="topbar-actions">
         <button className="btn-outline" onClick={() => setShowProfileModal(true)}>
+          <User size={18} />
           Profile
         </button>
         <button className="btn-primary" onClick={handleLogout}>
-          <LogOut size={16} /> Logout
+          <LogOut size={18} /> Logout
         </button>
       </div>
     </div>
@@ -371,9 +372,11 @@ const AdminDashboard = () => {
       {success && <div className="alert alert-success">{success}</div>}
 
       <div className="card">
-        <h2>Events ({filteredEvents.length})</h2>
+        <div className="card-header">
+          <h2>Events Overview</h2>
+          <span className="card-count">{filteredEvents.length} Total</span>
+        </div>
 
-        {/* Filters */}
         <div className="filters-section">
           <div className="filter-group">
             <label>
@@ -427,17 +430,20 @@ const AdminDashboard = () => {
           </div>
 
           <button className="btn-reset" onClick={resetFilters}>
-            <RotateCcw size={14} /> Reset
+            <RotateCcw size={16} /> Reset
           </button>
         </div>
 
         {loading ? (
           <div className="loading-container">
-            <Loader className="spinner" size={32} />
+            <Loader className="spinner" size={40} />
             <p>Loading events...</p>
           </div>
         ) : filteredEvents.length === 0 ? (
-          <p className="no-data">No events found</p>
+          <div className="no-data">
+            <Calendar size={48} />
+            <p>No events found</p>
+          </div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -457,8 +463,8 @@ const AdminDashboard = () => {
               <tbody>
                 {filteredEvents.map((e) => (
                   <tr key={e.id}>
-                    <td>{e.id}</td>
-                    <td>{e.title}</td>
+                    <td className="td-id">{e.id}</td>
+                    <td className="td-title">{e.title}</td>
                     <td>{e.organizerName}</td>
                     <td>{formatDate(e.date)}</td>
                     <td>{e.category || "N/A"}</td>
@@ -478,18 +484,18 @@ const AdminDashboard = () => {
                     <td>
                       <div className="action-buttons">
                         <button
-                          className="btn-icon"
+                          className="btn-icon btn-view"
                           onClick={() => openEventDetailModal(e)}
                           title="View Details"
                         >
-                          <Eye size={16} />
+                          <Eye size={18} />
                         </button>
                         <button
                           className="btn-icon btn-delete"
                           onClick={() => openDeleteModal(e, "event")}
                           title="Delete"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </td>
@@ -510,14 +516,20 @@ const AdminDashboard = () => {
       {success && <div className="alert alert-success">{success}</div>}
 
       <div className="card">
-        <h2>Organizers ({organizers.length})</h2>
+        <div className="card-header">
+          <h2>Organizers</h2>
+          <span className="card-count">{organizers.length} Total</span>
+        </div>
         {loading ? (
           <div className="loading-container">
-            <Loader className="spinner" size={32} />
+            <Loader className="spinner" size={40} />
             <p>Loading organizers...</p>
           </div>
         ) : organizers.length === 0 ? (
-          <p className="no-data">No organizers found</p>
+          <div className="no-data">
+            <User size={48} />
+            <p>No organizers found</p>
+          </div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -533,8 +545,8 @@ const AdminDashboard = () => {
               <tbody>
                 {organizers.map((o) => (
                   <tr key={o.id}>
-                    <td>{o.id}</td>
-                    <td>{o.name}</td>
+                    <td className="td-id">{o.id}</td>
+                    <td className="td-name">{o.name}</td>
                     <td>{o.email}</td>
                     <td>
                       <span className="event-count-badge">
@@ -544,18 +556,18 @@ const AdminDashboard = () => {
                     <td>
                       <div className="action-buttons">
                         <button
-                          className="btn-icon"
+                          className="btn-icon btn-edit"
                           onClick={() => openEditModal(o, "organizer")}
                           title="Edit"
                         >
-                          <Edit size={16} />
+                          <Edit size={18} />
                         </button>
                         <button
                           className="btn-icon btn-delete"
                           onClick={() => openDeleteModal(o, "organizer")}
                           title="Delete"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </td>
@@ -576,14 +588,20 @@ const AdminDashboard = () => {
       {success && <div className="alert alert-success">{success}</div>}
 
       <div className="card">
-        <h2>Visitors ({visitors.length})</h2>
+        <div className="card-header">
+          <h2>Visitors</h2>
+          <span className="card-count">{visitors.length} Total</span>
+        </div>
         {loading ? (
           <div className="loading-container">
-            <Loader className="spinner" size={32} />
+            <Loader className="spinner" size={40} />
             <p>Loading visitors...</p>
           </div>
         ) : visitors.length === 0 ? (
-          <p className="no-data">No visitors found</p>
+          <div className="no-data">
+            <Users size={48} />
+            <p>No visitors found</p>
+          </div>
         ) : (
           <div className="table-wrapper">
             <table>
@@ -598,24 +616,24 @@ const AdminDashboard = () => {
               <tbody>
                 {visitors.map((v) => (
                   <tr key={v.id}>
-                    <td>{v.id}</td>
-                    <td>{v.name}</td>
+                    <td className="td-id">{v.id}</td>
+                    <td className="td-name">{v.name}</td>
                     <td>{v.email}</td>
                     <td>
                       <div className="action-buttons">
                         <button
-                          className="btn-icon"
+                          className="btn-icon btn-edit"
                           onClick={() => openEditModal(v, "visitor")}
                           title="Edit"
                         >
-                          <Edit size={16} />
+                          <Edit size={18} />
                         </button>
                         <button
                           className="btn-icon btn-delete"
                           onClick={() => openDeleteModal(v, "visitor")}
                           title="Delete"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </td>
@@ -636,11 +654,13 @@ const AdminDashboard = () => {
       {success && <div className="alert alert-success">{success}</div>}
 
       <div className="form-header">
-        <h2>Organizer Management</h2>
-        <p>Create a new organizer account below</p>
+        <div className="form-header-icon">
+          <UserPlus size={32} />
+        </div>
+        <h2>Create New Organizer</h2>
+        <p>Add a new organizer to manage events</p>
       </div>
 
-      <h3>Create New Organizer</h3>
       <form className="organizer-form" onSubmit={handleCreateOrganizer}>
         <div className="form-row">
           <div className="form-group">
@@ -708,16 +728,16 @@ const AdminDashboard = () => {
               setNewOrganizer({ name: "", role: "", email: "", password: "" })
             }
           >
-            Clear
+            Clear Form
           </button>
-          <button type="submit" className="save-btn" disabled={loading}>
+          <button type="submit" className="btn-primary" disabled={loading}>
             {loading ? (
               <>
-                <Loader className="spinner-small" size={16} /> Creating...
+                <Loader className="spinner-small" size={18} /> Creating...
               </>
             ) : (
               <>
-                <UserPlus size={16} /> Create Organizer
+                <UserPlus size={18} /> Create Organizer
               </>
             )}
           </button>
@@ -733,7 +753,7 @@ const AdminDashboard = () => {
         <div className="modal-header">
           <h3>Event Details</h3>
           <button className="modal-close" onClick={() => setShowEventDetailModal(false)}>
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
@@ -782,7 +802,7 @@ const AdminDashboard = () => {
               </span>
             </div>
             {currentItem.imageUrl && (
-              <div className="detail-row">
+              <div className="detail-row detail-row-image">
                 <strong>Image:</strong>
                 <img
                   src={currentItem.imageUrl}
@@ -810,7 +830,7 @@ const AdminDashboard = () => {
         <div className="modal-header">
           <h3>Edit {editType}</h3>
           <button className="modal-close" onClick={() => setShowEditModal(false)}>
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
@@ -853,7 +873,7 @@ const AdminDashboard = () => {
               Cancel
             </button>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? <Loader className="spinner-small" size={16} /> : <Save size={16} />}
+              {loading ? <Loader className="spinner-small" size={18} /> : <Save size={18} />}
               Save Changes
             </button>
           </div>
@@ -865,19 +885,21 @@ const AdminDashboard = () => {
   // Delete Modal
   const renderDeleteModal = () => (
     <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-content modal-danger" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3>Confirm Delete</h3>
           <button className="modal-close" onClick={() => setShowDeleteModal(false)}>
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
-        <p>
-          Are you sure you want to delete this {editType}:{" "}
-          <strong>{currentItem?.name || currentItem?.title}</strong>?
-        </p>
-        <p className="warning-text">This action cannot be undone.</p>
+        <div className="modal-body">
+          <p>
+            Are you sure you want to delete this {editType}:{" "}
+            <strong>{currentItem?.name || currentItem?.title}</strong>?
+          </p>
+          <p className="warning-text">This action cannot be undone.</p>
+        </div>
 
         {error && <div className="alert alert-error">{error}</div>}
 
@@ -886,7 +908,7 @@ const AdminDashboard = () => {
             Cancel
           </button>
           <button className="btn-danger" onClick={handleDelete} disabled={loading}>
-            {loading ? <Loader className="spinner-small" size={16} /> : <Trash2 size={16} />}
+            {loading ? <Loader className="spinner-small" size={18} /> : <Trash2 size={18} />}
             Delete
           </button>
         </div>
@@ -901,7 +923,7 @@ const AdminDashboard = () => {
         <div className="modal-header">
           <h3>Admin Profile</h3>
           <button className="modal-close" onClick={() => setShowProfileModal(false)}>
-            <X size={20} />
+            <X size={22} />
           </button>
         </div>
 
@@ -944,7 +966,7 @@ const AdminDashboard = () => {
               Cancel
             </button>
             <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? <Loader className="spinner-small" size={16} /> : <Save size={16} />}
+              {loading ? <Loader className="spinner-small" size={18} /> : <Save size={18} />}
               Update Profile
             </button>
           </div>
@@ -971,7 +993,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="dashboard">
-      {renderSidebar()}
+      {rendersidebrAdmin()}
       <div className="main">
         {renderTopbar()}
         {renderContent()}
