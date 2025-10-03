@@ -335,8 +335,10 @@ export default function VisitorDashboard() {
       {/* Sidebar */}
       <aside className="sidebar">
         <div className="logo">
-          <div className="logo-icon">EZ</div>
-          <span className="logo-text">EventZen</span>
+          <div className="logo-icon">
+            <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
+          </div>
+          <span className="logo-text">EventZen {userProfile.name}</span>
         </div>
 
         <nav className="nav-menu-visitor">
@@ -669,7 +671,9 @@ export default function VisitorDashboard() {
         <footer className="footer">
           <div className="footer-content">
             <div className="footer-logo">
-              <div className="logo-icon small">EZ</div>
+              <div className="logo-icon small">
+                <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
+              </div>
               <span>EventZen</span>
             </div>
             <p>© {new Date().getFullYear()} EventZen. All rights reserved.</p>

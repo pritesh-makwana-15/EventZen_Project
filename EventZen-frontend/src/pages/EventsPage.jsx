@@ -291,8 +291,8 @@ export default function Events() {
         <nav className="nav-menu-home">
           <Link to="/">Home</Link>
           <Link to="/events">Events</Link>
-          <Link to="/gallery">Gallery</Link>
-          <Link to="/about">About Us</Link>
+          <Link to="/">Gallery</Link>
+          <Link to="/">About Us</Link>
 
           {token && role === "VISITOR" && <Link to="/visitor/dashboard">Dashboard</Link>}
           {token && role === "ORGANIZER" && <Link to="/organizer/dashboard">Dashboard</Link>}

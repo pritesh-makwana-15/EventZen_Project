@@ -1083,7 +1083,9 @@ export default function OrganizerDashboard() {
     <div className="organizer-dashboard">
       <nav className="top-navbar">
         <div className="navbar-brand">
-          <span className="brand-icon">🎯</span>
+          <span className="brand-icon">
+            <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
+          </span>
           <span className="brand-text">EventZen Organizer</span>
         </div>
         <ul className="nav-menu">
