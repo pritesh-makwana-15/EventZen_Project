@@ -759,6 +759,16 @@ const AdminDashboard = () => {
 
         {currentItem && (
           <div className="event-details">
+            {currentItem.imageUrl && (
+              <div className="detail-row detail-row-image">
+                {/* <strong>Image:</strong> */}
+                <img
+                  src={currentItem.imageUrl}
+                  alt={currentItem.title}
+                  className="event-detail-image"
+                />
+              </div>
+            )}
             <div className="detail-row">
               <strong>Title:</strong>
               <span>{currentItem.title}</span>
@@ -778,6 +788,10 @@ const AdminDashboard = () => {
             <div className="detail-row">
               <strong>Location:</strong>
               <span>{currentItem.location || "N/A"}</span>
+            </div>
+            <div className="detail-row">
+              <strong>Privet Code:</strong>
+              <span>{currentItem.privateCode || "N/A"}</span>
             </div>
             <div className="detail-row">
               <strong>Category:</strong>
@@ -801,16 +815,6 @@ const AdminDashboard = () => {
                 {getEventStatus(currentItem)}
               </span>
             </div>
-            {currentItem.imageUrl && (
-              <div className="detail-row detail-row-image">
-                <strong>Image:</strong>
-                <img
-                  src={currentItem.imageUrl}
-                  alt={currentItem.title}
-                  className="event-detail-image"
-                />
-              </div>
-            )}
           </div>
         )}
 

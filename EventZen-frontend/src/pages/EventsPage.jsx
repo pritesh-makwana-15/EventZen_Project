@@ -283,7 +283,7 @@ export default function Events() {
       <header className="navbar">
         <div className="logo">
           <Link to="/" className="logo-link">
-            <span className="logo-icon">🎉</span>
+            <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
             <span className="logo-text">EventZen</span>
           </Link>
         </div>
@@ -303,7 +303,7 @@ export default function Events() {
           {!token && (
             <>
               <Link to="/login">Login</Link>
-              <Link to="/signup">Sign Up</Link>
+              <Link to="/register">Sign Up</Link>
             </>
           )}
           {token && (
@@ -504,7 +504,7 @@ export default function Events() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-logo">
-            <span className="footer-logo-icon">🎉</span>
+            <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
             <span className="footer-logo-text">EventZen</span>
           </div>
           <div className="footer-copyright">

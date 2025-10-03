@@ -338,7 +338,7 @@ export default function VisitorDashboard() {
           <div className="logo-icon">
             <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
           </div>
-          <span className="logo-text">EventZen {userProfile.name}</span>
+          <span className="logo-text">EventZen</span>
         </div>
 
         <nav className="nav-menu-visitor">
@@ -509,17 +509,26 @@ export default function VisitorDashboard() {
 
                   {/* Stats Cards */}
                   <div className="stats-cards">
-                    <div className="stat-card">
-                      <h3>{myRegistrations.length}</h3>
-                      <p>Total Registrations</p>
+                    <div className="stat-card-visitor">
+                      <div className="stat-icon">📊</div>
+                      <div className="stat-info">
+                        <h3>{myRegistrations.length}</h3>
+                        <p>Total Registrations</p>
+                      </div>
                     </div>
-                    <div className="stat-card">
-                      <h3>{upcomingRegistrations.length}</h3>
-                      <p>Upcoming Events</p>
+                    <div className="stat-card-visitor">
+                      <div className="stat-icon">🚀</div>
+                      <div className="stat-info">
+                        <h3>{upcomingRegistrations.length}</h3>
+                        <p>Upcoming Events</p>
+                      </div>
                     </div>
-                    <div className="stat-card">
-                      <h3>{pastRegistrations.length}</h3>
-                      <p>Past Events</p>
+                    <div className="stat-card-visitor">
+                      <div className="stat-icon">✓</div>
+                      <div className="stat-info">
+                        <h3>{pastRegistrations.length}</h3>
+                        <p>Completed  Events</p>
+                      </div>
                     </div>
                   </div>
 
@@ -666,19 +675,6 @@ export default function VisitorDashboard() {
             </>
           )}
         </div>
-
-        {/* Footer */}
-        <footer className="footer">
-          <div className="footer-content">
-            <div className="footer-logo">
-              <div className="logo-icon small">
-                <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
-              </div>
-              <span>EventZen</span>
-            </div>
-            <p>© {new Date().getFullYear()} EventZen. All rights reserved.</p>
-          </div>
-        </footer>
       </main>
 
       {/* Event Details modal-visitor */}

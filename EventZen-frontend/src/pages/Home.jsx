@@ -20,6 +20,7 @@ export default function Home() {
     { name: "Music", description: "Concerts, DJ Nights, Music Festivals", img: "./src/assets/Music.jpg" },
     { name: "Education", description: "Seminars, Workshops, Webinars", img: "./src/assets/Education.jpg" },
     { name: "Sports", description: "Tournaments, Marathons, Matches", img: "./src/assets/Sports.jpg" },
+    { name: "Business", description: "Conferences, Networking Events", img: "./src/assets/Business.jpg" },
     { name: "Art & Culture", description: "Exhibitions, Theatre, Literature", img: "./src/assets/Art & Culture.jpg" },
     { name: "Wellness", description: "Yoga Sessions, Meditation Camps", img: "./src/assets/Wellness.jpg" },
     { name: "Technology", description: "Hackathons, Tech Talks, Meetups", img: "./src/assets/Technology.jpg" },
@@ -33,7 +34,7 @@ export default function Home() {
       <header className="navbar-home">
         <div className="logo">
           <Link to="/" className="logo-link">
-            <span className="logo-icon">🎉</span>
+            <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
             <span className="logo-text">EventZen</span>
           </Link>
         </div>
@@ -53,7 +54,7 @@ export default function Home() {
           {!token && (
             <>
               <Link to="/login">Login</Link>
-              <Link to="/signup">Sign Up</Link>
+              <Link to="/register">Sign Up</Link>
             </>
           )}
           {token && (
@@ -121,7 +122,7 @@ export default function Home() {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-logo">
-            <span className="footer-logo-icon">🎉</span>
+            <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
             <span className="footer-logo-text">EventZen</span>
           </div>
           <div className="footer-copyright">
