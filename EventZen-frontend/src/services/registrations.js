@@ -4,6 +4,7 @@ import API from "./api";
 /**
  * Register visitor for an event
  * Now supports private event code
+ * Creates registration with CONFIRMED status
  */
 export const registerForEvent = async (eventId, visitorId, privateCode = null) => {
   const { data } = await API.post("/registrations", {
@@ -32,7 +33,8 @@ export const getEventRegistrations = async (eventId) => {
 
 /**
  * Cancel a registration
+ * CHANGED: Now uses DELETE method to permanently remove the registration
  */
 export const cancelRegistration = async (registrationId) => {
-  await API.put(`/registrations/cancel/${registrationId}`);
+  await API.delete(`/registrations/${registrationId}`);
 };

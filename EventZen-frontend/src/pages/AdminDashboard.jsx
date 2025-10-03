@@ -790,10 +790,6 @@ const AdminDashboard = () => {
               <span>{currentItem.location || "N/A"}</span>
             </div>
             <div className="detail-row">
-              <strong>Privet Code:</strong>
-              <span>{currentItem.privateCode || "N/A"}</span>
-            </div>
-            <div className="detail-row">
               <strong>Category:</strong>
               <span>{currentItem.category || "N/A"}</span>
             </div>
@@ -803,6 +799,12 @@ const AdminDashboard = () => {
                 {currentItem.eventType || "Public"}
               </span>
             </div>
+            {currentItem.eventType === "PRIVATE" && currentItem.privateCode && (
+                <div className="detail-row">
+                  <strong>Private Code</strong>
+                  <span className="private-code">{currentItem.privateCode}</span>
+                </div>
+              )}  
             <div className="detail-row">
               <strong>Attendees:</strong>
               <span>
