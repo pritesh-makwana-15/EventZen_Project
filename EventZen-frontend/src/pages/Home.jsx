@@ -30,7 +30,7 @@ export default function Home() {
   return (
     <div className="home-container">
       {/* ===== HEADER/NAVBAR ===== */}
-      <header className="navbar">
+      <header className="navbar-home">
         <div className="logo">
           <Link to="/" className="logo-link">
             <span className="logo-icon">🎉</span>
@@ -38,11 +38,11 @@ export default function Home() {
           </Link>
         </div>
 
-        <nav className="nav-menu">
+        <nav className="nav-menu-home">
           <Link to="/">Home</Link>
           <Link to="/events">Events</Link>
-          <Link to="/gallery">Gallery</Link>
-          <Link to="/about">About Us</Link>
+          <Link to="/">Gallery</Link>
+          <Link to="/">About Us</Link>
 
           {token && role === "VISITOR" && <Link to="/visitor/dashboard">Dashboard</Link>}
           {token && role === "ORGANIZER" && <Link to="/organizer/dashboard">Dashboard</Link>}

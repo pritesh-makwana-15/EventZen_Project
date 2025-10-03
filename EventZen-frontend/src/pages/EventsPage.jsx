@@ -184,11 +184,11 @@ export default function Events() {
               <span className="logo-text">EventZen</span>
             </Link>
           </div>
-          <nav className="nav-menu">
+          <nav className="nav-menu-home">
             <Link to="/">Home</Link>
             <Link to="/events">Events</Link>
-            <Link to="/gallery">Gallery</Link>
-            <Link to="/about">About Us</Link>
+            <Link to="/">Gallery</Link>
+            <Link to="/">About Us</Link>
             {token && role === "VISITOR" && <Link to="/visitor-dashboard">Dashboard</Link>}
             {token && role === "ORGANIZER" && <Link to="/organizer-dashboard">Dashboard</Link>}
             {token && role === "ADMIN" && <Link to="/admin-dashboard">Dashboard</Link>}
@@ -236,11 +236,11 @@ export default function Events() {
               <span className="logo-text">EventZen</span>
             </Link>
           </div>
-          <nav className="nav-menu">
+          <nav className="nav-menu-home">
             <Link to="/">Home</Link>
             <Link to="/events">Events</Link>
-            <Link to="/gallery">Gallery</Link>
-            <Link to="/about">About Us</Link>
+            <Link to="/">Gallery</Link>
+            <Link to="/">About Us</Link>
             {token && role === "VISITOR" && <Link to="/visitor-dashboard">Dashboard</Link>}
             {token && role === "ORGANIZER" && <Link to="/organizer-dashboard">Dashboard</Link>}
             {token && role === "ADMIN" && <Link to="/admin-dashboard">Dashboard</Link>}
@@ -288,7 +288,7 @@ export default function Events() {
           </Link>
         </div>
 
-        <nav className="nav-menu">
+        <nav className="nav-menu-home">
           <Link to="/">Home</Link>
           <Link to="/events">Events</Link>
           <Link to="/gallery">Gallery</Link>

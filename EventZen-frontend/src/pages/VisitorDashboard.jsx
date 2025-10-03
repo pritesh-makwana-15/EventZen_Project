@@ -432,7 +432,7 @@ export default function VisitorDashboard() {
                       value={locationFilter}
                       onChange={(e) => setLocationFilter(e.target.value)}
                     />
-                    <button className="reset-btn" onClick={handleReset}>
+                    <button className="reset-btn-visitor" onClick={handleReset}>
                       Reset
                     </button>
                   </div>
@@ -559,7 +559,7 @@ export default function VisitorDashboard() {
                                 <td>{reg.event.location}</td>
                                 <td>
                                   <span className={`status-badge ${isUpcoming ? 'upcoming' : 'past'}`}>
-                                    {isUpcoming ? 'Upcoming' : 'Past'}
+                                    {isUpcoming ? 'Upcoming' : 'Completed'}
                                   </span>
                                 </td>
                                 <td>
@@ -677,21 +677,21 @@ export default function VisitorDashboard() {
         </footer>
       </main>
 
-      {/* Event Details Modal */}
+      {/* Event Details modal-visitor */}
       {selectedEvent && (
-        <div className="modal-overlay" onClick={() => setSelectedEvent(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="modal-close" onClick={() => setSelectedEvent(null)}>×</button>
-            <div className="modal-header">
+        <div className="modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
+          <div className="modal-visitor-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-visitor-close" onClick={() => setSelectedEvent(null)}>×</button>
+            <div className="modal-visitor-header">
               <img 
                 src={selectedEvent.imageUrl || "https://via.placeholder.com/400x200?text=Event"} 
                 alt={selectedEvent.title} 
-                className="modal-image" 
+                className="modal-visitor-image" 
               />
               <h2>{selectedEvent.title}</h2>
             </div>
-            <div className="modal-body">
-              <div className="modal-info">
+            <div className="modal-visitor-body">
+              <div className="modal-visitor-info">
                 <p><strong>Category:</strong> {selectedEvent.category}</p>
                 <p><strong>Date:</strong> {formatDateTime(selectedEvent.date)}</p>
                 <p><strong>Location:</strong> {selectedEvent.location}</p>
@@ -701,12 +701,12 @@ export default function VisitorDashboard() {
                 )}
                 <p><strong>Type:</strong> {selectedEvent.eventType}</p>
               </div>
-              <div className="modal-description">
+              <div className="modal-visitor-description">
                 <h3>About this event</h3>
                 <p>{selectedEvent.description}</p>
               </div>
             </div>
-            <div className="modal-footer">
+            <div className="modal-visitor-footer">
               {!registeredEventIds.has(selectedEvent.id) && (
                 <button
                   className="btn btn-primary-visitor"
@@ -729,15 +729,15 @@ export default function VisitorDashboard() {
 
       {/* Private Event Code Popup */}
       {showPrivateCodePopup && privateEventToRegister && (
-        <div className="modal-overlay" onClick={() => {
+        <div className="modal-visitor-overlay" onClick={() => {
           setShowPrivateCodePopup(false);
           setPrivateEventToRegister(null);
           setPrivateCode("");
           setPrivateCodeError("");
         }}>
-          <div className="private-code-modal" onClick={(e) => e.stopPropagation()}>
+          <div className="private-code-modal-visitor" onClick={(e) => e.stopPropagation()}>
             <button 
-              className="modal-close" 
+              className="modal-visitor-close" 
               onClick={() => {
                 setShowPrivateCodePopup(false);
                 setPrivateEventToRegister(null);

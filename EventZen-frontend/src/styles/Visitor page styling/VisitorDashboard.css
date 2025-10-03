@@ -201,9 +201,10 @@
   border-color: #667eea;
 }
 
-.reset-btn {
+.reset-btn-visitor {
   padding: 12px 30px;
-  background: #f0f0f0;
+  background: #667eead5;
+  color: white;
   border: none;
   border-radius: 8px;
   cursor: pointer;
@@ -211,8 +212,8 @@
   transition: all 0.3s;
 }
 
-.reset-btn:hover {
-  background: #e0e0e0;
+.reset-btn-visitor:hover {
+  background: #667eea;
 }
 
 /* ===== EVENTS GRID ===== */
@@ -423,20 +424,49 @@
 }
 
 .status-badge {
-  padding: 5px 15px;
-  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
   font-size: 12px;
-  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 20px;
+  line-height: 1;
+  letter-spacing: 0.5px;
+  box-shadow: var(--shadow);
+  border: 2px solid transparent;
+  text-transform: uppercase;
 }
 
 .status-badge.upcoming {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #78350f;
+  border-color: #fbbf24;
+}
+
+.status-badge.upcoming::before {
+  content: "⏳";
+  font-size: 14px;
 }
 
 .status-badge.past {
-  background: #f0f0f0;
-  color: #666;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border-color: #10b981;
+}
+
+.status-badge.past::before {
+  content: "✓";
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 12px;
+  background: #10b981;
+  color: var(--white);
+  border-radius: 50%;
+  font-weight: 700;
 }
 
 .table-actions {
@@ -489,13 +519,13 @@
 }
 
 /* Private Event Code Popup */
-.private-code-modal {
+.private-code-modal-visitor {
   background: white;
   border-radius: 16px;
   max-width: 500px;
   width: 90%;
   position: relative;
-  animation: modalSlideIn 0.3s ease;
+  animation: modal-visitorSlideIn 0.3s ease;
 }
 
 .private-code-header {
@@ -633,8 +663,8 @@ private-code-header p {
   width: auto;
 }
 
-/* ===== MODAL ===== */
-.modal-overlay {
+/* ===== modal-visitor ===== */
+.modal-visitor-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -648,7 +678,7 @@ private-code-header p {
   padding: 20px;
 }
 
-.modal-content {
+.modal-visitor-content {
   background: white;
   border-radius: 16px;
   max-width: 700px;
@@ -656,10 +686,10 @@ private-code-header p {
   max-height: 90vh;
   overflow-y: auto;
   position: relative;
-  animation: modalSlideIn 0.3s ease;
+  animation: modal-visitorSlideIn 0.3s ease;
 }
 
-@keyframes modalSlideIn {
+@keyframes modal-visitorSlideIn {
   from {
     opacity: 0;
     transform: translateY(-50px);
@@ -670,7 +700,7 @@ private-code-header p {
   }
 }
 
-.modal-close {
+.modal-visitor-close {
   position: absolute;
   top: 15px;
   right: 15px;
@@ -687,64 +717,64 @@ private-code-header p {
   transition: all 0.3s;
 }
 
-.modal-close:hover {
+.modal-visitor-close:hover {
   background: rgba(0, 0, 0, 0.2);
   transform: rotate(90deg);
 }
 
-.modal-header {
+.modal-visitor-header {
   position: relative;
 }
 
-.modal-image {
+.modal-visitor-image {
   width: 100%;
   height: 300px;
   object-fit: cover;
   border-radius: 16px 16px 0 0;
 }
 
-.modal-header h2 {
+.modal-visitor-header h2 {
   padding: 20px 30px 10px;
   margin: 0;
   font-size: 28px;
   color: #333;
 }
 
-.modal-body {
+.modal-visitor-body {
   padding: 0 30px 20px;
 }
 
-.modal-info {
+.modal-visitor-info {
   background: #f9f9f9;
   padding: 20px;
   border-radius: 10px;
   margin-bottom: 20px;
 }
 
-.modal-info p {
+.modal-visitor-info p {
   margin: 10px 0;
   color: #666;
   font-size: 15px;
 }
 
-.modal-info strong {
+.modal-visitor-info strong {
   color: #333;
   margin-right: 8px;
 }
 
-.modal-description h3 {
+.modal-visitor-description h3 {
   font-size: 20px;
   color: #333;
   margin-bottom: 10px;
 }
 
-.modal-description p {
+.modal-visitor-description p {
   color: #666;
   line-height: 1.6;
   font-size: 15px;
 }
 
-.modal-footer {
+.modal-visitor-footer {
   padding: 20px 30px;
   border-top: 1px solid #f0f0f0;
   display: flex;
@@ -752,8 +782,8 @@ private-code-header p {
   justify-content: flex-end;
 }
 
-.modal-footer .btn-primary-visitor,
-.modal-footer .btn-secondary {
+.modal-visitor-footer .btn-primary-visitor,
+.modal-visitor-footer .btn-secondary {
   padding: 12px 30px;
   width: auto;
 }
@@ -830,7 +860,7 @@ private-code-header p {
     grid-template-columns: 1fr;
   }
   
-  .modal-content {
+  .modal-visitor-content {
     margin: 10px;
   }
 }

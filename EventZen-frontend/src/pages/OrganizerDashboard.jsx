@@ -5,12 +5,18 @@ import API from "../services/api";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
 
 // ============ MyEvents Component ============
+// import React, { useState, useEffect } from "react";
+// import API from "../services/api";
+// import "../styles/Organizer Dashboard/OrganizerDashboard.css";
+
 function MyEvents({ onEditEvent }) {
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [eventFilter, setEventFilter] = useState("all");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [showorgModal, setShoworgModal] = useState(false);
 
   useEffect(() => {
     fetchMyEvents();
@@ -61,6 +67,16 @@ function MyEvents({ onEditEvent }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewDetails = (event) => {
+    setSelectedEvent(event);
+    setShoworgModal(true);
+  };
+
+  const handleCloseorgModal = () => {
+    setShoworgModal(false);
+    setSelectedEvent(null);
   };
 
   const formatDateDDMMYYYY = (isoDateStr) => {
@@ -122,7 +138,7 @@ function MyEvents({ onEditEvent }) {
           <div className="stat-icon">✓</div>
           <div className="stat-content">
             <span className="stat-value">{pastEvents}</span>
-            <span className="stat-label">Past Events</span>
+            <span className="stat-label">Completed Events</span>
           </div>
         </div>
       </div>
@@ -197,7 +213,7 @@ function MyEvents({ onEditEvent }) {
                     </td>
                     <td>
                       <span className={`status-badge ${isUpcoming ? 'upcoming' : 'past'}`}>
-                        {isUpcoming ? 'Upcoming' : 'Past'}
+                        {isUpcoming ? 'Upcoming' : 'Completed'}
                       </span>
                     </td>
                     <td>
@@ -217,16 +233,13 @@ function MyEvents({ onEditEvent }) {
                               Delete
                             </button>
                           </>
-                        ) : (
-                          <button 
-                            className="action-btn view"
-                            onClick={() => {
-                              window.location.href = `/events/${event.id}`;
-                            }}
-                          >
-                            View Details
-                          </button>
-                        )}
+                        ) : null}
+                        <button 
+                          className="action-btn view"
+                          onClick={() => handleViewDetails(event)}
+                        >
+                          View Details
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -236,11 +249,75 @@ function MyEvents({ onEditEvent }) {
           </table>
         </div>
       )}
+
+      {showorgModal && selectedEvent && (
+        <div className="orgModal-overlay" onClick={handleCloseorgModal}>
+          <div className="orgModal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="orgModal-close" onClick={handleCloseorgModal}>×</button>
+            
+            <div className="orgModal-header">
+              <img 
+                src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]} 
+                alt={selectedEvent.title}
+                className="orgModal-image"
+              />
+              <h2>{selectedEvent.title}</h2>
+              <span className="category-badge">{selectedEvent.category}</span>
+            </div>
+
+            <div className="orgModal-body">
+              <div className="detail-row">
+                <strong>Description</strong>
+                <p>{selectedEvent.description}</p>
+              </div>
+
+              <div className="detail-row">
+                <strong>Date & Time</strong>
+                <p>{formatDateDDMMYYYY(selectedEvent.date)} at {formatTimeHHMM(selectedEvent.date)}</p>
+              </div>
+
+              <div className="detail-row">
+                <strong>Location</strong>
+                <p>{selectedEvent.location || "Not specified"}</p>
+              </div>
+
+              <div className="detail-row">
+                <strong>Event Type</strong>
+                <span className={`type-badge ${selectedEvent.eventType?.toLowerCase()}`}>
+                  {selectedEvent.eventType || 'PUBLIC'}
+                </span>
+              </div>
+
+              {selectedEvent.eventType === "PRIVATE" && selectedEvent.privateCode && (
+                <div className="detail-row">
+                  <strong>Private Code</strong>
+                  <span className="private-code">{selectedEvent.privateCode}</span>
+                </div>
+              )}
+
+              <div className="detail-row">
+                <strong>Attendees</strong>
+                <p>{selectedEvent.currentAttendees || 0} / {selectedEvent.maxAttendees || "Unlimited"}</p>
+              </div>
+
+              <div className="detail-row">
+                <strong>Status</strong>
+                <span className={`status-badge ${new Date(selectedEvent.date) > new Date() ? 'upcoming' : 'past'}`}>
+                  {new Date(selectedEvent.date) > new Date() ? 'Upcoming' : 'Completed'}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ============ CreateEventForm Component ============
+// export default MyEvents;
+// window.location.href = `/events/${event.id}`;
+
+// ============ CreateEventForm Component (UPDATED WITH VALIDATION) ============
 function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   const [formData, setFormData] = useState({
     title: "",
@@ -259,6 +336,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
   const [imageFile, setImageFile] = useState(null);
 
   const stateCityData = {
@@ -299,8 +377,8 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       const dateStr = eventDate.toISOString().slice(0, 10);
       const timeStr = eventDate.toTimeString().slice(0, 5);
 
-      const locationParts = editingEvent.location.split(", ");
-      let state = "", city = "", address = editingEvent.location;
+      const locationParts = editingEvent.location?.split(", ") || [];
+      let state = "", city = "", address = editingEvent.location || "";
       
       if (locationParts.length >= 3) {
         state = locationParts[locationParts.length - 1];
@@ -312,14 +390,14 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       }
 
       setFormData({
-        title: editingEvent.title,
-        description: editingEvent.description,
+        title: editingEvent.title || "",
+        description: editingEvent.description || "",
         date: dateStr,
         time: timeStr,
         state: state,
         city: city,
         address: address,
-        category: editingEvent.category,
+        category: editingEvent.category || "",
         imageUrl: editingEvent.imageUrl || "",
         maxAttendees: editingEvent.maxAttendees || "",
         eventType: editingEvent.eventType || "PUBLIC",
@@ -330,8 +408,25 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Update form data
     setFormData(prev => ({ ...prev, [name]: value }));
 
+    // Clear error for this field when user starts typing
+    if (fieldErrors[name]) {
+      setFieldErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+
+    // Clear general error message
+    if (error) {
+      setError("");
+    }
+
+    // Reset city when state changes
     if (name === "state") {
       setFormData(prev => ({ ...prev, city: "" }));
     }
@@ -351,10 +446,10 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
     }
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      const formDataImg = new FormData();
+      formDataImg.append('file', file);
       
-      const response = await API.post('/uploads', formData, {
+      const response = await API.post('/uploads', formDataImg, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       
@@ -367,26 +462,49 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   };
 
   const validateForm = () => {
-    const errors = [];
+    const errors = {};
     
-    if (!formData.title.trim()) errors.push("Event title is required");
-    if (!formData.description.trim()) errors.push("Description is required");
-    if (!formData.date) errors.push("Date is required");
-    if (!formData.time) errors.push("Time is required");
-    if (!formData.address.trim()) errors.push("Address is required");
-    if (!formData.category) errors.push("Category is required");
-    
-    const eventDateTime = new Date(`${formData.date}T${formData.time}`);
-    if (eventDateTime <= new Date()) {
-      errors.push("Event date and time must be in the future");
+    // Required field validations
+    if (!formData.title.trim()) {
+      errors.title = "Event title is required";
     }
     
+    if (!formData.description.trim()) {
+      errors.description = "Description is required";
+    }
+    
+    if (!formData.date) {
+      errors.date = "Date is required";
+    }
+    
+    if (!formData.time) {
+      errors.time = "Time is required";
+    }
+    
+    if (!formData.address.trim()) {
+      errors.address = "Address is required";
+    }
+    
+    if (!formData.category) {
+      errors.category = "Category is required";
+    }
+    
+    // Date/time validation
+    if (formData.date && formData.time) {
+      const eventDateTime = new Date(`${formData.date}T${formData.time}`);
+      if (eventDateTime <= new Date()) {
+        errors.date = "Event date and time must be in the future";
+      }
+    }
+    
+    // Max attendees validation
     if (formData.maxAttendees && (isNaN(formData.maxAttendees) || parseInt(formData.maxAttendees) <= 0)) {
-      errors.push("Max attendees must be a positive number");
+      errors.maxAttendees = "Max attendees must be a positive number";
     }
     
+    // Private code validation
     if (formData.eventType === "PRIVATE" && !formData.privateCode.trim()) {
-      errors.push("Private code is required for private events");
+      errors.privateCode = "Private code is required for private events";
     }
     
     return errors;
@@ -395,15 +513,21 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
-      setError(validationErrors.join(", "));
+    // Validate form
+    const errors = validateForm();
+    
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
+      setError("Please fill out all required fields correctly");
+      // Scroll to top to show error message
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
     try {
       setLoading(true);
       setError("");
+      setFieldErrors({});
 
       const requestData = {
         title: formData.title,
@@ -457,7 +581,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       
       {error && <div className="alert error">{error}</div>}
 
-      <form className="event-form" onSubmit={handleSubmit}>
+      <form className="event-form" onSubmit={handleSubmit} noValidate>
         <div className="form-section">
           <label className="form-label">Event Image</label>
           <div className="image-upload-area">
@@ -493,8 +617,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className="form-input"
-              required
+              className={`form-input ${fieldErrors.category ? 'error-field' : ''}`}
             >
               <option value="">Select Category</option>
               {eventCategories.map((category) => (
@@ -503,7 +626,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
                 </option>
               ))}
             </select>
+            {fieldErrors.category && (
+              <span className="error-message">{fieldErrors.category}</span>
+            )}
           </div>
+          
           <div className="form-group">
             <label className="form-label">Event Name *</label>
             <input 
@@ -512,9 +639,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               value={formData.title}
               onChange={handleChange}
               placeholder="Enter event name"
-              className="form-input"
-              required
+              className={`form-input ${fieldErrors.title ? 'error-field' : ''}`}
             />
+            {fieldErrors.title && (
+              <span className="error-message">{fieldErrors.title}</span>
+            )}
           </div>
         </div>
 
@@ -526,9 +655,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
             onChange={handleChange}
             placeholder="Event description"
             rows="4"
-            className="form-textarea"
-            required
+            className={`form-textarea ${fieldErrors.description ? 'error-field' : ''}`}
           />
+          {fieldErrors.description && (
+            <span className="error-message">{fieldErrors.description}</span>
+          )}
         </div>
 
         <div className="form-group">
@@ -539,9 +670,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
             onChange={handleChange}
             placeholder="Enter venue details, landmark, or address"
             rows="2"
-            className="form-textarea"
-            required
+            className={`form-textarea ${fieldErrors.address ? 'error-field' : ''}`}
           />
+          {fieldErrors.address && (
+            <span className="error-message">{fieldErrors.address}</span>
+          )}
         </div>
 
         <div className="form-grid-2">
@@ -561,6 +694,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               ))}
             </select>
           </div>
+          
           <div className="form-group">
             <label className="form-label">City</label>
             <select
@@ -590,10 +724,13 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               value={formData.date}
               onChange={handleChange}
               min={getTomorrowDate()}
-              className="form-input"
-              required
+              className={`form-input ${fieldErrors.date ? 'error-field' : ''}`}
             />
+            {fieldErrors.date && (
+              <span className="error-message">{fieldErrors.date}</span>
+            )}
           </div>
+          
           <div className="form-group">
             <label className="form-label">Time *</label>
             <input 
@@ -601,9 +738,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               name="time"
               value={formData.time}
               onChange={handleChange}
-              className="form-input"
-              required
+              className={`form-input ${fieldErrors.time ? 'error-field' : ''}`}
             />
+            {fieldErrors.time && (
+              <span className="error-message">{fieldErrors.time}</span>
+            )}
           </div>
         </div>
 
@@ -617,9 +756,13 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. 100"
               min="1"
-              className="form-input"
+              className={`form-input ${fieldErrors.maxAttendees ? 'error-field' : ''}`}
             />
+            {fieldErrors.maxAttendees && (
+              <span className="error-message">{fieldErrors.maxAttendees}</span>
+            )}
           </div>
+          
           <div className="form-group">
             <label className="form-label">Event Type *</label>
             <select 
@@ -627,7 +770,6 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               value={formData.eventType}
               onChange={handleChange}
               className="form-input"
-              required
             >
               <option value="PUBLIC">Public</option>
               <option value="PRIVATE">Private</option>
@@ -644,9 +786,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               value={formData.privateCode}
               onChange={handleChange}
               placeholder="Enter private access code"
-              className="form-input"
-              required
+              className={`form-input ${fieldErrors.privateCode ? 'error-field' : ''}`}
             />
+            {fieldErrors.privateCode && (
+              <span className="error-message">{fieldErrors.privateCode}</span>
+            )}
             <small className="form-hint">
               Attendees will need this code to register for the event
             </small>

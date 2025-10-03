@@ -58,13 +58,13 @@
   background-clip: text;
 }
 
-.nav-menu {
+.nav-menu-home {
   display: flex;
   align-items: center;
   gap: 30px;
 }
 
-.nav-menu a {
+.nav-menu-home a {
   color: #ffffff;
   text-decoration: none;
   font-weight: 500;
@@ -74,7 +74,7 @@
   position: relative;
 }
 
-.nav-menu a::after {
+.nav-menu-home a::after {
   content: '';
   position: absolute;
   bottom: 0;
@@ -85,11 +85,11 @@
   transition: width 0.3s ease;
 }
 
-.nav-menu a:hover {
+.nav-menu-home a:hover {
   color: #f29d0e;
 }
 
-.nav-menu a:hover::after {
+.nav-menu-home a:hover::after {
   width: 100%;
 }
 
@@ -714,11 +714,11 @@
     padding: 18px 30px;
   }
 
-  .nav-menu {
+  .nav-menu-home {
     gap: 20px;
   }
 
-  .nav-menu a {
+  .nav-menu-home a {
     font-size: 0.95rem;
   }
 
@@ -739,7 +739,7 @@
     gap: 15px;
   }
 
-  .nav-menu {
+  .nav-menu-home {
     order: 3;
     width: 100%;
     justify-content: center;
@@ -750,7 +750,7 @@
     border-top: 1px solid rgba(255, 255, 255, 0.2);
   }
 
-  .nav-menu a {
+  .nav-menu-home a {
     font-size: 0.9rem;
   }
 
@@ -859,11 +859,11 @@
     font-size: 1.4rem;
   }
 
-  .nav-menu {
+  .nav-menu-home {
     gap: 10px;
   }
 
-  .nav-menu a {
+  .nav-menu-home a {
     font-size: 0.85rem;
     padding: 6px 0;
   }
