@@ -4,15 +4,17 @@ import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
 
-// ============ MyEvents Component ============
-// import React, { useState, useEffect } from "react";
-// import API from "../services/api";
-// import "../styles/Organizer Dashboard/OrganizerDashboard.css";
-
 function MyEvents({ onEditEvent }) {
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
-  const [eventFilter, setEventFilter] = useState("all");
+  
+  // Filter states
+  const [searchName, setSearchName] = useState("");
+  const [searchLocation, setSearchLocation] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
@@ -24,7 +26,7 @@ function MyEvents({ onEditEvent }) {
 
   useEffect(() => {
     filterEvents();
-  }, [events, eventFilter]);
+  }, [events, searchName, searchLocation, categoryFilter, typeFilter, statusFilter]);
 
   const fetchMyEvents = async () => {
     try {
@@ -44,10 +46,40 @@ function MyEvents({ onEditEvent }) {
     const now = new Date();
     let filtered = [...events];
 
-    if (eventFilter === "upcoming") {
-      filtered = events.filter(event => new Date(event.date) > now);
-    } else if (eventFilter === "past") {
-      filtered = events.filter(event => new Date(event.date) <= now);
+    // Filter by search name
+    if (searchName.trim()) {
+      filtered = filtered.filter(event => 
+        event.title.toLowerCase().includes(searchName.toLowerCase())
+      );
+    }
+
+    // Filter by search location
+    if (searchLocation.trim()) {
+      filtered = filtered.filter(event => 
+        event.location?.toLowerCase().includes(searchLocation.toLowerCase()) ||
+        event.address?.toLowerCase().includes(searchLocation.toLowerCase()) ||
+        event.city?.toLowerCase().includes(searchLocation.toLowerCase()) ||
+        event.state?.toLowerCase().includes(searchLocation.toLowerCase())
+      );
+    }
+
+    // Filter by category
+    if (categoryFilter !== "all") {
+      filtered = filtered.filter(event => event.category === categoryFilter);
+    }
+
+    // Filter by type
+    if (typeFilter !== "all") {
+      filtered = filtered.filter(event => (event.eventType || "PUBLIC") === typeFilter);
+    }
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      if (statusFilter === "upcoming") {
+        filtered = filtered.filter(event => new Date(event.date) > now);
+      } else if (statusFilter === "completed") {
+        filtered = filtered.filter(event => new Date(event.date) <= now);
+      }
     }
 
     filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -79,6 +111,14 @@ function MyEvents({ onEditEvent }) {
     setSelectedEvent(null);
   };
 
+  const handleClearFilters = () => {
+    setSearchName("");
+    setSearchLocation("");
+    setCategoryFilter("all");
+    setTypeFilter("all");
+    setStatusFilter("all");
+  };
+
   const formatDateDDMMYYYY = (isoDateStr) => {
     const date = new Date(isoDateStr);
     return date.toLocaleDateString('en-GB');
@@ -106,6 +146,11 @@ function MyEvents({ onEditEvent }) {
     "Entertainment": "https://images.unsplash.com/photo-1514306191717-452ec28c7814?w=400&h=300&fit=crop",
     "Other": "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=400&h=300&fit=crop"
   };
+
+  const eventCategories = [
+    "Music", "Technology", "Sports", "Art", "Business", 
+    "Education", "Food", "Health", "Travel", "Entertainment", "Other"
+  ];
 
   const totalEvents = events.length;
   const upcomingEvents = events.filter(e => new Date(e.date) > new Date()).length;
@@ -145,17 +190,78 @@ function MyEvents({ onEditEvent }) {
 
       <div className="events-header">
         <h2 className="section-title">My Events</h2>
-        <div className="filter-container">
-          <label>Filter by:</label>
-          <select 
-            value={eventFilter} 
-            onChange={(e) => setEventFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Events</option>
-            <option value="upcoming">Upcoming Events</option>
-            <option value="past">Past Events</option>
-          </select>
+      </div>
+
+      {/* Enhanced Filters Section */}
+      <div className="filters-section-org">
+        <div className="filters-row">
+          <div className="filter-container search-filter">
+            {/* <label>Search Name:</label> */}
+            <input
+              type="text"
+              value={searchName}
+              onChange={(e) => setSearchName(e.target.value)}
+              placeholder="🔍 Search by event name..."
+              className="filter-input"
+            />
+          </div>
+
+          <div className="filter-container">
+            {/* <label>Category:</label> */}
+            <select 
+              value={categoryFilter} 
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Categories</option>
+              {eventCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          <div className="filter-container">
+            {/* <label>Type:</label> */}
+            <select 
+              value={typeFilter} 
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Types</option>
+              <option value="PUBLIC">Public</option>
+              <option value="PRIVATE">Private</option>
+            </select>
+          </div>
+
+          {/* <div className="filter-container search-filter">
+            <label>Search Location:</label>
+            <input
+              type="text"
+              value={searchLocation}
+              onChange={(e) => setSearchLocation(e.target.value)}
+              placeholder="Search by location..."
+              className="filter-input"
+            />
+          </div> */}
+
+          <div className="filter-container">
+            {/* <label>Status:</label> */}
+            <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Status</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+
+          <div className="filter-container">
+            <button className="btn-clear-filters" onClick={handleClearFilters}>
+              Clear Filters
+            </button>
+          </div>
         </div>
       </div>
 
@@ -164,9 +270,9 @@ function MyEvents({ onEditEvent }) {
           <div className="empty-icon">📅</div>
           <h3>No events found</h3>
           <p>
-            {eventFilter === "all" 
+            {events.length === 0 
               ? "You haven't created any events yet."
-              : `No ${eventFilter} events found.`
+              : "No events match your current filters."
             }
           </p>
         </div>
@@ -212,7 +318,7 @@ function MyEvents({ onEditEvent }) {
                       {(event.currentAttendees || 0)} / {event.maxAttendees || 0}
                     </td>
                     <td>
-                      <span className={`status-badge ${isUpcoming ? 'upcoming' : 'past'}`}>
+                      <span className={`status-badge ${isUpcoming ? 'upcoming' : 'completed'}`}>
                         {isUpcoming ? 'Upcoming' : 'Completed'}
                       </span>
                     </td>
@@ -302,7 +408,7 @@ function MyEvents({ onEditEvent }) {
 
               <div className="detail-row">
                 <strong>Status</strong>
-                <span className={`status-badge ${new Date(selectedEvent.date) > new Date() ? 'upcoming' : 'past'}`}>
+                <span className={`status-badge ${new Date(selectedEvent.date) > new Date() ? 'upcoming' : 'completed'}`}>
                   {new Date(selectedEvent.date) > new Date() ? 'Upcoming' : 'Completed'}
                 </span>
               </div>
@@ -314,10 +420,7 @@ function MyEvents({ onEditEvent }) {
   );
 }
 
-// export default MyEvents;
-// window.location.href = `/events/${event.id}`;
-
-// ============ CreateEventForm Component (UPDATED WITH VALIDATION) ============
+// ============ CreateEventForm Component ============
 function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   const [formData, setFormData] = useState({
     title: "",
@@ -409,10 +512,8 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   const handleChange = (e) => {
     const { name, value } = e.target;
     
-    // Update form data
     setFormData(prev => ({ ...prev, [name]: value }));
 
-    // Clear error for this field when user starts typing
     if (fieldErrors[name]) {
       setFieldErrors(prev => {
         const newErrors = { ...prev };
@@ -421,12 +522,10 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       });
     }
 
-    // Clear general error message
     if (error) {
       setError("");
     }
 
-    // Reset city when state changes
     if (name === "state") {
       setFormData(prev => ({ ...prev, city: "" }));
     }
@@ -464,7 +563,6 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   const validateForm = () => {
     const errors = {};
     
-    // Required field validations
     if (!formData.title.trim()) {
       errors.title = "Event title is required";
     }
@@ -489,7 +587,6 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       errors.category = "Category is required";
     }
     
-    // Date/time validation
     if (formData.date && formData.time) {
       const eventDateTime = new Date(`${formData.date}T${formData.time}`);
       if (eventDateTime <= new Date()) {
@@ -497,12 +594,10 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       }
     }
     
-    // Max attendees validation
     if (formData.maxAttendees && (isNaN(formData.maxAttendees) || parseInt(formData.maxAttendees) <= 0)) {
       errors.maxAttendees = "Max attendees must be a positive number";
     }
     
-    // Private code validation
     if (formData.eventType === "PRIVATE" && !formData.privateCode.trim()) {
       errors.privateCode = "Private code is required for private events";
     }
@@ -513,13 +608,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate form
     const errors = validateForm();
     
     if (Object.keys(errors).length > 0) {
       setFieldErrors(errors);
       setError("Please fill out all required fields correctly");
-      // Scroll to top to show error message
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }

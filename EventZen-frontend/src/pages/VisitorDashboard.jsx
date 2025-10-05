@@ -30,18 +30,29 @@ export default function VisitorDashboard() {
   const [privateCode, setPrivateCode] = useState("");
   const [privateCodeError, setPrivateCodeError] = useState("");
   
-  // Filters
+  // Events Page Filters (UPDATED with new filters)
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
+  const [organizerFilter, setOrganizerFilter] = useState(""); // NEW: Organizer name filter
+  const [typeFilter, setTypeFilter] = useState(""); // NEW: Type filter (Public/Private)
+  const [statusFilter, setStatusFilter] = useState(""); // NEW: Status filter (Upcoming/Completed)
+
+  // Registrations Page Filters (UPDATED with new filters)
   const [registrationFilter, setRegistrationFilter] = useState("all");
+  const [regEventNameFilter, setRegEventNameFilter] = useState(""); // NEW: Event name filter
+  const [regCategoryFilter, setRegCategoryFilter] = useState(""); // NEW: Category filter
+  const [regLocationFilter, setRegLocationFilter] = useState(""); // NEW: Location filter
+  const [regOrganizerFilter, setRegOrganizerFilter] = useState(""); // NEW: Organizer filter
+  const [regTypeFilter, setRegTypeFilter] = useState(""); // NEW: Type filter
 
   // Profile editing
   const [editing, setEditing] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
-    mobileNumber: ""
+    mobileNumber: "",
+    imageUrl: ""
   });
 
   // Load user profile on mount
@@ -68,7 +79,8 @@ export default function VisitorDashboard() {
       setProfileForm({
         name: response.data.name,
         email: response.data.email,
-        mobileNumber: response.data.mobileNumber || ""
+        mobileNumber: response.data.mobileNumber || "",
+        imageUrl: response.data.imageUrl || ""
       });
     } catch (err) {
       console.error("Error loading user profile:", err);
@@ -256,12 +268,43 @@ export default function VisitorDashboard() {
     }
   };
 
+  // Profile image upload handler
+  const handleImageUpload = async (file) => {
+    if (!file) return;
+    
+    if (!file.type.startsWith('image/')) {
+      setError("Please upload a valid image file");
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5MB");
+      return;
+    }
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await API.post('/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      
+      setProfileForm(prev => ({ ...prev, imageUrl: response.data.url }));
+      setError("");
+    } catch (err) {
+      console.error("Error uploading image:", err);
+      setError(err.response?.data?.error || "Failed to upload image");
+    }
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
       const response = await API.put("/users/profile", {
         name: profileForm.name,
-        mobileNumber: profileForm.mobileNumber
+        mobileNumber: profileForm.mobileNumber,
+        profileImage: profileForm.imageUrl
       });
       setUserProfile(response.data);
       setEditing(false);
@@ -279,25 +322,64 @@ export default function VisitorDashboard() {
     navigate("/login");
   };
 
+  // UPDATED: Reset all Events page filters
   const handleReset = () => {
     setSearchQuery("");
     setCategoryFilter("");
     setLocationFilter("");
+    setOrganizerFilter("");
+    setTypeFilter("");
+    setStatusFilter("");
   };
 
-  // Filter events
+  // UPDATED: Reset all Registrations page filters
+  const handleRegistrationReset = () => {
+    setRegistrationFilter("all");
+    setRegEventNameFilter("");
+    setRegCategoryFilter("");
+    setRegLocationFilter("");
+    setRegOrganizerFilter("");
+    setRegTypeFilter("");
+  };
+
+  // UPDATED: Filter events with all new filters combined
   const getFilteredEvents = () => {
+    const now = new Date();
+    
     return allEvents.filter(event => {
+      // Search by event name or description
       const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           event.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesCategory = !categoryFilter || event.category === categoryFilter;
-      const matchesLocation = !locationFilter || event.location?.toLowerCase().includes(locationFilter.toLowerCase());
       
-      return matchesSearch && matchesCategory && matchesLocation;
+      // Filter by category
+      const matchesCategory = !categoryFilter || event.category === categoryFilter;
+      
+      // Filter by location
+      const matchesLocation = !locationFilter || 
+                            event.location?.toLowerCase().includes(locationFilter.toLowerCase());
+      
+      // NEW: Filter by organizer name
+      const matchesOrganizer = !organizerFilter || 
+                              event.organizerName?.toLowerCase().includes(organizerFilter.toLowerCase());
+      
+      // NEW: Filter by type (Public/Private)
+      const matchesType = !typeFilter || event.eventType === typeFilter;
+      
+      // NEW: Filter by status (Upcoming/Completed)
+      const eventDate = new Date(event.date);
+      let matchesStatus = true;
+      if (statusFilter === "Upcoming") {
+        matchesStatus = eventDate >= now;
+      } else if (statusFilter === "Completed") {
+        matchesStatus = eventDate < now;
+      }
+      
+      return matchesSearch && matchesCategory && matchesLocation && 
+             matchesOrganizer && matchesType && matchesStatus;
     });
   };
 
-  // Filter registrations
+  // UPDATED: Filter registrations with all new filters combined
   const getFilteredRegistrations = () => {
     const now = new Date();
     
@@ -306,12 +388,34 @@ export default function VisitorDashboard() {
       
       const eventDate = new Date(reg.event.date);
       
+      // Existing status filter (Upcoming/Past/All)
+      let matchesStatusFilter = true;
       if (registrationFilter === "upcoming") {
-        return eventDate >= now;
+        matchesStatusFilter = eventDate >= now;
       } else if (registrationFilter === "past") {
-        return eventDate < now;
+        matchesStatusFilter = eventDate < now;
       }
-      return true;
+      
+      // NEW: Filter by event name
+      const matchesEventName = !regEventNameFilter || 
+                              reg.event.title?.toLowerCase().includes(regEventNameFilter.toLowerCase());
+      
+      // NEW: Filter by category
+      const matchesCategory = !regCategoryFilter || reg.event.category === regCategoryFilter;
+      
+      // NEW: Filter by location
+      const matchesLocation = !regLocationFilter || 
+                            reg.event.location?.toLowerCase().includes(regLocationFilter.toLowerCase());
+      
+      // NEW: Filter by organizer name
+      const matchesOrganizer = !regOrganizerFilter || 
+                              reg.event.organizerName?.toLowerCase().includes(regOrganizerFilter.toLowerCase());
+      
+      // NEW: Filter by type (Public/Private)
+      const matchesType = !regTypeFilter || reg.event.eventType === regTypeFilter;
+      
+      return matchesStatusFilter && matchesEventName && matchesCategory && 
+             matchesLocation && matchesOrganizer && matchesType;
     });
   };
 
@@ -402,19 +506,24 @@ export default function VisitorDashboard() {
                     <p className="subtitle">Find and register for exciting events</p>
                   </div>
 
-                  {/* Filters */}
+                  {/* UPDATED: Filters with new fields */}
                   <div className="filters-bar">
+                    {/* Search by event name */}
                     <input
                       type="text"
                       className="search-input"
                       placeholder="🔍 Search events..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
+                      aria-label="Search events by name"
                     />
+                    
+                    {/* Filter by category */}
                     <select
                       className="filter-select"
                       value={categoryFilter}
                       onChange={(e) => setCategoryFilter(e.target.value)}
+                      aria-label="Filter by category"
                     >
                       <option value="">All Categories</option>
                       <option value="Music">Music</option>
@@ -427,15 +536,57 @@ export default function VisitorDashboard() {
                       <option value="Entertainment">Entertainment</option>
                       <option value="Wellness">Wellness</option>
                     </select>
+                    
+                    {/* Filter by location */}
                     <input
                       type="text"
                       className="search-input"
                       placeholder="Filter by location..."
                       value={locationFilter}
                       onChange={(e) => setLocationFilter(e.target.value)}
+                      aria-label="Filter by location"
                     />
-                    <button className="reset-btn-visitor" onClick={handleReset}>
-                      Reset
+                    
+                    {/* NEW: Filter by organizer name */}
+                    <input
+                      type="text"
+                      className="search-input"
+                      placeholder="Filter by organizer..."
+                      value={organizerFilter}
+                      onChange={(e) => setOrganizerFilter(e.target.value)}
+                      aria-label="Filter by organizer name"
+                    />
+                    
+                    {/* NEW: Filter by type (Public/Private) */}
+                    <select
+                      className="filter-select"
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      aria-label="Filter by event type"
+                    >
+                      <option value="">All Types</option>
+                      <option value="PUBLIC">Public</option>
+                      <option value="PRIVATE">Private</option>
+                    </select>
+                    
+                    {/* NEW: Filter by status (Upcoming/Completed) */}
+                    {/* <select
+                      className="filter-select"
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      aria-label="Filter by status"
+                    >
+                      <option value="">All Status</option>
+                      <option value="Upcoming">Upcoming</option>
+                      <option value="Completed">Completed</option>
+                    </select> */}
+                    
+                    <button 
+                      className="reset-btn-visitor" 
+                      onClick={handleReset}
+                      aria-label="Reset all filters"
+                    >
+                      Reset Filters
                     </button>
                   </div>
 
@@ -449,8 +600,19 @@ export default function VisitorDashboard() {
                               src={event.imageUrl || "https://via.placeholder.com/400x200?text=Event"} 
                               alt={event.title} 
                             />
-                            <span className={`event-badge ${registeredEventIds.has(event.id) ? 'registered' : ''}`}>
-                              {registeredEventIds.has(event.id) ? '✓ Registered' : event.eventType}
+                            {/* UPDATED: Badge styling based on event type and registration status */}
+                            <span className={`event-badge ${
+                              registeredEventIds.has(event.id) 
+                                ? 'registered' 
+                                : event.eventType === 'PRIVATE' 
+                                  ? 'private' 
+                                  : 'public'
+                            }`}>
+                              {registeredEventIds.has(event.id) 
+                                ? '✓ Registered' 
+                                : event.eventType === 'PRIVATE' 
+                                  ? '🔒 Private' 
+                                  : '🌐 Public'}
                             </span>
                           </div>
                           <div className="event-details-visitor">
@@ -493,6 +655,9 @@ export default function VisitorDashboard() {
                     ) : (
                       <div className="no-events">
                         <p>No events found matching your filters</p>
+                        <button className="btn btn-primary-visitor" onClick={handleReset}>
+                          Clear All Filters
+                        </button>
                       </div>
                     )}
                   </div>
@@ -527,25 +692,98 @@ export default function VisitorDashboard() {
                       <div className="stat-icon">✓</div>
                       <div className="stat-info">
                         <h3>{pastRegistrations.length}</h3>
-                        <p>Completed  Events</p>
+                        <p>Completed Events</p>
                       </div>
                     </div>
                   </div>
 
-                  {/* Filter */}
-                  <div className="registrations-filter">
-                    <label>Show:</label>
-                    <select
-                      value={registrationFilter}
-                      onChange={(e) => setRegistrationFilter(e.target.value)}
-                    >
-                      <option value="all">All Events</option>
-                      <option value="upcoming">Upcoming</option>
-                      <option value="past">Past</option>
-                    </select>
+                  {/* UPDATED: Filters section with new fields */}
+                  <div className="registrations-filters-section">
+                    <div className="filters-bar">
+                      {/* NEW: Event name filter */}
+                      <input
+                        type="text"
+                        className="search-input"
+                        placeholder="Search by event name..."
+                        value={regEventNameFilter}
+                        onChange={(e) => setRegEventNameFilter(e.target.value)}
+                        aria-label="Filter by event name"
+                      />
+
+                      {/* NEW: Organizer filter */}
+                      <input
+                        type="text"
+                        className="search-input"
+                        placeholder="Filter by organizer..."
+                        value={regOrganizerFilter}
+                        onChange={(e) => setRegOrganizerFilter(e.target.value)}
+                        aria-label="Filter by organizer"
+                      />
+
+                      {/* NEW: Category filter */}
+                      <select
+                        className="filter-select"
+                        value={regCategoryFilter}
+                        onChange={(e) => setRegCategoryFilter(e.target.value)}
+                        aria-label="Filter by category"
+                      >
+                        <option value="">All Categories</option>
+                        <option value="Music">Music</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Business">Business</option>
+                        <option value="Food">Food</option>
+                        <option value="Art">Art</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Education">Education</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Wellness">Wellness</option>
+                      </select>
+
+                      {/* NEW: Location filter */}
+                      <input
+                        type="text"
+                        className="search-input"
+                        placeholder="Filter by location..."
+                        value={regLocationFilter}
+                        onChange={(e) => setRegLocationFilter(e.target.value)}
+                        aria-label="Filter by location"
+                      />
+
+                      {/* NEW: Type filter */}
+                      <select
+                        className="filter-select"
+                        value={regTypeFilter}
+                        onChange={(e) => setRegTypeFilter(e.target.value)}
+                        aria-label="Filter by type"
+                      >
+                        <option value="">All Types</option>
+                        <option value="PUBLIC">Public</option>
+                        <option value="PRIVATE">Private</option>
+                      </select>
+
+                      {/* Existing status filter */}
+                      <select
+                        className="filter-select"
+                        value={registrationFilter}
+                        onChange={(e) => setRegistrationFilter(e.target.value)}
+                        aria-label="Filter by status"
+                      >
+                        <option value="all">All Events</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="past">Past</option>
+                      </select>
+      
+                      <button 
+                        className="reset-btn-visitor" 
+                        onClick={handleRegistrationReset}
+                        aria-label="Reset all filters"
+                      >
+                        Reset Filters
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Table */}
+                  {/* UPDATED: Table with new columns for Organizer Name and Type */}
                   {getFilteredRegistrations().length > 0 ? (
                     <div className="registrations-table">
                       <table>
@@ -555,6 +793,8 @@ export default function VisitorDashboard() {
                             <th>Category</th>
                             <th>Date</th>
                             <th>Location</th>
+                            <th>Organizer</th> {/* NEW COLUMN */}
+                            <th>Type</th> {/* NEW COLUMN */}
                             <th>Status</th>
                             <th>Actions</th>
                           </tr>
@@ -568,8 +808,15 @@ export default function VisitorDashboard() {
                                 <td>{reg.event.category}</td>
                                 <td>{formatDateTime(reg.event.date)}</td>
                                 <td>{reg.event.location}</td>
+                                <td>{reg.event.organizerName}</td> {/* NEW: Organizer column */}
                                 <td>
-                                  <span className={`status-badge ${isUpcoming ? 'upcoming' : 'past'}`}>
+                                  {/* NEW: Type badge column */}
+                                  <span className={`type-badge-vis ${reg.event.eventType?.toLowerCase()}`}>
+                                    {reg.event.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className={`status-badge-vis ${isUpcoming ? 'upcoming' : 'past'}`}>
                                     {isUpcoming ? 'Upcoming' : 'Completed'}
                                   </span>
                                 </td>
@@ -608,61 +855,121 @@ export default function VisitorDashboard() {
                 </section>
               )}
 
-              {/* Profile Page */}
+              {/* Profile Page - UPDATED with new structure */}
               {activePage === "profile" && userProfile && (
                 <section className="profile-page">
-                  <div className="profile-card">
-                    <div className="profile-avatar-large">
-                      <div className="avatar-circle">
-                        {userProfile.name.charAt(0).toUpperCase()}
-                      </div>
+                  <div className="profile-container">
+                    <div className="form-header">
+                      <h2>My Profile</h2>
+                      <p className="form-subtitle">Manage your profile information</p>
                     </div>
                     
                     {!editing ? (
-                      <div className="profile-info">
-                        <h2>{userProfile.name}</h2>
-                        <p className="profile-email">{userProfile.email}</p>
-                        <span className="profile-role">{userProfile.role}</span>
-                        {userProfile.mobileNumber && (
-                          <p className="profile-location">📱 {userProfile.mobileNumber}</p>
-                        )}
+                      <div className="profile-view-card">
+                        <div className="profile-avatar-wrapper">
+                          <img 
+                            src={profileForm.imageUrl || userProfile.imageUrl || "/src/assets/EZ-logo1.png"} 
+                            alt="Profile" 
+                            className="profile-avatar"
+                          />
+                        </div>
+                        <div className="profile-details">
+                          <h3 className="profile-name">{userProfile.name}</h3>
+                          <p className="profile-email">{userProfile.email}</p>
+                          <span className="role-badge">{userProfile.role}</span>
+                          <div className="profile-meta">
+                            <div className="meta-item">
+                              <span className="meta-label">Mobile:</span>
+                              <span className="meta-value">{userProfile.mobileNumber || "Not provided"}</span>
+                            </div>
+                          </div>
+                        </div>
                         <button className="btn btn-primary-visitor" onClick={() => setEditing(true)}>
                           Edit Profile
                         </button>
                       </div>
                     ) : (
-                      <form className="profile-form" onSubmit={handleProfileUpdate}>
+                      <form className="profile-edit-form" onSubmit={handleProfileUpdate}>
                         <div className="form-group">
-                          <label>Name</label>
+                          <label className="form-label">Profile Image</label>
+                          <div className="image-upload-area">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                handleImageUpload(file);
+                              }}
+                              className="file-input"
+                              id="profile-image-upload"
+                            />
+                            <label htmlFor="profile-image-upload" className="upload-label">
+                              {profileForm.imageUrl ? "Change Image" : "Upload Image"}
+                            </label>
+                            {profileForm.imageUrl && (
+                              <div className="image-preview profile-preview">
+                                <img src={profileForm.imageUrl} alt="Profile preview" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        
+                        <div className="form-group">
+                          <label className="form-label">Name *</label>
                           <input
                             type="text"
+                            name="name"
                             value={profileForm.name}
                             onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                            className="form-input"
                             required
                           />
                         </div>
+                        
                         <div className="form-group">
-                          <label>Email (Cannot be changed)</label>
+                          <label className="form-label">Email (Cannot be changed)</label>
                           <input
                             type="email"
                             value={profileForm.email}
                             disabled
+                            className="form-input disabled"
                           />
                         </div>
+                        
                         <div className="form-group">
-                          <label>Mobile Number</label>
+                          <label className="form-label">Role</label>
+                          <input
+                            type="text"
+                            value={userProfile.role}
+                            disabled
+                            className="form-input disabled"
+                          />
+                        </div>
+                        
+                        <div className="form-group">
+                          <label className="form-label">Mobile Number</label>
                           <input
                             type="tel"
-                            value={profileForm.mobileNumber}
+                            name="mobileNumber"
+                            value={profileForm.mobileNumber || ""}
                             onChange={(e) => setProfileForm({...profileForm, mobileNumber: e.target.value})}
+                            placeholder="+91 9876543210"
+                            className="form-input"
                           />
                         </div>
+                        
                         <div className="form-actions">
-                          <button type="submit" className="btn btn-primary-visitor">Save</button>
-                          <button 
-                            type="button" 
-                            className="btn btn-secondary" 
-                            onClick={() => setEditing(false)}
+                          <button type="submit" className="btn btn-primary-visitor" disabled={loading}>
+                            {loading ? "Saving..." : "Save Changes"}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => {
+                              setEditing(false);
+                              setError("");
+                              loadUserData();
+                            }}
                           >
                             Cancel
                           </button>
@@ -677,7 +984,7 @@ export default function VisitorDashboard() {
         </div>
       </main>
 
-      {/* Event Details modal-visitor */}
+      {/* Event Details modal */}
       {selectedEvent && (
         <div className="modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
           <div className="modal-visitor-content" onClick={(e) => e.stopPropagation()}>
@@ -699,7 +1006,7 @@ export default function VisitorDashboard() {
                 {selectedEvent.maxAttendees && (
                   <p><strong>Capacity:</strong> {selectedEvent.currentAttendees || 0} / {selectedEvent.maxAttendees}</p>
                 )}
-                <p><strong>Type:</strong> {selectedEvent.eventType}</p>
+                <p><strong>Type:</strong> {selectedEvent.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}</p>
               </div>
               <div className="modal-visitor-description">
                 <h3>About this event</h3>
