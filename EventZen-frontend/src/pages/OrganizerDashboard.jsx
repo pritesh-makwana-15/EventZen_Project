@@ -1,9 +1,41 @@
-// src/pages/OrganizerDashboard.jsx
+// ================================================================
+// FILE: src/pages/OrganizerDashboard.jsx
+// CHANGES: 
+// - 30% size reduction (paddings, margins, fonts)
+// - All classNames prefixed with "org-"
+// - Date descending sorting (frontend-side: upcoming DESC, then completed DESC)
+// - Image upload with preview via multipart/form-data
+// - Fixed modal with max-height and internal scroll
+// - Toast notifications with auto-dismiss
+// - Delete confirmation modal
+// - Comprehensive form validation
+// - Profile image upload with preview
+// - Accessibility improvements (ARIA labels, keyboard support)
+// ================================================================
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
 
+// ============ Toast Notification Component ============
+function Toast({ message, type, onClose }) {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 4000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className={`org-toast org-toast-${type}`} onClick={onClose} role="alert">
+      <span className="org-toast-icon" aria-hidden="true">
+        {type === 'success' ? '✓' : '✕'}
+      </span>
+      <span className="org-toast-message">{message}</span>
+    </div>
+  );
+}
+
+// ============ MyEvents Component ============
 function MyEvents({ onEditEvent }) {
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
@@ -18,7 +50,8 @@ function MyEvents({ onEditEvent }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
-  const [showorgModal, setShoworgModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
 
   useEffect(() => {
     fetchMyEvents();
@@ -56,10 +89,7 @@ function MyEvents({ onEditEvent }) {
     // Filter by search location
     if (searchLocation.trim()) {
       filtered = filtered.filter(event => 
-        event.location?.toLowerCase().includes(searchLocation.toLowerCase()) ||
-        event.address?.toLowerCase().includes(searchLocation.toLowerCase()) ||
-        event.city?.toLowerCase().includes(searchLocation.toLowerCase()) ||
-        event.state?.toLowerCase().includes(searchLocation.toLowerCase())
+        event.location?.toLowerCase().includes(searchLocation.toLowerCase())
       );
     }
 
@@ -82,17 +112,21 @@ function MyEvents({ onEditEvent }) {
       }
     }
 
-    filtered.sort((a, b) => new Date(a.date) - new Date(b.date));
-    setFilteredEvents(filtered);
+    // UPDATED: Sort by date descending - upcoming first (desc), then completed (desc)
+    const upcoming = filtered.filter(e => new Date(e.date) > now)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    const completed = filtered.filter(e => new Date(e.date) <= now)
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    
+    setFilteredEvents([...upcoming, ...completed]);
   };
 
   const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm("Are you sure you want to delete this event?")) return;
-
     try {
       setLoading(true);
       await API.delete(`/events/${eventId}`);
       await fetchMyEvents();
+      setDeleteConfirm(null);
     } catch (err) {
       console.error("Error deleting event:", err);
       setError(err.response?.data?.message || "Failed to delete event");
@@ -103,11 +137,11 @@ function MyEvents({ onEditEvent }) {
 
   const handleViewDetails = (event) => {
     setSelectedEvent(event);
-    setShoworgModal(true);
+    setShowModal(true);
   };
 
-  const handleCloseorgModal = () => {
-    setShoworgModal(false);
+  const handleCloseModal = () => {
+    setShowModal(false);
     setSelectedEvent(null);
   };
 
@@ -156,62 +190,62 @@ function MyEvents({ onEditEvent }) {
   const upcomingEvents = events.filter(e => new Date(e.date) > new Date()).length;
   const pastEvents = totalEvents - upcomingEvents;
 
-  if (loading) {
-    return <div className="loading-spinner">Loading your events...</div>;
+  if (loading && events.length === 0) {
+    return <div className="org-loading-spinner">Loading your events...</div>;
   }
 
   return (
-    <div className="my-events">
-      {error && <div className="alert error">{error}</div>}
+    <div className="org-my-events">
+      {error && <div className="org-alert org-alert-error">{error}</div>}
 
-      <div className="stats-grid">
-        <div className="stat-card total">
-          <div className="stat-icon">📊</div>
-          <div className="stat-content">
-            <span className="stat-value">{totalEvents}</span>
-            <span className="stat-label">Total Events</span>
+      <div className="org-stats-grid">
+        <div className="org-stat-card org-stat-total">
+          <div className="org-stat-icon" aria-hidden="true">📊</div>
+          <div className="org-stat-content">
+            <span className="org-stat-value">{totalEvents}</span>
+            <span className="org-stat-label">Total Events</span>
           </div>
         </div>
-        <div className="stat-card upcoming">
-          <div className="stat-icon">🚀</div>
-          <div className="stat-content">
-            <span className="stat-value">{upcomingEvents}</span>
-            <span className="stat-label">Upcoming Events</span>
+        <div className="org-stat-card org-stat-upcoming">
+          <div className="org-stat-icon" aria-hidden="true">🚀</div>
+          <div className="org-stat-content">
+            <span className="org-stat-value">{upcomingEvents}</span>
+            <span className="org-stat-label">Upcoming Events</span>
           </div>
         </div>
-        <div className="stat-card past">
-          <div className="stat-icon">✓</div>
-          <div className="stat-content">
-            <span className="stat-value">{pastEvents}</span>
-            <span className="stat-label">Completed Events</span>
+        <div className="org-stat-card org-stat-past">
+          <div className="org-stat-icon" aria-hidden="true">✓</div>
+          <div className="org-stat-content">
+            <span className="org-stat-value">{pastEvents}</span>
+            <span className="org-stat-label">Completed Events</span>
           </div>
         </div>
       </div>
 
-      <div className="events-header">
-        <h2 className="section-title">My Events</h2>
+      <div className="org-events-header">
+        <h2 className="org-section-title">My Events</h2>
       </div>
 
-      {/* Enhanced Filters Section */}
-      <div className="filters-section-org">
-        <div className="filters-row">
-          <div className="filter-container search-filter">
-            {/* <label>Search Name:</label> */}
+      {/* Filters Section */}
+      <div className="org-filters-section">
+        <div className="org-filters-row">
+          <div className="org-filter-container org-filter-search">
             <input
               type="text"
               value={searchName}
               onChange={(e) => setSearchName(e.target.value)}
               placeholder="🔍 Search by event name..."
-              className="filter-input"
+              className="org-filter-input"
+              aria-label="Search events by name"
             />
           </div>
 
-          <div className="filter-container">
-            {/* <label>Category:</label> */}
+          <div className="org-filter-container">
             <select 
               value={categoryFilter} 
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="filter-select"
+              className="org-filter-select"
+              aria-label="Filter by category"
             >
               <option value="all">All Categories</option>
               {eventCategories.map(cat => (
@@ -220,12 +254,12 @@ function MyEvents({ onEditEvent }) {
             </select>
           </div>
 
-          <div className="filter-container">
-            {/* <label>Type:</label> */}
+          <div className="org-filter-container">
             <select 
               value={typeFilter} 
               onChange={(e) => setTypeFilter(e.target.value)}
-              className="filter-select"
+              className="org-filter-select"
+              aria-label="Filter by type"
             >
               <option value="all">All Types</option>
               <option value="PUBLIC">Public</option>
@@ -233,23 +267,12 @@ function MyEvents({ onEditEvent }) {
             </select>
           </div>
 
-          {/* <div className="filter-container search-filter">
-            <label>Search Location:</label>
-            <input
-              type="text"
-              value={searchLocation}
-              onChange={(e) => setSearchLocation(e.target.value)}
-              placeholder="Search by location..."
-              className="filter-input"
-            />
-          </div> */}
-
-          <div className="filter-container">
-            {/* <label>Status:</label> */}
+          <div className="org-filter-container">
             <select 
               value={statusFilter} 
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="filter-select"
+              className="org-filter-select"
+              aria-label="Filter by status"
             >
               <option value="all">All Status</option>
               <option value="upcoming">Upcoming</option>
@@ -257,8 +280,12 @@ function MyEvents({ onEditEvent }) {
             </select>
           </div>
 
-          <div className="filter-container">
-            <button className="btn-clear-filters" onClick={handleClearFilters}>
+          <div className="org-filter-container">
+            <button 
+              className="org-btn-clear-filters" 
+              onClick={handleClearFilters}
+              aria-label="Clear all filters"
+            >
               Clear Filters
             </button>
           </div>
@@ -266,8 +293,8 @@ function MyEvents({ onEditEvent }) {
       </div>
 
       {filteredEvents.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon">📅</div>
+        <div className="org-empty-state">
+          <div className="org-empty-icon" aria-hidden="true">📅</div>
           <h3>No events found</h3>
           <p>
             {events.length === 0 
@@ -277,19 +304,19 @@ function MyEvents({ onEditEvent }) {
           </p>
         </div>
       ) : (
-        <div className="table-container">
-          <table className="events-table">
+        <div className="org-table-container">
+          <table className="org-events-table">
             <thead>
               <tr>
-                <th>Image</th>
-                <th>Title</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Attendees</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th scope="col">Image</th>
+                <th scope="col">Title</th>
+                <th scope="col">Date</th>
+                <th scope="col">Time</th>
+                <th scope="col">Category</th>
+                <th scope="col">Type</th>
+                <th scope="col">Attendees</th>
+                <th scope="col">Status</th>
+                <th scope="col">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -301,50 +328,53 @@ function MyEvents({ onEditEvent }) {
                     <td>
                       <img 
                         src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
-                        alt={event.title}
-                        className="event-thumbnail"
+                        alt={`${event.title} event image`}
+                        className="org-event-thumbnail"
                       />
                     </td>
-                    <td><span className="event-title">{event.title}</span></td>
+                    <td><span className="org-event-title">{event.title}</span></td>
                     <td>{formatDateDDMMYYYY(event.date)}</td>
                     <td>{formatTimeHHMM(event.date)}</td>
-                    <td><span className="category-badge">{event.category}</span></td>
+                    <td><span className="org-category-badge">{event.category}</span></td>
                     <td>
-                      <span className={`type-badge ${event.eventType?.toLowerCase()}`}>
+                      <span className={`org-type-badge org-type-${event.eventType?.toLowerCase()}`}>
                         {event.eventType || 'PUBLIC'}
                       </span>
                     </td>
-                    <td className="attendees-cell">
+                    <td className="org-attendees-cell">
                       {(event.currentAttendees || 0)} / {event.maxAttendees || 0}
                     </td>
                     <td>
-                      <span className={`status-badge ${isUpcoming ? 'upcoming' : 'completed'}`}>
+                      <span className={`org-status-badge org-status-${isUpcoming ? 'upcoming' : 'completed'}`}>
                         {isUpcoming ? 'Upcoming' : 'Completed'}
                       </span>
                     </td>
                     <td>
-                      <div className="action-buttons">
+                      <div className="org-action-buttons">
                         {isUpcoming ? (
                           <>
                             <button 
-                              className="action-btn edit"
+                              className="org-action-btn org-btn-edit"
                               onClick={() => onEditEvent(event)}
+                              aria-label={`Edit ${event.title}`}
                             >
                               Edit
                             </button>
                             <button 
-                              className="action-btn delete"
-                              onClick={() => handleDeleteEvent(event.id)}
+                              className="org-action-btn org-btn-delete"
+                              onClick={() => setDeleteConfirm(event)}
+                              aria-label={`Delete ${event.title}`}
                             >
                               Delete
                             </button>
                           </>
                         ) : null}
                         <button 
-                          className="action-btn view"
+                          className="org-action-btn org-btn-view"
                           onClick={() => handleViewDetails(event)}
+                          aria-label={`View details for ${event.title}`}
                         >
-                          View Details
+                          View
                         </button>
                       </div>
                     </td>
@@ -356,59 +386,92 @@ function MyEvents({ onEditEvent }) {
         </div>
       )}
 
-      {showorgModal && selectedEvent && (
-        <div className="orgModal-overlay" onClick={handleCloseorgModal}>
-          <div className="orgModal-content" onClick={(e) => e.stopPropagation()}>
-            <button className="orgModal-close" onClick={handleCloseorgModal}>×</button>
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm && (
+        <div className="org-modal-overlay" onClick={() => setDeleteConfirm(null)} role="dialog" aria-modal="true">
+          <div className="org-confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Delete Event?</h3>
+            <p>Are you sure you want to delete "{deleteConfirm.title}"? This action cannot be undone.</p>
+            <div className="org-confirm-actions">
+              <button 
+                className="org-btn-confirm-delete"
+                onClick={() => handleDeleteEvent(deleteConfirm.id)}
+                aria-label="Confirm delete"
+              >
+                Yes, Delete
+              </button>
+              <button 
+                className="org-btn-cancel"
+                onClick={() => setDeleteConfirm(null)}
+                aria-label="Cancel delete"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Details Modal */}
+      {showModal && selectedEvent && (
+        <div className="org-modal-overlay" onClick={handleCloseModal} role="dialog" aria-modal="true">
+          <div className="org-modal-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="org-modal-close" 
+              onClick={handleCloseModal} 
+              aria-label="Close modal"
+            >
+              ×
+            </button>
             
-            <div className="orgModal-header">
+            <div className="org-modal-header">
               <img 
                 src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]} 
-                alt={selectedEvent.title}
-                className="orgModal-image"
+                alt={`${selectedEvent.title} event`}
+                className="org-modal-image"
               />
               <h2>{selectedEvent.title}</h2>
-              <span className="category-badge">{selectedEvent.category}</span>
+              <span className="org-category-badge">{selectedEvent.category}</span>
             </div>
 
-            <div className="orgModal-body">
-              <div className="detail-row">
+            <div className="org-modal-body">
+              <div className="org-detail-row">
                 <strong>Description</strong>
                 <p>{selectedEvent.description}</p>
               </div>
 
-              <div className="detail-row">
+              <div className="org-detail-row">
                 <strong>Date & Time</strong>
                 <p>{formatDateDDMMYYYY(selectedEvent.date)} at {formatTimeHHMM(selectedEvent.date)}</p>
               </div>
 
-              <div className="detail-row">
+              <div className="org-detail-row">
                 <strong>Location</strong>
                 <p>{selectedEvent.location || "Not specified"}</p>
               </div>
 
-              <div className="detail-row">
+              <div className="org-detail-row">
                 <strong>Event Type</strong>
-                <span className={`type-badge ${selectedEvent.eventType?.toLowerCase()}`}>
+                <span className={`org-type-badge org-type-${selectedEvent.eventType?.toLowerCase()}`}>
                   {selectedEvent.eventType || 'PUBLIC'}
                 </span>
               </div>
 
               {selectedEvent.eventType === "PRIVATE" && selectedEvent.privateCode && (
-                <div className="detail-row">
+                <div className="org-detail-row">
                   <strong>Private Code</strong>
-                  <span className="private-code">{selectedEvent.privateCode}</span>
+                  <span className="org-private-code">{selectedEvent.privateCode}</span>
                 </div>
               )}
 
-              <div className="detail-row">
+              <div className="org-detail-row">
                 <strong>Attendees</strong>
                 <p>{selectedEvent.currentAttendees || 0} / {selectedEvent.maxAttendees || "Unlimited"}</p>
               </div>
 
-              <div className="detail-row">
+              <div className="org-detail-row">
                 <strong>Status</strong>
-                <span className={`status-badge ${new Date(selectedEvent.date) > new Date() ? 'upcoming' : 'completed'}`}>
+                <span className={`org-status-badge org-status-${new Date(selectedEvent.date) > new Date() ? 'upcoming' : 'completed'}`}>
                   {new Date(selectedEvent.date) > new Date() ? 'Upcoming' : 'Completed'}
                 </span>
               </div>
@@ -441,6 +504,8 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   const stateCityData = {
     Maharashtra: ["Mumbai", "Pune", "Nagpur", "Nashik"],
@@ -506,6 +571,10 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
         eventType: editingEvent.eventType || "PUBLIC",
         privateCode: editingEvent.privateCode || ""
       });
+      
+      if (editingEvent.imageUrl) {
+        setImagePreview(editingEvent.imageUrl);
+      }
     }
   }, [editingEvent]);
 
@@ -531,20 +600,38 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
     }
   };
 
-  const handleImageUpload = async (file) => {
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
-    
+
+    // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError("Please upload a valid image file");
+      setError("Please upload a valid image file (JPEG, PNG, GIF, WebP)");
       return;
     }
-    
+
+    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("Image size must be less than 5MB");
       return;
     }
 
+    setImageFile(file);
+    
+    // Create preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to server
+    await handleImageUpload(file);
+  };
+
+  const handleImageUpload = async (file) => {
     try {
+      setUploading(true);
       const formDataImg = new FormData();
       formDataImg.append('file', file);
       
@@ -554,9 +641,14 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       
       setFormData(prev => ({ ...prev, imageUrl: response.data.url }));
       setError("");
+      console.log("✅ Image uploaded successfully:", response.data.url);
     } catch (err) {
-      console.error("Error uploading image:", err);
+      console.error("❌ Error uploading image:", err);
       setError(err.response?.data?.error || "Failed to upload image");
+      setImagePreview(null);
+      setImageFile(null);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -639,11 +731,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
 
       if (editingEvent) {
         await API.put(`/events/${editingEvent.id}`, requestData);
+        onSuccess("Event updated successfully!");
       } else {
         await API.post("/events", requestData);
+        onSuccess("Event created successfully!");
       }
-
-      onSuccess(editingEvent ? "Event updated successfully!" : "Event created successfully!");
       
     } catch (err) {
       console.error("Error saving event:", err);
@@ -666,51 +758,51 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   };
 
   return (
-    <div className="create-event-wrapper">
-      <div className="form-header">
+    <div className="org-create-event-wrapper">
+      <div className="org-form-header">
         <h2>{editingEvent ? "Edit Event" : "Create New Event"}</h2>
-        <p className="form-subtitle">Fill in the details below to {editingEvent ? "update" : "create"} your event</p>
+        <p className="org-form-subtitle">Fill in the details below to {editingEvent ? "update" : "create"} your event</p>
       </div>
       
-      {error && <div className="alert error">{error}</div>}
+      {error && <div className="org-alert org-alert-error" role="alert">{error}</div>}
 
-      <form className="event-form" onSubmit={handleSubmit} noValidate>
-        <div className="form-section">
-          <label className="form-label">Event Image</label>
-          <div className="image-upload-area">
+      <form className="org-event-form" onSubmit={handleSubmit} noValidate>
+        <div className="org-form-section">
+          <label className="org-form-label">Event Image</label>
+          <div className="org-image-upload-area">
             <input 
               type="file" 
               accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files[0];
-                setImageFile(file);
-                handleImageUpload(file);
-              }}
-              className="file-input"
-              id="image-upload"
+              onChange={handleImageSelect}
+              className="org-file-input"
+              id="org-image-upload"
+              disabled={uploading}
+              aria-label="Upload event image"
             />
-            <label htmlFor="image-upload" className="upload-label">
-              {formData.imageUrl ? "Change Image" : "Upload Image"}
+            <label htmlFor="org-image-upload" className="org-upload-label">
+              {uploading ? "Uploading..." : (imagePreview ? "Change Image" : "Upload Image")}
             </label>
-            {formData.imageUrl && (
-              <div className="image-preview">
-                <img src={formData.imageUrl} alt="Event preview" />
+            {imagePreview && (
+              <div className="org-image-preview">
+                <img src={imagePreview} alt="Event preview" />
               </div>
             )}
-            <small className="form-hint">
-              Upload an image or leave empty to use a default image based on category
+            <small className="org-form-hint">
+              Upload an image or leave empty to use a default image based on category (Max 5MB)
             </small>
           </div>
         </div>
 
-        <div className="form-grid-2">
-          <div className="form-group">
-            <label className="form-label">Category *</label>
+        <div className="org-form-grid-2">
+          <div className="org-form-group">
+            <label className="org-form-label">Category *</label>
             <select 
               name="category"
               value={formData.category}
               onChange={handleChange}
-              className={`form-input ${fieldErrors.category ? 'error-field' : ''}`}
+              className={`org-form-input ${fieldErrors.category ? 'org-error-field' : ''}`}
+              aria-required="true"
+              aria-invalid={!!fieldErrors.category}
             >
               <option value="">Select Category</option>
               {eventCategories.map((category) => (
@@ -720,64 +812,71 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               ))}
             </select>
             {fieldErrors.category && (
-              <span className="error-message">{fieldErrors.category}</span>
+              <span className="org-error-message" role="alert">{fieldErrors.category}</span>
             )}
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Event Name *</label>
+          <div className="org-form-group">
+            <label className="org-form-label">Event Name *</label>
             <input 
               type="text" 
               name="title"
               value={formData.title}
               onChange={handleChange}
               placeholder="Enter event name"
-              className={`form-input ${fieldErrors.title ? 'error-field' : ''}`}
+              className={`org-form-input ${fieldErrors.title ? 'org-error-field' : ''}`}
+              aria-required="true"
+              aria-invalid={!!fieldErrors.title}
             />
             {fieldErrors.title && (
-              <span className="error-message">{fieldErrors.title}</span>
+              <span className="org-error-message" role="alert">{fieldErrors.title}</span>
             )}
           </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Description *</label>
+        <div className="org-form-group">
+          <label className="org-form-label">Description *</label>
           <textarea 
             name="description"
             value={formData.description}
             onChange={handleChange}
             placeholder="Event description"
-            rows="4"
-            className={`form-textarea ${fieldErrors.description ? 'error-field' : ''}`}
+            rows="3"
+            className={`org-form-textarea ${fieldErrors.description ? 'org-error-field' : ''}`}
+            aria-required="true"
+            aria-invalid={!!fieldErrors.description}
           />
           {fieldErrors.description && (
-            <span className="error-message">{fieldErrors.description}</span>
+            <span className="org-error-message" role="alert">{fieldErrors.description}</span>
           )}
         </div>
 
-        <div className="form-group">
-          <label className="form-label">Address *</label>
+        <div className="org-form-group">
+          <label className="org-form-label">Address *</label>
           <textarea 
             name="address"
             value={formData.address}
             onChange={handleChange}
             placeholder="Enter venue details, landmark, or address"
             rows="2"
-            className={`form-textarea ${fieldErrors.address ? 'error-field' : ''}`}
+            className={`org-form-textarea ${fieldErrors.address ? 'org-error-field' : ''}`}
+            aria-required="true"
+            aria-invalid={!!fieldErrors.address}
           />
           {fieldErrors.address && (
-            <span className="error-message">{fieldErrors.address}</span>
+            <span className="org-error-message" role="alert">{fieldErrors.address}</span>
           )}
         </div>
 
-        <div className="form-grid-2">
-          <div className="form-group">
-            <label className="form-label">State</label>
+        <div className="org-form-grid-2">
+          <div className="org-form-group">
+            <label className="org-form-label">State</label>
             <select
               name="state"
               value={formData.state}
               onChange={handleChange}
-              className="form-input"
+              className="org-form-input"
+              aria-label="Select state"
             >
               <option value="">Select State</option>
               {Object.keys(stateCityData).map((state) => (
@@ -788,14 +887,15 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
             </select>
           </div>
           
-          <div className="form-group">
-            <label className="form-label">City</label>
+          <div className="org-form-group">
+            <label className="org-form-label">City</label>
             <select
               name="city"
               value={formData.city}
               onChange={handleChange}
               disabled={!formData.state}
-              className="form-input"
+              className="org-form-input"
+              aria-label="Select city"
             >
               <option value="">Select City</option>
               {formData.state &&
@@ -808,40 +908,44 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
           </div>
         </div>
 
-        <div className="form-grid-2">
-          <div className="form-group">
-            <label className="form-label">Date *</label>
+        <div className="org-form-grid-2">
+          <div className="org-form-group">
+            <label className="org-form-label">Date *</label>
             <input 
               type="date" 
               name="date"
               value={formData.date}
               onChange={handleChange}
               min={getTomorrowDate()}
-              className={`form-input ${fieldErrors.date ? 'error-field' : ''}`}
+              className={`org-form-input ${fieldErrors.date ? 'org-error-field' : ''}`}
+              aria-required="true"
+              aria-invalid={!!fieldErrors.date}
             />
             {fieldErrors.date && (
-              <span className="error-message">{fieldErrors.date}</span>
+              <span className="org-error-message" role="alert">{fieldErrors.date}</span>
             )}
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Time *</label>
+          <div className="org-form-group">
+            <label className="org-form-label">Time *</label>
             <input 
               type="time" 
               name="time"
               value={formData.time}
               onChange={handleChange}
-              className={`form-input ${fieldErrors.time ? 'error-field' : ''}`}
+              className={`org-form-input ${fieldErrors.time ? 'org-error-field' : ''}`}
+              aria-required="true"
+              aria-invalid={!!fieldErrors.time}
             />
             {fieldErrors.time && (
-              <span className="error-message">{fieldErrors.time}</span>
+              <span className="org-error-message" role="alert">{fieldErrors.time}</span>
             )}
           </div>
         </div>
 
-        <div className="form-grid-2">
-          <div className="form-group">
-            <label className="form-label">Max Attendees</label>
+        <div className="org-form-grid-2">
+          <div className="org-form-group">
+            <label className="org-form-label">Max Attendees</label>
             <input 
               type="number" 
               name="maxAttendees"
@@ -849,20 +953,22 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               onChange={handleChange}
               placeholder="e.g. 100"
               min="1"
-              className={`form-input ${fieldErrors.maxAttendees ? 'error-field' : ''}`}
+              className={`org-form-input ${fieldErrors.maxAttendees ? 'org-error-field' : ''}`}
+              aria-label="Maximum number of attendees"
             />
             {fieldErrors.maxAttendees && (
-              <span className="error-message">{fieldErrors.maxAttendees}</span>
+              <span className="org-error-message" role="alert">{fieldErrors.maxAttendees}</span>
             )}
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Event Type *</label>
+          <div className="org-form-group">
+            <label className="org-form-label">Event Type *</label>
             <select 
               name="eventType"
               value={formData.eventType}
               onChange={handleChange}
-              className="form-input"
+              className="org-form-input"
+              aria-label="Select event type"
             >
               <option value="PUBLIC">Public</option>
               <option value="PRIVATE">Private</option>
@@ -871,32 +977,34 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
         </div>
 
         {formData.eventType === "PRIVATE" && (
-          <div className="form-group">
-            <label className="form-label">Private Code *</label>
+          <div className="org-form-group">
+            <label className="org-form-label">Private Code *</label>
             <input 
               type="text" 
               name="privateCode"
               value={formData.privateCode}
               onChange={handleChange}
               placeholder="Enter private access code"
-              className={`form-input ${fieldErrors.privateCode ? 'error-field' : ''}`}
+              className={`org-form-input ${fieldErrors.privateCode ? 'org-error-field' : ''}`}
+              aria-required="true"
+              aria-invalid={!!fieldErrors.privateCode}
             />
             {fieldErrors.privateCode && (
-              <span className="error-message">{fieldErrors.privateCode}</span>
+              <span className="org-error-message" role="alert">{fieldErrors.privateCode}</span>
             )}
-            <small className="form-hint">
+            <small className="org-form-hint">
               Attendees will need this code to register for the event
             </small>
           </div>
         )}
 
-        <div className="form-actions">
-          <button type="submit" className="btn-primary" disabled={loading}>
+        <div className="org-form-actions">
+          <button type="submit" className="org-btn-primary" disabled={loading || uploading}>
             {loading ? "Saving..." : (editingEvent ? "Update Event" : "Create Event")}
           </button>
           <button 
             type="button" 
-            className="btn-secondary"
+            className="org-btn-secondary"
             onClick={onCancel}
           >
             Cancel
@@ -921,6 +1029,8 @@ function Profile({ onCancel, onSuccess }) {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -931,6 +1041,9 @@ function Profile({ onCancel, onSuccess }) {
       setLoading(true);
       const response = await API.get("/users/profile");
       setProfile(response.data);
+      if (response.data.imageUrl) {
+        setImagePreview(response.data.imageUrl);
+      }
       setError("");
     } catch (err) {
       console.error("Error fetching profile:", err);
@@ -940,20 +1053,36 @@ function Profile({ onCancel, onSuccess }) {
     }
   };
 
-  const handleImageUpload = async (file) => {
+  const handleImageSelect = async (e) => {
+    const file = e.target.files[0];
     if (!file) return;
-    
+
+    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError("Please upload a valid image file");
       return;
     }
-    
+
+    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("Image size must be less than 5MB");
       return;
     }
 
+    // Create preview immediately
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload to server
+    await handleImageUpload(file);
+  };
+
+  const handleImageUpload = async (file) => {
     try {
+      setUploading(true);
       const formData = new FormData();
       formData.append('file', file);
       
@@ -963,9 +1092,13 @@ function Profile({ onCancel, onSuccess }) {
       
       setProfile(prev => ({ ...prev, imageUrl: response.data.url }));
       setError("");
+      console.log("✅ Profile image uploaded successfully:", response.data.url);
     } catch (err) {
-      console.error("Error uploading image:", err);
+      console.error("❌ Error uploading image:", err);
       setError(err.response?.data?.error || "Failed to upload image");
+      setImagePreview(null);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -989,6 +1122,9 @@ function Profile({ onCancel, onSuccess }) {
 
       const response = await API.put("/users/profile", profileData);
       setProfile(response.data);
+      if (response.data.imageUrl) {
+        setImagePreview(response.data.imageUrl);
+      }
       setIsEditing(false);
       onSuccess("Profile updated successfully!");
       
@@ -1001,119 +1137,122 @@ function Profile({ onCancel, onSuccess }) {
   };
 
   if (loading && !profile.id) {
-    return <div className="loading-spinner">Loading profile...</div>;
+    return <div className="org-loading-spinner">Loading profile...</div>;
   }
 
   return (
-    <div className="profile-container">
-      <div className="form-header">
+    <div className="org-profile-container">
+      <div className="org-form-header">
         <h2>My Profile</h2>
-        <p className="form-subtitle">Manage your profile information</p>
+        <p className="org-form-subtitle">Manage your profile information</p>
       </div>
       
-      {error && <div className="alert error">{error}</div>}
+      {error && <div className="org-alert org-alert-error" role="alert">{error}</div>}
 
       {!isEditing ? (
-        <div className="profile-view-card">
-          <div className="profile-avatar-wrapper">
+        <div className="org-profile-view-card">
+          <div className="org-profile-avatar-wrapper">
             <img 
-              src={profile.imageUrl || "/src/assets/EZ-logo1.png"} 
-              alt="Profile" 
-              className="profile-avatar"
+              src={imagePreview || "/src/assets/EZ-logo1.png"} 
+              alt={`${profile.name}'s profile`}
+              className="org-profile-avatar"
             />
           </div>
-          <div className="profile-details">
-            <h3 className="profile-name">{profile.name}</h3>
-            <p className="profile-email">{profile.email}</p>
-            <span className="role-badge">{profile.role}</span>
-            <div className="profile-meta">
-              <div className="meta-item">
-                <span className="meta-label">Mobile:</span>
-                <span className="meta-value">{profile.mobileNumber || "Not provided"}</span>
+          <div className="org-profile-details">
+            <h3 className="org-profile-name">{profile.name}</h3>
+            <p className="org-profile-email">{profile.email}</p>
+            <span className="org-role-badge">{profile.role}</span>
+            <div className="org-profile-meta">
+              <div className="org-meta-item">
+                <span className="org-meta-label">Mobile:</span>
+                <span className="org-meta-value">{profile.mobileNumber || "Not provided"}</span>
               </div>
             </div>
           </div>
-          <button className="btn-primary" onClick={() => setIsEditing(true)}>
+          <button className="org-btn-primary" onClick={() => setIsEditing(true)}>
             Edit Profile
           </button>
         </div>
       ) : (
-        <form className="profile-edit-form" onSubmit={handleSubmit}>
-          <div className="form-group">
-            <label className="form-label">Profile Image</label>
-            <div className="image-upload-area">
+        <form className="org-profile-edit-form" onSubmit={handleSubmit}>
+          <div className="org-form-group">
+            <label className="org-form-label">Profile Image</label>
+            <div className="org-image-upload-area">
               <input 
                 type="file" 
                 accept="image/*"
-                onChange={(e) => {
-                  const file = e.target.files[0];
-                  handleImageUpload(file);
-                }}
-                className="file-input"
-                id="profile-image-upload"
+                onChange={handleImageSelect}
+                className="org-file-input"
+                id="org-profile-image-upload"
+                disabled={uploading}
+                aria-label="Upload profile image"
               />
-              <label htmlFor="profile-image-upload" className="upload-label">
-                {profile.imageUrl ? "Change Image" : "Upload Image"}
+              <label htmlFor="org-profile-image-upload" className="org-upload-label">
+                {uploading ? "Uploading..." : (imagePreview ? "Change Image" : "Upload Image")}
               </label>
-              {profile.imageUrl && (
-                <div className="image-preview profile-preview">
-                  <img src={profile.imageUrl} alt="Profile preview" />
+              {imagePreview && (
+                <div className="org-image-preview org-profile-preview">
+                  <img src={imagePreview} alt="Profile preview" />
                 </div>
               )}
             </div>
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Name *</label>
+          <div className="org-form-group">
+            <label className="org-form-label">Name *</label>
             <input
               type="text"
               name="name"
               value={profile.name}
               onChange={handleChange}
-              className="form-input"
+              className="org-form-input"
               required
+              aria-required="true"
             />
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Email (Cannot be changed)</label>
+          <div className="org-form-group">
+            <label className="org-form-label">Email (Cannot be changed)</label>
             <input
               type="email"
               value={profile.email}
               disabled
-              className="form-input disabled"
+              className="org-form-input org-disabled"
+              aria-label="Email address (read-only)"
             />
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Role</label>
+          <div className="org-form-group">
+            <label className="org-form-label">Role</label>
             <input
               type="text"
               value={profile.role}
               disabled
-              className="form-input disabled"
+              className="org-form-input org-disabled"
+              aria-label="User role (read-only)"
             />
           </div>
           
-          <div className="form-group">
-            <label className="form-label">Mobile Number</label>
+          <div className="org-form-group">
+            <label className="org-form-label">Mobile Number</label>
             <input
               type="tel"
               name="mobileNumber"
               value={profile.mobileNumber || ""}
               onChange={handleChange}
               placeholder="+91 9876543210"
-              className="form-input"
+              className="org-form-input"
+              aria-label="Mobile number"
             />
           </div>
           
-          <div className="form-actions">
-            <button type="submit" className="btn-primary" disabled={loading}>
+          <div className="org-form-actions">
+            <button type="submit" className="org-btn-primary" disabled={loading || uploading}>
               {loading ? "Saving..." : "Save Changes"}
             </button>
             <button
               type="button"
-              className="btn-secondary"
+              className="org-btn-secondary"
               onClick={() => {
                 setIsEditing(false);
                 setError("");
@@ -1135,7 +1274,7 @@ export default function OrganizerDashboard() {
   const navigate = useNavigate();
   
   const [activePage, setActivePage] = useState("myEvents");
-  const [success, setSuccess] = useState("");
+  const [toast, setToast] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
 
   const handleLogout = () => {
@@ -1151,11 +1290,9 @@ export default function OrganizerDashboard() {
   };
 
   const handleCreateEventSuccess = (message) => {
-    setSuccess(message);
+    setToast({ message, type: 'success' });
     setEditingEvent(null);
     setActivePage("myEvents");
-    
-    setTimeout(() => setSuccess(""), 5000);
   };
 
   const handleCancelForm = () => {
@@ -1164,8 +1301,7 @@ export default function OrganizerDashboard() {
   };
 
   const handleProfileSuccess = (message) => {
-    setSuccess(message);
-    setTimeout(() => setSuccess(""), 5000);
+    setToast({ message, type: 'success' });
   };
 
   const handleProfileCancel = () => {
@@ -1173,48 +1309,73 @@ export default function OrganizerDashboard() {
   };
 
   return (
-    <div className="organizer-dashboard">
-      <nav className="top-navbar">
-        <div className="navbar-brand">
-          <span className="brand-icon">
-            <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
+    <div className="org-dashboard">
+      <nav className="org-top-navbar">
+        <div className="org-navbar-brand">
+          <span className="org-brand-icon">
+            <img src="/src/assets/EZ-logo1.png" alt="EventZen logo" className="org-logo-img" />
           </span>
-          <span className="brand-text">EventZen Organizer</span>
+          <span className="org-brand-text">EventZen Organizer</span>
         </div>
-        <ul className="nav-menu">
+        <ul className="org-nav-menu" role="menubar">
           <li 
             onClick={() => {
               setActivePage("myEvents");
               setEditingEvent(null);
             }}
-            className={activePage === "myEvents" ? "nav-item active" : "nav-item"}
+            className={activePage === "myEvents" ? "org-nav-item org-active" : "org-nav-item"}
+            role="menuitem"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && setActivePage("myEvents")}
           >
-            My Events
+            <span className="org-nav-icon" aria-hidden="true">📅</span>
+            <span>My Events</span>
           </li>
           <li 
             onClick={() => {
               setActivePage("createEvent");
               setEditingEvent(null);
             }}
-            className={activePage === "createEvent" ? "nav-item active" : "nav-item"}
+            className={activePage === "createEvent" ? "org-nav-item org-active" : "org-nav-item"}
+            role="menuitem"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && setActivePage("createEvent")}
           >
-            Create Event
+            <span className="org-nav-icon" aria-hidden="true">🎟️</span>
+            <span>Create Event</span>
           </li>
           <li 
             onClick={() => setActivePage("profile")}
-            className={activePage === "profile" ? "nav-item active" : "nav-item"}
+            className={activePage === "profile" ? "org-nav-item org-active" : "org-nav-item"}
+            role="menuitem"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && setActivePage("profile")}
           >
-            My Profile
+            <span className="org-nav-icon" aria-hidden="true">👤</span>
+            <span>Profile</span>
           </li>
-          <li onClick={handleLogout} className="nav-item logout">
-            Logout
+          <li 
+            onClick={handleLogout} 
+            className="org-nav-item org-logout"
+            role="menuitem"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && handleLogout()}
+          >
+            <span className="org-nav-icon" aria-hidden="true">🚪</span>
+            <span>Logout</span>
           </li>
         </ul>
       </nav>
 
-      {success && <div className="alert success">{success}</div>}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
 
-      <main className="dashboard-main">
+      <main className="org-dashboard-main" role="main">
         {activePage === "myEvents" && (
           <MyEvents onEditEvent={handleEditEvent} />
         )}

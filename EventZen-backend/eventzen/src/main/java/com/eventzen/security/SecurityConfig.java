@@ -1,3 +1,8 @@
+// ================================================================
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/security/SecurityConfig.java
+// CHANGES: FIXED - Added /uploads/** to permitAll() for image access (403 → 200)
+// ================================================================
+
 package com.eventzen.security;
 
 import java.util.Arrays;
@@ -49,13 +54,17 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     System.out.println("🔧 Configuring authorization rules...");
                     auth
+                            // ✅ CRITICAL FIX: Allow public access to uploaded images
+                            // This MUST be FIRST to prevent 403 errors on image loading
+                            .requestMatchers("/uploads/**").permitAll()
+
                             // Allow OPTIONS requests for CORS preflight
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
                             // Allow register & login for everyone
                             .requestMatchers("/api/auth/**").permitAll()
 
-                            // 🔥 NEW: Allow public GET access to events (view events without login)
+                            // Allow public GET access to events (view events without login)
                             .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
 
                             // POST, PUT, DELETE on events require authentication
@@ -79,6 +88,7 @@ public class SecurityConfig {
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         System.out.println("✅ Security Filter Chain configured successfully");
+        System.out.println("✅ /uploads/** is now publicly accessible");
         return http.build();
     }
 
@@ -86,18 +96,24 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
+        // Allow frontend origins
         configuration.setAllowedOrigins(
                 Arrays.asList("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
 
+        // Allow all HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
 
+        // Allow all headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
 
+        // Expose Authorization header
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
 
+        // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);
 
+        // Apply CORS configuration to all paths
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 

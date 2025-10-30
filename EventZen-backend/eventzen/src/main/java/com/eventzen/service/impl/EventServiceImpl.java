@@ -1,3 +1,8 @@
+// ================================================================
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/service/impl/EventServiceImpl.java
+// CHANGES: Updated repository method calls to use DESC sorting
+// ================================================================
+
 package com.eventzen.service.impl;
 
 import java.time.LocalDate;
@@ -8,9 +13,11 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 
@@ -20,6 +27,7 @@ import com.eventzen.entity.Event;
 import com.eventzen.entity.Role;
 import com.eventzen.entity.User;
 import com.eventzen.repository.EventRepository;
+import com.eventzen.repository.RegistrationRepository;
 import com.eventzen.repository.UserRepository;
 import com.eventzen.service.EventService;
 
@@ -32,26 +40,25 @@ public class EventServiceImpl implements EventService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RegistrationRepository registrationRepository;
+
     @Override
     public EventResponse createEvent(EventRequest request) throws Exception {
         System.out.println("Creating new event: " + request.getTitle());
 
-        // Get current user from JWT token
         Long organizerId = getCurrentUserId();
         User organizer = userRepository.findById(organizerId)
                 .orElseThrow(() -> new Exception("Organizer not found"));
 
-        // Verify user has ORGANIZER role
         if (organizer.getRole() != Role.ORGANIZER) {
             throw new Exception("Only organizers can create events");
         }
 
-        // Validate date is not in the past
         if (request.getDate().isBefore(LocalDate.now())) {
             throw new Exception("Event date cannot be in the past");
         }
 
-        // Create new event
         Event event = new Event();
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
@@ -81,20 +88,16 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new Exception("Event not found"));
 
-        // Get current user
         Long currentUserId = getCurrentUserId();
 
-        // Verify organizer owns this event
         if (!event.getOrganizerId().equals(currentUserId)) {
             throw new Exception("You can only update your own events");
         }
 
-        // Validate date is not in the past
         if (request.getDate().isBefore(LocalDate.now())) {
             throw new Exception("Event date cannot be in the past");
         }
 
-        // Update event fields
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
         event.setDate(request.getDate());
@@ -118,22 +121,74 @@ public class EventServiceImpl implements EventService {
     }
 
     @Override
+    @Transactional
     public void deleteEvent(Long eventId) throws Exception {
+        System.out.println("=== DELETE EVENT START (Organizer) ===");
         System.out.println("Deleting event with ID: " + eventId);
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new Exception("Event not found"));
 
-        // Get current user
         Long currentUserId = getCurrentUserId();
 
-        // Verify organizer owns this event
         if (!event.getOrganizerId().equals(currentUserId)) {
             throw new Exception("You can only delete your own events");
         }
 
-        eventRepository.delete(event);
-        System.out.println("Event deleted successfully");
+        try {
+            long registrationCount = registrationRepository.countByEventId(eventId);
+            System.out.println("Event has " + registrationCount + " registrations to be deleted");
+
+            if (registrationCount > 0) {
+                registrationRepository.deleteByEventId(eventId);
+                System.out.println("✅ Deleted " + registrationCount + " registrations for event ID: " + eventId);
+            }
+
+            eventRepository.delete(event);
+            System.out.println("✅ Event deleted successfully");
+            System.out.println("=== DELETE EVENT END ===");
+
+        } catch (DataIntegrityViolationException e) {
+            System.err.println("❌ FK constraint error: " + e.getMessage());
+            e.printStackTrace();
+            throw new Exception("Cannot delete event due to database constraint. Please contact support.");
+        } catch (Exception e) {
+            System.err.println("❌ Error during event deletion: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
+    }
+
+    @Transactional
+    public void deleteEventAdmin(Long eventId) throws Exception {
+        System.out.println("=== ADMIN DELETE EVENT START ===");
+        System.out.println("Admin deleting event with ID: " + eventId);
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        try {
+            long registrationCount = registrationRepository.countByEventId(eventId);
+            System.out.println("Event has " + registrationCount + " registrations to be deleted");
+
+            if (registrationCount > 0) {
+                registrationRepository.deleteByEventId(eventId);
+                System.out.println("✅ Deleted " + registrationCount + " registrations");
+            }
+
+            eventRepository.delete(event);
+            System.out.println("✅ Admin deleted event successfully");
+            System.out.println("=== ADMIN DELETE EVENT END ===");
+
+        } catch (DataIntegrityViolationException e) {
+            System.err.println("❌ FK constraint error: " + e.getMessage());
+            e.printStackTrace();
+            throw new Exception("Cannot delete event due to database constraint. Please contact support.");
+        } catch (Exception e) {
+            System.err.println("❌ Error during admin event deletion: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 
     @Override
@@ -161,7 +216,8 @@ public class EventServiceImpl implements EventService {
 
     @Override
     public List<EventResponse> getEventsByOrganizer(Long organizerId) {
-        List<Event> events = eventRepository.findByOrganizerId(organizerId);
+        // UPDATED: Use DESC sorting method
+        List<Event> events = eventRepository.findByOrganizerIdOrderByDateDesc(organizerId);
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
@@ -170,20 +226,16 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get current user's events (for organizer dashboard)
-     */
     public List<EventResponse> getMyEvents() throws Exception {
         Long currentUserId = getCurrentUserId();
         return getEventsByOrganizer(currentUserId);
     }
 
-    /**
-     * Get upcoming events for specific organizer
-     */
     public List<EventResponse> getUpcomingEventsByOrganizer(Long organizerId) throws Exception {
         LocalDate today = LocalDate.now();
-        List<Event> events = eventRepository.findByOrganizerIdAndDateGreaterThanEqualOrderByDateAsc(organizerId, today);
+        // UPDATED: Use DESC sorting method
+        List<Event> events = eventRepository.findByOrganizerIdAndDateGreaterThanEqualOrderByDateDesc(organizerId,
+                today);
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
@@ -192,11 +244,9 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Get past events for specific organizer
-     */
     public List<EventResponse> getPastEventsByOrganizer(Long organizerId) throws Exception {
         LocalDate today = LocalDate.now();
+        // Already DESC from repository
         List<Event> events = eventRepository.findByOrganizerIdAndDateLessThanOrderByDateDesc(organizerId, today);
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
@@ -206,9 +256,6 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Helper method to process validation errors
-     */
     public Map<String, String> processValidationErrors(BindingResult bindingResult) {
         Map<String, String> errors = new HashMap<>();
         for (FieldError error : bindingResult.getFieldErrors()) {
@@ -217,9 +264,6 @@ public class EventServiceImpl implements EventService {
         return errors;
     }
 
-    /**
-     * Helper method to get current user ID from JWT token
-     */
     private Long getCurrentUserId() throws Exception {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -233,20 +277,15 @@ public class EventServiceImpl implements EventService {
         return user.getId();
     }
 
-    /**
-     * Helper method to convert Event entity to EventResponse DTO
-     */
     private EventResponse convertToResponse(Event event, String organizerName) {
         EventResponse response = new EventResponse();
         response.setId(event.getId());
         response.setTitle(event.getTitle());
         response.setDescription(event.getDescription());
 
-        // Combine date and time for datetime field
         LocalDateTime dateTime = LocalDateTime.of(event.getDate(), event.getTime());
         response.setDate(dateTime);
 
-        // Use the combined location for backward compatibility
         response.setLocation(event.getLocation());
         response.setCategory(event.getCategory());
         response.setImageUrl(event.getImageUrl());

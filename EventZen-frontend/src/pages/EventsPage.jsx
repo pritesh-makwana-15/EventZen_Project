@@ -40,31 +40,59 @@ export default function Events() {
     window.location.href = "/login";
   };
 
-  // Fetch all events on component mount - NO TOKEN REQUIRED
-  useEffect(() => {
-    loadEvents();
-  }, []);
+  // Show only events from TOMORROW onward
+useEffect(() => {
+  loadEvents();
+}, []);
 
-  const loadEvents = async () => {
-    try {
-      setLoading(true);
-      // Fetch events without authentication (public endpoint)
-      const data = await fetchAllEvents();
-      setEvents(data);
-      setFilteredEvents(data);
-      setError(null);
-    } catch (err) {
-      console.error("Error fetching events:", err);
-      // If 401 error, still try to show events (they might be public)
-      if (err.response?.status === 401) {
-        setError("Please login to see all events.");
-      } else {
-        setError("Failed to load events. Please try again later.");
-      }
-    } finally {
-      setLoading(false);
+const getTomorrowStart = () => {
+  const now = new Date();
+  // Create a date at local midnight of tomorrow
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+};
+
+const isEventActiveFlag = (event) => {
+  // Handle several possible shapes: isActive, is_active, status string, etc.
+  if (event == null) return false;
+  if (typeof event.isActive === "boolean") return event.isActive;
+  if (typeof event.is_active === "boolean") return event.is_active;
+  if (typeof event.status === "string") return event.status.toLowerCase() === "active";
+  // default to true if no explicit inactive flag found
+  return true;
+};
+
+const loadEvents = async () => {
+  try {
+    setLoading(true);
+    const data = await fetchAllEvents(); // your existing public fetch
+    const tomorrowStart = getTomorrowStart();
+
+    const upcomingEvents = (data || []).filter((event) => {
+      if (!isEventActiveFlag(event)) return false;
+
+      // Safely parse date; if invalid, drop the event
+      const eventDate = event?.date ? new Date(event.date) : null;
+      if (!eventDate || isNaN(eventDate.getTime())) return false;
+
+      // Keep events that start at or after tomorrow's midnight
+      return eventDate >= tomorrowStart;
+    });
+
+    setEvents(upcomingEvents);
+    setFilteredEvents(upcomingEvents);
+    setError(null);
+  } catch (err) {
+    console.error("Error fetching events:", err);
+    if (err.response?.status === 401) {
+      setError("Please login to see all events.");
+    } else {
+      setError("Failed to load events. Please try again later.");
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Apply filters whenever filter state changes
   useEffect(() => {
@@ -325,7 +353,7 @@ export default function Events() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
 
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
+          {/* <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
             <option value="">All Categories</option>
             <option value="Music">Music</option>
             <option value="Technology">Technology</option>
@@ -349,7 +377,9 @@ export default function Events() {
             <option value="Theatre">Theatre</option>
             <option value="Travel">Travel</option>
             <option value="Environment">Environment</option>
-          </select>
+          </select> */}
+
+          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}><option value="">All Categories</option><option value="Technology">Technology</option><option value="Business">Business</option><option value="Music">Music</option><option value="Health">Health</option><option value="Food">Food</option><option value="Art">Art</option><option value="Community">Community</option><option value="Entertainment">Entertainment</option><option value="Education">Education</option><option value="Sports">Sports</option><option value="Finance">Finance</option><option value="Media">Media</option><option value="Design">Design</option><option value="Crafts">Crafts</option><option value="Travel">Travel</option><option value="Environment">Environment</option></select>
 
           <select value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
             <option value="">All Locations</option>
@@ -388,9 +418,9 @@ export default function Events() {
                 <div className="event-details">
                   <h3>{event.title}</h3>
                   <p><strong>Category:</strong> {event.category}</p>
-                  <p><strong>Date:</strong> {formatDate(event.eventDate)} {formatTime(event.eventTime)}</p>
+                  {/* <p><strong>Date:</strong> {formatDate(event.eventDate)} {formatTime(event.eventTime)}</p> */}
                   <p><strong>Location:</strong> {event.location}</p>
-                  <p><strong>Attendance:</strong> {event.currentParticipants || 0} / {event.maxParticipants || "Unlimited"}</p>
+                  {/* <p><strong>Attendance:</strong> {event.currentParticipants || 0} / {event.maxParticipants || "Unlimited"}</p> */}
                 </div>
 
                 <div className="event-actions">
@@ -464,21 +494,21 @@ export default function Events() {
                 <div className="info-item">
                   <strong>Category:</strong> {selectedEvent.category}
                 </div>
-                <div className="info-item">
+                {/* <div className="info-item">
                   <strong>Date:</strong> {formatDate(selectedEvent.eventDate)}
-                </div>
-                <div className="info-item">
+                </div> */}
+                {/* <div className="info-item">
                   <strong>Time:</strong> {formatTime(selectedEvent.eventTime)}
-                </div>
+                </div> */}
                 <div className="info-item">
                   <strong>Location:</strong> {selectedEvent.location}
                 </div>
                 <div className="info-item">
                   <strong>Organizer:</strong> {selectedEvent.organizerName || "EventZen"}
                 </div>
-                <div className="info-item">
+                {/* <div className="info-item">
                   <strong>Participants:</strong> {selectedEvent.currentParticipants || 0} / {selectedEvent.maxParticipants || "Unlimited"}
-                </div>
+                </div> */}
                 <div className="info-item">
                   <strong>Type:</strong> {selectedEvent.type || "Public"}
                 </div>
