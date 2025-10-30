@@ -628,7 +628,7 @@
   width: 100%;
   max-height: 85vh; /* FIXED: Prevent overflow */
   overflow-y: auto; /* FIXED: Internal scroll only */
-  position: relative;
+  /* position: relative; */
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   animation: org-slideUp 0.3s ease;
 }

@@ -11,7 +11,7 @@
   width: 191px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 15px;
+  padding: 10px;
   position: fixed;
   height: 100vh;
   overflow-y: auto;
@@ -28,13 +28,13 @@
 }
 
 .vis-sidebar .vis-logo-img {
-  width: 29px;
-  height: 29px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
 }
 
 .vis-sidebar .vis-logo-text {
-  font-size: 18px;
+  font-size: 25px;
   font-weight: bold;
 }
 
@@ -48,11 +48,11 @@
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 11px 15px;
+  padding: 11px 11px;
   background: rgba(43, 47, 255, 0.5);
   border: none;
   color: white;
-  font-size: 12px;
+  font-size: 15px;
   cursor: pointer;
   transition: all 0.3s ease;
   text-align: left;
@@ -222,7 +222,7 @@
   padding: 8px 15px;
   border: 2px solid #e0e0e0;
   border-radius: 6px;
-  font-size: 11px;
+  font-size: 15px;
   transition: border-color 0.3s;
 }
 
@@ -242,7 +242,7 @@
   font-weight: 600;
   transition: all 0.3s;
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 15px;
 }
 
 .vis-reset-btn-visitor:hover {
@@ -251,7 +251,7 @@
 
 .vis-events-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(235px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: 19px;
 }
 
@@ -286,7 +286,7 @@
   right: 7px;
   padding: 4px 11px;
   border-radius: 15px;
-  font-size: 8px;
+  font-size: 12px;
   font-weight: 600;
   background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
@@ -319,7 +319,7 @@
 }
 
 .vis-event-details-visitor h3 {
-  font-size: 15px;
+  font-size: 20px;
   margin: 0 0 7px 0;
   color: #333;
   font-weight: 700;
@@ -331,7 +331,7 @@
   color: white;
   padding: 4px 11px;
   border-radius: 15px;
-  font-size: 9px;
+  font-size: 13px;
   margin-bottom: 11px;
   font-weight: 600;
 }
@@ -348,7 +348,7 @@
 .vis-event-organizer,
 .vis-event-capacity {
   color: #666;
-  font-size: 11px;
+  font-size: 14px;
   margin: 0;
 }
 
@@ -368,7 +368,7 @@
   text-align: center;
   cursor: pointer;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 15px;
   transition: all 0.3s;
 }
 
@@ -443,7 +443,7 @@
 .vis-stat-card-visitor p {
   color: #666;
   margin: 0;
-  font-size: 11px;
+  font-size: 20px;
   font-weight: 600;
 }
 
@@ -481,16 +481,16 @@
 .vis-registrations-table th {
   background: #667eea;
   color: white;
-  padding: 11px;
+  padding: 15px;
   text-align: left;
   font-weight: 600;
-  font-size: 11px;
+  font-size: 15px;
 }
 
 .vis-registrations-table td {
-  padding: 11px;
+  padding: 15px;
   border-bottom: 1px solid #f0f0f0;
-  font-size: 11px;
+  font-size: 14px;
 }
 
 .vis-registrations-table tr:last-child td {
@@ -507,7 +507,7 @@
   gap: 4px;
   padding: 4px 8px;
   border-radius: 11px;
-  font-size: 8px;
+  font-size: 15px;
   font-weight: 600;
   white-space: nowrap;
 }
@@ -529,7 +529,7 @@
   align-items: center;
   gap: 4px;
   font-weight: 700;
-  font-size: 7px;
+  font-size: 15px;
   padding: 4px 11px;
   border-radius: 15px;
   line-height: 1;
@@ -582,7 +582,7 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 9px;
+  font-size: 15 px;
   font-weight: 600;
   transition: all 0.3s;
   white-space: nowrap;
@@ -959,7 +959,7 @@
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  position: relative;
+  /* position: relative; */
   animation: vis-modalSlideIn 0.3s ease;
 }
 
@@ -978,12 +978,12 @@
   position: absolute;
   top: 11px;
   right: 11px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(173, 170, 170, 0.753);
   border: none;
-  width: 29px;
-  height: 29px;
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
-  font-size: 18px;
+  font-size: 28px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -1031,7 +1031,7 @@
 .vis-modal-visitor-info p {
   margin: 7px 0;
   color: #666;
-  font-size: 11px;
+  font-size: 15px;
 }
 
 .vis-modal-visitor-info strong {
@@ -1041,7 +1041,7 @@
 }
 
 .vis-modal-visitor-description h3 {
-  font-size: 15px;
+  font-size: 20px;
   color: #333;
   margin-bottom: 7px;
   font-weight: 700;
@@ -1050,7 +1050,7 @@
 .vis-modal-visitor-description p {
   color: #666;
   line-height: 1.6;
-  font-size: 11px;
+  font-size: 15px;
 }
 
 .vis-modal-visitor-footer {

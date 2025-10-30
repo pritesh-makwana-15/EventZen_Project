@@ -564,7 +564,7 @@ export default function VisitorDashboard() {
                             <span className="vis-event-category">{event.category}</span>
                             <div className="vis-event-info-grid">
                               <p className="vis-event-date">📅 {formatDateTime(event.date)}</p>
-                              <p className="vis-event-location">📍 {event.location}</p>
+                              <p className="vis-event-location">📍  {event.location}</p>
                               <p className="vis-event-organizer">👤 {event.organizerName}</p>
                               {event.maxAttendees && (
                                 <p className="vis-event-capacity">
@@ -751,7 +751,14 @@ export default function VisitorDashboard() {
                                 <td>{reg.event.location}</td>
                                 <td>{reg.event.organizerName}</td>
                                 <td>
-                                  <span className={`vis-type-badge-vis ${reg.event.eventType?.toLowerCase()}`}>
+                                  <span className={`vis-type-badge-vis ${
+  reg.event.eventType === 'PRIVATE'
+    ? 'vis-private'
+    : reg.event.eventType === 'PUBLIC'
+      ? 'vis-public'
+      : ''
+}`}
+>
                                     {reg.event.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}
                                   </span>
                                 </td>
