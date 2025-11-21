@@ -18,7 +18,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eventzen.dto.request.EventRequest;
+import com.eventzen.dto.request.VisitorRegistrationRequest;
 import com.eventzen.dto.response.EventResponse;
+import com.eventzen.dto.response.RegistrationResponse;
 import com.eventzen.service.EventService;
 import com.eventzen.service.impl.EventServiceImpl;
 
@@ -72,9 +74,6 @@ public class EventController {
 
     // ===== NEW ORGANIZER DASHBOARD ENDPOINTS =====
 
-    /**
-     * Get current organizer's upcoming events
-     */
     @GetMapping("/organizer/{organizerId}/upcoming")
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getUpcomingEvents(@PathVariable Long organizerId) {
@@ -88,9 +87,6 @@ public class EventController {
         }
     }
 
-    /**
-     * Get current organizer's past events
-     */
     @GetMapping("/organizer/{organizerId}/past")
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getPastEvents(@PathVariable Long organizerId) {
@@ -104,9 +100,6 @@ public class EventController {
         }
     }
 
-    /**
-     * Get current organizer's events (for dashboard)
-     */
     @GetMapping("/my-events")
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getMyEvents() {
@@ -122,9 +115,6 @@ public class EventController {
 
     // ===== ORGANIZER CRUD ENDPOINTS =====
 
-    /**
-     * Create new event (ORGANIZER only)
-     */
     @PostMapping
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<?> createEvent(@Valid @RequestBody EventRequest request, BindingResult bindingResult) {
@@ -134,7 +124,6 @@ public class EventController {
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            // Additional business validation
             if (request.getDate().isBefore(LocalDate.now())) {
                 return ResponseEntity.badRequest().body(Map.of("date", "Date must be today or later"));
             }
@@ -154,9 +143,6 @@ public class EventController {
         }
     }
 
-    /**
-     * Update event (ORGANIZER only - can only update own events)
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<?> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request,
@@ -167,7 +153,6 @@ public class EventController {
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            // Additional business validation
             if (request.getDate().isBefore(LocalDate.now())) {
                 return ResponseEntity.badRequest().body(Map.of("date", "Date must be today or later"));
             }
@@ -193,16 +178,13 @@ public class EventController {
         }
     }
 
-    /**
-     * Delete/Cancel event (ORGANIZER only - can only delete own events)
-     */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
         try {
             System.out.println("Deleting event ID: " + id);
             eventService.deleteEvent(id);
-            return ResponseEntity.noContent().build(); // 204 No Content
+            return ResponseEntity.noContent().build();
         } catch (Exception e) {
             System.out.println("Error deleting event: " + e.getMessage());
             if (e.getMessage().contains("You can only delete your own events")) {
@@ -217,9 +199,6 @@ public class EventController {
 
     // ===== ADMIN ENDPOINTS =====
 
-    /**
-     * Admin can delete any event
-     */
     @DeleteMapping("/admin/{id}")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Void> adminDeleteEvent(@PathVariable Long id) {
@@ -229,6 +208,51 @@ public class EventController {
         } catch (Exception e) {
             System.out.println("Admin delete error: " + e.getMessage());
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    // ===== NEW VISITOR REGISTRATION ENDPOINT =====
+
+    /**
+     * New: Visitor registering for an event using full form data
+     */
+    @PostMapping("/{eventId}/register")
+    public ResponseEntity<?> registerVisitorForEvent(
+            @PathVariable Long eventId,
+            @Valid @RequestBody VisitorRegistrationRequest request,
+            BindingResult bindingResult) {
+        try {
+            System.out.println("=== VISITOR REGISTRATION REQUEST ===");
+            System.out.println("Event ID: " + eventId);
+            System.out.println("Request: " + request);
+
+            if (bindingResult.hasErrors()) {
+                Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
+                return ResponseEntity.badRequest().body(errors);
+            }
+
+            RegistrationResponse response = eventServiceImpl.registerVisitorForEvent(eventId, request);
+
+            System.out.println("Registration successful!");
+            return ResponseEntity.status(201).body(response);
+
+        } catch (Exception e) {
+            System.err.println("Registration error: " + e.getMessage());
+
+            if (e.getMessage().contains("Private code is not correct")) {
+                return ResponseEntity.status(403).body(Map.of("message", "Invalid private code"));
+            }
+            if (e.getMessage().contains("already registered")) {
+                return ResponseEntity.status(409).body(Map.of("message", "You are already registered for this event"));
+            }
+            if (e.getMessage().contains("maximum attendees reached")) {
+                return ResponseEntity.status(409).body(Map.of("message", "Event is full - registration closed"));
+            }
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.status(404).body(Map.of("message", "Event not found"));
+            }
+
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 }

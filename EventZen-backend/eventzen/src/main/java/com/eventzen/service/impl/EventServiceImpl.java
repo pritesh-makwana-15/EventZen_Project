@@ -1,7 +1,7 @@
-// ================================================================
+// =====================================================================
 // FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/service/impl/EventServiceImpl.java
-// CHANGES: Updated repository method calls to use DESC sorting
-// ================================================================
+// MERGED VERSION: Old + New Visitor Registration Endpoint
+// =====================================================================
 
 package com.eventzen.service.impl;
 
@@ -22,8 +22,12 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 
 import com.eventzen.dto.request.EventRequest;
+import com.eventzen.dto.request.VisitorRegistrationRequest;
 import com.eventzen.dto.response.EventResponse;
+import com.eventzen.dto.response.RegistrationResponse;
 import com.eventzen.entity.Event;
+import com.eventzen.entity.Registration;
+import com.eventzen.entity.RegistrationStatus;
 import com.eventzen.entity.Role;
 import com.eventzen.entity.User;
 import com.eventzen.repository.EventRepository;
@@ -43,6 +47,9 @@ public class EventServiceImpl implements EventService {
     @Autowired
     private RegistrationRepository registrationRepository;
 
+    // ================================================================
+    // CREATE EVENT
+    // ================================================================
     @Override
     public EventResponse createEvent(EventRequest request) throws Exception {
         System.out.println("Creating new event: " + request.getTitle());
@@ -76,14 +83,16 @@ public class EventServiceImpl implements EventService {
         event.setIsActive(true);
 
         Event savedEvent = eventRepository.save(event);
-        System.out.println("Event created successfully with ID: " + savedEvent.getId());
 
         return convertToResponse(savedEvent, organizer.getName());
     }
 
+    // ================================================================
+    // UPDATE EVENT
+    // ================================================================
     @Override
     public EventResponse updateEvent(Long eventId, EventRequest request) throws Exception {
-        System.out.println("Updating event with ID: " + eventId);
+        System.out.println("Updating event ID: " + eventId);
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new Exception("Event not found"));
@@ -116,15 +125,16 @@ public class EventServiceImpl implements EventService {
         User organizer = userRepository.findById(currentUserId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
-        System.out.println("Event updated successfully");
         return convertToResponse(updatedEvent, organizerName);
     }
 
+    // ================================================================
+    // DELETE EVENT (ORGANIZER)
+    // ================================================================
     @Override
     @Transactional
     public void deleteEvent(Long eventId) throws Exception {
-        System.out.println("=== DELETE EVENT START (Organizer) ===");
-        System.out.println("Deleting event with ID: " + eventId);
+        System.out.println("Deleting event ID: " + eventId);
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new Exception("Event not found"));
@@ -137,60 +147,40 @@ public class EventServiceImpl implements EventService {
 
         try {
             long registrationCount = registrationRepository.countByEventId(eventId);
-            System.out.println("Event has " + registrationCount + " registrations to be deleted");
 
             if (registrationCount > 0) {
                 registrationRepository.deleteByEventId(eventId);
-                System.out.println("✅ Deleted " + registrationCount + " registrations for event ID: " + eventId);
             }
 
             eventRepository.delete(event);
-            System.out.println("✅ Event deleted successfully");
-            System.out.println("=== DELETE EVENT END ===");
 
         } catch (DataIntegrityViolationException e) {
-            System.err.println("❌ FK constraint error: " + e.getMessage());
-            e.printStackTrace();
-            throw new Exception("Cannot delete event due to database constraint. Please contact support.");
-        } catch (Exception e) {
-            System.err.println("❌ Error during event deletion: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+            throw new Exception("Cannot delete event due to database constraint");
         }
     }
 
+    // ================================================================
+    // DELETE EVENT (ADMIN)
+    // ================================================================
     @Transactional
     public void deleteEventAdmin(Long eventId) throws Exception {
-        System.out.println("=== ADMIN DELETE EVENT START ===");
-        System.out.println("Admin deleting event with ID: " + eventId);
+        System.out.println("Admin deleting event ID: " + eventId);
 
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new Exception("Event not found"));
 
-        try {
-            long registrationCount = registrationRepository.countByEventId(eventId);
-            System.out.println("Event has " + registrationCount + " registrations to be deleted");
+        long registrationCount = registrationRepository.countByEventId(eventId);
 
-            if (registrationCount > 0) {
-                registrationRepository.deleteByEventId(eventId);
-                System.out.println("✅ Deleted " + registrationCount + " registrations");
-            }
-
-            eventRepository.delete(event);
-            System.out.println("✅ Admin deleted event successfully");
-            System.out.println("=== ADMIN DELETE EVENT END ===");
-
-        } catch (DataIntegrityViolationException e) {
-            System.err.println("❌ FK constraint error: " + e.getMessage());
-            e.printStackTrace();
-            throw new Exception("Cannot delete event due to database constraint. Please contact support.");
-        } catch (Exception e) {
-            System.err.println("❌ Error during admin event deletion: " + e.getMessage());
-            e.printStackTrace();
-            throw e;
+        if (registrationCount > 0) {
+            registrationRepository.deleteByEventId(eventId);
         }
+
+        eventRepository.delete(event);
     }
 
+    // ================================================================
+    // GET EVENT BY ID
+    // ================================================================
     @Override
     public EventResponse getEventById(Long eventId) throws Exception {
         Event event = eventRepository.findById(eventId)
@@ -202,6 +192,9 @@ public class EventServiceImpl implements EventService {
         return convertToResponse(event, organizerName);
     }
 
+    // ================================================================
+    // GET ALL EVENTS
+    // ================================================================
     @Override
     public List<EventResponse> getAllEvents() {
         List<Event> events = eventRepository.findAll();
@@ -214,9 +207,11 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
+    // ================================================================
+    // GET EVENTS BY ORGANIZER
+    // ================================================================
     @Override
     public List<EventResponse> getEventsByOrganizer(Long organizerId) {
-        // UPDATED: Use DESC sorting method
         List<Event> events = eventRepository.findByOrganizerIdOrderByDateDesc(organizerId);
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
@@ -233,9 +228,9 @@ public class EventServiceImpl implements EventService {
 
     public List<EventResponse> getUpcomingEventsByOrganizer(Long organizerId) throws Exception {
         LocalDate today = LocalDate.now();
-        // UPDATED: Use DESC sorting method
         List<Event> events = eventRepository.findByOrganizerIdAndDateGreaterThanEqualOrderByDateDesc(organizerId,
                 today);
+
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
@@ -246,8 +241,8 @@ public class EventServiceImpl implements EventService {
 
     public List<EventResponse> getPastEventsByOrganizer(Long organizerId) throws Exception {
         LocalDate today = LocalDate.now();
-        // Already DESC from repository
         List<Event> events = eventRepository.findByOrganizerIdAndDateLessThanOrderByDateDesc(organizerId, today);
+
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
@@ -256,6 +251,88 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
+    // ================================================================
+    // NEW: VISITOR REGISTRATION (MERGED)
+    // ================================================================
+    @Transactional
+    public RegistrationResponse registerVisitorForEvent(Long eventId, VisitorRegistrationRequest request)
+            throws Exception {
+
+        System.out.println("=== VISITOR REGISTRATION START ===");
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        if (event.getIsActive() == null || !event.getIsActive()) {
+            throw new Exception("This event is no longer active");
+        }
+
+        // Private code validation
+        if ("PRIVATE".equalsIgnoreCase(event.getEventType())) {
+            String provided = request.getPrivateCode();
+            String actual = event.getPrivateCode();
+
+            if (provided == null || provided.trim().isEmpty()) {
+                throw new Exception("Private code is required for this event");
+            }
+            if (!provided.trim().equals(actual)) {
+                throw new Exception("Private code is not correct");
+            }
+        }
+
+        // Find visitor by email
+        User visitor = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (visitor == null) {
+            throw new Exception("User not found. Please login or register first.");
+        }
+
+        // Check duplicate
+        boolean registered = registrationRepository.findByVisitor(visitor)
+                .stream()
+                .anyMatch(reg -> reg.getEvent().getId().equals(eventId)
+                        && reg.getStatus() != RegistrationStatus.CANCELLED);
+
+        if (registered) {
+            throw new Exception("You are already registered for this event");
+        }
+
+        // Capacity check
+        int max = event.getMaxAttendees() != null ? event.getMaxAttendees() : Integer.MAX_VALUE;
+        int current = event.getCurrentAttendees() != null ? event.getCurrentAttendees() : 0;
+
+        if (current >= max) {
+            throw new Exception("Registration closed - maximum attendees reached");
+        }
+
+        // Save registration
+        // Step 7: Create registration
+        Registration registration = new Registration();
+        registration.setVisitor(visitor);
+        registration.setEvent(event);
+        registration.setStatus(RegistrationStatus.CONFIRMED);
+        registration.setRegisteredAt(LocalDateTime.now());
+        // 🆕 Store phone and notes from form
+        registration.setPhone(request.getPhone());
+        registration.setNotes(request.getNotes());
+
+        Registration saved = registrationRepository.save(registration);
+
+        // Update event count
+        event.setCurrentAttendees(current + 1);
+        eventRepository.save(event);
+
+        // Return DTO
+        return new RegistrationResponse(
+                saved.getId(),
+                event.getId(),
+                visitor.getId(),
+                saved.getStatus(),
+                saved.getRegisteredAt());
+    }
+
+    // ================================================================
+    // VALIDATION ERROR MAP
+    // ================================================================
     public Map<String, String> processValidationErrors(BindingResult bindingResult) {
         Map<String, String> errors = new HashMap<>();
         for (FieldError error : bindingResult.getFieldErrors()) {
@@ -264,19 +341,25 @@ public class EventServiceImpl implements EventService {
         return errors;
     }
 
+    // ================================================================
+    // CURRENT USER ID
+    // ================================================================
     private Long getCurrentUserId() throws Exception {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
             throw new Exception("User not authenticated");
         }
 
-        String email = authentication.getName();
+        String email = auth.getName();
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new Exception("User not found"));
 
         return user.getId();
     }
 
+    // ================================================================
+    // EVENT → DTO
+    // ================================================================
     private EventResponse convertToResponse(Event event, String organizerName) {
         EventResponse response = new EventResponse();
         response.setId(event.getId());

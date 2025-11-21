@@ -39,18 +39,10 @@ export default function VisitorDashboard() {
   const [success, setSuccess] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
   
-  // 🆕 NEW: Registration Modal State
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [regEvent, setRegEvent] = useState(null);
-  const [regLoading, setRegLoading] = useState(false);
-  const [regError, setRegError] = useState("");
-  const [registrationForm, setRegistrationForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    notes: "",
-    privateCode: ""
-  });
+  const [showPrivateCodePopup, setShowPrivateCodePopup] = useState(false);
+  const [privateEventToRegister, setPrivateEventToRegister] = useState(null);
+  const [privateCode, setPrivateCode] = useState("");
+  const [privateCodeError, setPrivateCodeError] = useState("");
   
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -74,6 +66,7 @@ export default function VisitorDashboard() {
     imageUrl: ""
   });
 
+  // 🆕 NEW: Password change state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: ""
@@ -104,14 +97,6 @@ export default function VisitorDashboard() {
         mobileNumber: response.data.mobileNumber || "",
         imageUrl: response.data.imageUrl || ""
       });
-      
-      // 🆕 Pre-fill registration form with user data
-      setRegistrationForm(prev => ({
-        ...prev,
-        name: response.data.name,
-        email: response.data.email,
-        phone: response.data.mobileNumber || ""
-      }));
     } catch (err) {
       console.error("Error loading user profile:", err);
       setError("Failed to load user profile");
@@ -195,95 +180,67 @@ export default function VisitorDashboard() {
     }
   };
 
-  // 🆕 NEW: Open Registration Modal
-  const handleOpenRegisterModal = (event) => {
-    setRegEvent(event);
-    setRegError("");
-    
-    // Pre-fill form with user data
-    setRegistrationForm({
-      name: userProfile?.name || "",
-      email: userProfile?.email || "",
-      phone: userProfile?.mobileNumber || "",
-      notes: "",
-      privateCode: ""
-    });
-    
-    setShowRegisterModal(true);
+  const handleRegister = async (eventId) => {
+    try {
+      const storedUserId = userId || localStorage.getItem("userId");
+      if (!storedUserId) {
+        setError("Please login to register for events");
+        return;
+      }
+
+      const event = allEvents.find(e => e.id === eventId);
+      
+      if (event && event.eventType === "PRIVATE") {
+        setPrivateEventToRegister(event);
+        setShowPrivateCodePopup(true);
+        setPrivateCode("");
+        setPrivateCodeError("");
+        return;
+      }
+
+      await registerForEvent(eventId, storedUserId, null);
+      setRegisteredEventIds(prev => new Set([...prev, eventId]));
+      setSuccess("Successfully registered for the event!");
+      setTimeout(() => setSuccess(""), 3000);
+      
+      loadAllEvents();
+    } catch (err) {
+      console.error("Error registering for event:", err);
+      setError(err.response?.data?.message || "Failed to register. Please try again.");
+      setTimeout(() => setError(""), 5000);
+    }
   };
 
-  // 🆕 NEW: Close Registration Modal
-  const handleCloseRegisterModal = () => {
-    setShowRegisterModal(false);
-    setRegEvent(null);
-    setRegError("");
-    setRegistrationForm({
-      name: userProfile?.name || "",
-      email: userProfile?.email || "",
-      phone: userProfile?.mobileNumber || "",
-      notes: "",
-      privateCode: ""
-    });
-  };
-
-  // 🆕 NEW: Handle Registration Form Change
-  const handleRegistrationFormChange = (e) => {
-    const { name, value } = e.target;
-    setRegistrationForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setRegError(""); // Clear error on input change
-  };
-
-  // 🆕 NEW: Submit Registration
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!registrationForm.name.trim()) {
-      setRegError("Name is required");
-      return;
-    }
-    if (!registrationForm.email.trim()) {
-      setRegError("Email is required");
-      return;
-    }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(registrationForm.email)) {
-      setRegError("Please enter a valid email address");
-      return;
-    }
-    
-    // Private event validation
-    if (regEvent.eventType === "PRIVATE" && !registrationForm.privateCode.trim()) {
-      setRegError("Private code is required for this event");
+  const handlePrivateEventRegister = async () => {
+    if (!privateCode.trim()) {
+      setPrivateCodeError("Please enter the private code");
       return;
     }
 
     try {
-      setRegLoading(true);
-      setRegError("");
-
-      await registerForEvent(regEvent.id, registrationForm);
+      const storedUserId = userId || localStorage.getItem("userId");
       
-      // Update UI
-      setRegisteredEventIds(prev => new Set([...prev, regEvent.id]));
+      await registerForEvent(privateEventToRegister.id, storedUserId, privateCode);
+      
+      setRegisteredEventIds(prev => new Set([...prev, privateEventToRegister.id]));
       setSuccess("Successfully registered for the event!");
       setTimeout(() => setSuccess(""), 3000);
       
-      // Close modal and reload
-      handleCloseRegisterModal();
-      loadAllEvents();
+      setShowPrivateCodePopup(false);
+      setPrivateEventToRegister(null);
+      setPrivateCode("");
+      setPrivateCodeError("");
       
+      loadAllEvents();
     } catch (err) {
-      console.error("Error registering for event:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Registration failed";
-      setRegError(errorMsg);
-    } finally {
-      setRegLoading(false);
+      console.error("Error registering for private event:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Failed to register";
+      
+      if (errorMsg.includes("Private code is not correct")) {
+        setPrivateCodeError("Private code is not correct");
+      } else {
+        setPrivateCodeError(errorMsg);
+      }
     }
   };
 
@@ -343,11 +300,13 @@ export default function VisitorDashboard() {
     }
   };
 
+  // 🆕 UPDATED: Handle profile update (without password)
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
       setLoading(true);
       
+      // Update profile information
       const response = await API.put("/users/profile", {
         name: profileForm.name,
         mobileNumber: profileForm.mobileNumber,
@@ -356,6 +315,7 @@ export default function VisitorDashboard() {
       
       setUserProfile(response.data);
       
+      // 🆕 NEW: If password fields are filled, update password separately
       if (passwordForm.currentPassword && passwordForm.newPassword) {
         try {
           await API.put("/users/password", {
@@ -487,6 +447,7 @@ export default function VisitorDashboard() {
   const upcomingRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) >= today);
   const pastRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) < today);
 
+  // 🆕 Default images for event cards
   const defaultImages = {
     Technology: "https://via.placeholder.com/400x200/667eea/ffffff?text=Technology",
     Business: "https://via.placeholder.com/400x200/f59e0b/ffffff?text=Business",
@@ -670,7 +631,7 @@ export default function VisitorDashboard() {
                             <span className="vis-event-category">{event.category}</span>
                             <div className="vis-event-info-grid">
                               <p className="vis-event-date">📅 {formatDateTime(event.date)}</p>
-                              <p className="vis-event-location">📍 {event.location}</p>
+                              <p className="vis-event-location">📍  {event.location}</p>
                               <p className="vis-event-organizer">👤 {event.organizerName}</p>
                               {event.maxAttendees && (
                                 <p className="vis-event-capacity">
@@ -686,7 +647,7 @@ export default function VisitorDashboard() {
                               ) : (
                                 <button
                                   className="vis-btn vis-btn-primary-visitor"
-                                  onClick={() => handleOpenRegisterModal(event)}
+                                  onClick={() => handleRegister(event.id)}
                                   disabled={event.maxAttendees && event.currentAttendees >= event.maxAttendees}
                                 >
                                   {event.maxAttendees && event.currentAttendees >= event.maxAttendees ? "Full" : "Register Now"}
@@ -716,27 +677,32 @@ export default function VisitorDashboard() {
 
               {activePage === "registrations" && (
                 <section className="vis-registrations-page">
+                  {/* <div className="vis-page-header">
+                    <h1>My Registrations</h1>
+                    <p className="vis-subtitle">Manage your event registrations</p>
+                  </div> */}
+
                   <div className="vis-stats-cards">
                     <div className="vis-stat-card-visitor">
                       <div className="vis-stat-info">
-                        <div className="vis-stat-icon">📊</div>
+                      <div className="vis-stat-icon">📊</div>
                         <h3>{myRegistrations.length}</h3>
                       </div>
-                      <p>Total Registrations</p>
+                        <p>Total Registrations</p>
                     </div>
                     <div className="vis-stat-card-visitor">
                       <div className="vis-stat-info">
-                        <div className="vis-stat-icon">🚀</div>
+                      <div className="vis-stat-icon">🚀</div>
                         <h3>{upcomingRegistrations.length}</h3>
                       </div>
-                      <p>Upcoming Events</p>
+                        <p>Upcoming Events</p>
                     </div>
                     <div className="vis-stat-card-visitor">
                       <div className="vis-stat-info">
-                        <div className="vis-stat-icon">✓</div>
+                      <div className="vis-stat-icon">✓</div>
                         <h3>{pastRegistrations.length}</h3>
                       </div>
-                      <p>Completed Events</p>
+                        <p>Completed Events</p>
                     </div>
                   </div>
 
@@ -853,7 +819,7 @@ export default function VisitorDashboard() {
                                     alt={`${reg.event.title} event image`}
                                     className="vis-event-thumbnail"
                                   />
-                                  </td>
+                                </td>
                                 <td>{reg.event.title}</td>
                                 <td>{reg.event.category}</td>
                                 <td>{formatDateTime(reg.event.date)}</td>
@@ -906,6 +872,7 @@ export default function VisitorDashboard() {
                 </section>
               )}
 
+              {/* 🆕 UPDATED: Profile section with two-column layout */}
               {activePage === "profile" && userProfile && (
                 <section className="vis-profile-page">
                   <div className="vis-profile-container">
@@ -935,6 +902,12 @@ export default function VisitorDashboard() {
                       </div>
                     ) : (
                       <form className="vis-profile-edit-form" onSubmit={handleProfileUpdate}>
+                        {/* <div className="vis-form-header">
+                          <h2>Edit Profile</h2>
+                          <p className="vis-form-subtitle">Update your profile information and password</p>
+                        </div> */}
+
+                        {/* Profile Image Upload - Full Width */}
                         <div className="vis-form-group vis-full-width">
                           <label className="vis-form-label">Profile Image</label>
                           <div className="vis-image-upload-area">
@@ -960,6 +933,7 @@ export default function VisitorDashboard() {
                           </div>
                         </div>
 
+                        {/* Two Column Layout for Form Fields */}
                         <div className="vis-form-row">
                           <div className="vis-form-col">
                             <label className="vis-form-label">Name *</label>
@@ -1008,7 +982,9 @@ export default function VisitorDashboard() {
                           </div>
                         </div>
 
+                        {/* Password Change Section */}
                         <div className="vis-password-section">
+                          {/* <h3 className="vis-section-title">Change Password (Optional)</h3> */}
                           <p className="vis-section-subtitle">Leave empty to keep your current password</p>
                           
                           <div className="vis-form-row">
@@ -1065,7 +1041,6 @@ export default function VisitorDashboard() {
         </div>
       </main>
           
-      {/* Event Details Modal */}
       {selectedEvent && (
         <div className="vis-modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
           <div className="vis-modal-visitor-content" onClick={(e) => e.stopPropagation()}>
@@ -1099,8 +1074,8 @@ export default function VisitorDashboard() {
                 <button
                   className="vis-btn vis-btn-primary-visitor"
                   onClick={() => {
+                    handleRegister(selectedEvent.id);
                     setSelectedEvent(null);
-                    handleOpenRegisterModal(selectedEvent);
                   }}
                   disabled={selectedEvent.maxAttendees && selectedEvent.currentAttendees >= selectedEvent.maxAttendees}
                 >
@@ -1115,114 +1090,70 @@ export default function VisitorDashboard() {
         </div>
       )}
 
-      {/* 🆕 NEW: Registration Modal */}
-      {showRegisterModal && regEvent && (
-        <div className="vis-modal-visitor-overlay" onClick={handleCloseRegisterModal}>
-          <div className="vis-modal-visitor-content vis-registration-modal" onClick={(e) => e.stopPropagation()}>
-            {/* <button className="vis-modal-visitor-registration-close" onClick={handleCloseRegisterModal}>×</button> */}
+      {showPrivateCodePopup && privateEventToRegister && (
+        <div className="vis-modal-visitor-overlay" onClick={() => {
+          setShowPrivateCodePopup(false);
+          setPrivateEventToRegister(null);
+          setPrivateCode("");
+          setPrivateCodeError("");
+        }}>
+          <div className="vis-private-code-modal-visitor" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="vis-modal-visitor-close" 
+              onClick={() => {
+                setShowPrivateCodePopup(false);
+                setPrivateEventToRegister(null);
+                setPrivateCode("");
+                setPrivateCodeError("");
+              }}
+            >
+              ×
+            </button>
             
-            <div className="vis-modal-visitor-header">
-              {/* <img 
-                src={regEvent.imageUrl || defaultImages[regEvent.category] || defaultImages["Other"]} 
-                alt={regEvent.title} 
-                className="vis-modal-visitor-image" 
-              /> */}
-              <h2>Register for {regEvent.title}</h2>
+            <div className="vis-private-code-header">
+              <h2>🔒 Private Event</h2>
+              <p>Enter the private code to register for <strong>{privateEventToRegister.title}</strong></p>
             </div>
             
-            <form onSubmit={handleRegisterSubmit}>
-              <div className="vis-modal-visitor-body">
-                {regError && (
-                  <div className="vis-reg-error-message">
-                    {regError}
-                  </div>
-                )}
-                
-                <div className="vis-form-group">
-                  <label className="vis-form-label">Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={registrationForm.name}
-                    onChange={handleRegistrationFormChange}
-                    className="vis-form-input"
-                    placeholder="Enter your full name"
-                    required
-                  />
-                </div>
-
-                <div className="vis-form-group">
-                  <label className="vis-form-label">Email *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={registrationForm.email}
-                    onChange={handleRegistrationFormChange}
-                    className="vis-form-input"
-                    placeholder="Enter your email address"
-                    required
-                  />
-                </div>
-
-                <div className="vis-form-group">
-                  <label className="vis-form-label">Phone (Optional)</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={registrationForm.phone}
-                    onChange={handleRegistrationFormChange}
-                    className="vis-form-input"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
-
-                <div className="vis-form-group">
-                  <label className="vis-form-label">Notes (Optional)</label>
-                  <textarea
-                    name="notes"
-                    value={registrationForm.notes}
-                    onChange={handleRegistrationFormChange}
-                    className="vis-form-textarea"
-                    placeholder="Any special requirements or notes..."
-                    rows="3"
-                  />
-                </div>
-
-                {regEvent.eventType === "PRIVATE" && (
-                  <div className="vis-form-group">
-                    <label className="vis-form-label">Private Code *</label>
-                    <input
-                      type="text"
-                      name="privateCode"
-                      value={registrationForm.privateCode}
-                      onChange={handleRegistrationFormChange}
-                      className="vis-form-input"
-                      placeholder="Enter the private event code"
-                      required
-                    />
-                    {/* <p className="vis-form-hint">🔒 This event requires a private code to register</p> */}
-                  </div>
+            <div className="vis-private-code-body">
+              <div className="vis-form-group">
+                <label>Private Code *</label>
+                <input
+                  type="text"
+                  value={privateCode}
+                  onChange={(e) => {
+                    setPrivateCode(e.target.value);
+                    setPrivateCodeError("");
+                  }}
+                  placeholder="Enter private code"
+                  className={privateCodeError ? "vis-error-input" : ""}
+                  autoFocus
+                />
+                {privateCodeError && (
+                  <p className="vis-error-message">{privateCodeError}</p>
                 )}
               </div>
-
-              <div className="vis-modal-visitor-footer">
-                <button
-                  type="button"
-                  className="vis-btn vis-btn-secondary"
-                  onClick={handleCloseRegisterModal}
-                  disabled={regLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="vis-btn vis-btn-primary-visitor"
-                  disabled={regLoading}
-                >
-                  {regLoading ? "Registering..." : "Submit Registration"}
-                </button>
-              </div>
-            </form>
+            </div>
+            
+            <div className="vis-private-code-footer">
+              <button
+                className="vis-btn vis-btn-secondary"
+                onClick={() => {
+                  setShowPrivateCodePopup(false);
+                  setPrivateEventToRegister(null);
+                  setPrivateCode("");
+                  setPrivateCodeError("");
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                className="vis-btn vis-btn-primary-visitor"
+                onClick={handlePrivateEventRegister}
+              >
+                Register
+              </button>
+            </div>
           </div>
         </div>
       )}

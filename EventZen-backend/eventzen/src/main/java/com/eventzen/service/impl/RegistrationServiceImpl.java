@@ -12,6 +12,7 @@ import com.eventzen.dto.request.RegistrationRequest;
 import com.eventzen.dto.response.RegistrationResponse;
 import com.eventzen.entity.Event;
 import com.eventzen.entity.Registration;
+import com.eventzen.entity.RegistrationStatus;
 import com.eventzen.entity.User;
 import com.eventzen.repository.EventRepository;
 import com.eventzen.repository.RegistrationRepository;
@@ -81,7 +82,8 @@ public class RegistrationServiceImpl implements RegistrationService {
         // Step 5: Check if already registered (exclude CANCELLED registrations)
         boolean alreadyRegistered = registrationRepository.findByVisitor(visitor)
                 .stream()
-                .anyMatch(reg -> reg.getEvent().getId().equals(event.getId()));
+                .anyMatch(reg -> reg.getEvent().getId().equals(event.getId())
+                        && reg.getStatus() != RegistrationStatus.CANCELLED);
 
         if (alreadyRegistered) {
             throw new Exception("You are already registered for this event");
@@ -97,12 +99,13 @@ public class RegistrationServiceImpl implements RegistrationService {
             throw new Exception("Registration closed - maximum attendees reached");
         }
 
-        // Step 7: Create registration with REGISTERED status
+        // Step 7: Create registration with CONFIRMED status (use enum)
         Registration registration = new Registration();
         registration.setVisitor(visitor);
         registration.setEvent(event);
-        registration.setStatus("REGISTERED");
-        registration.setCreatedAt(LocalDateTime.now());
+        registration.setStatus(RegistrationStatus.CONFIRMED);
+        registration.setRegisteredAt(LocalDateTime.now());
+        // createdAt/updatedAt will be handled by entity @PrePersist if configured
 
         Registration saved = registrationRepository.save(registration);
 
@@ -110,8 +113,8 @@ public class RegistrationServiceImpl implements RegistrationService {
         event.setCurrentAttendees(currentAttendees + 1);
         eventRepository.save(event);
 
-        System.out.println("Registration successful - Status: REGISTERED - Attendee count: "
-                + event.getCurrentAttendees() + "/" + maxAttendees);
+        System.out.println("Registration successful - Status: " + saved.getStatus()
+                + " - Attendee count: " + event.getCurrentAttendees() + "/" + maxAttendees);
         System.out.println("=== REGISTRATION END ===");
 
         return mapToResponse(saved);
@@ -149,7 +152,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 .orElseThrow(() -> new Exception("Registration not found"));
 
         // Check if registration is already cancelled
-        if ("CANCELLED".equals(registration.getStatus())) {
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
             System.out.println("Registration already cancelled");
             throw new Exception("Registration is already cancelled");
         }
@@ -160,8 +163,8 @@ public class RegistrationServiceImpl implements RegistrationService {
                 ? event.getCurrentAttendees()
                 : 0;
 
-        // Update status to CANCELLED
-        registration.setStatus("CANCELLED");
+        // Update status to CANCELLED (enum) and timestamp
+        registration.setStatus(RegistrationStatus.CANCELLED);
         registration.setUpdatedAt(LocalDateTime.now());
         registrationRepository.save(registration);
         System.out.println("Registration status updated to CANCELLED");
@@ -191,7 +194,8 @@ public class RegistrationServiceImpl implements RegistrationService {
                 registration.getId(),
                 registration.getEvent().getId(),
                 registration.getVisitor().getId(),
-                registration.getStatus(),
-                registration.getCreatedAt());
+                registration.getStatus(), // RegistrationStatus enum
+                registration.getRegisteredAt() // Use registeredAt timestamp
+        );
     }
 }

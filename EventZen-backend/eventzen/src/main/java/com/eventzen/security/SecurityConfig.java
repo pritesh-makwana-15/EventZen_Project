@@ -1,8 +1,3 @@
-// ================================================================
-// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/security/SecurityConfig.java
-// CHANGES: FIXED - Added /uploads/** to permitAll() for image access (403 → 200)
-// ================================================================
-
 package com.eventzen.security;
 
 import java.util.Arrays;
@@ -54,41 +49,45 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> {
                     System.out.println("🔧 Configuring authorization rules...");
                     auth
-                            // ✅ CRITICAL FIX: Allow public access to uploaded images
-                            // This MUST be FIRST to prevent 403 errors on image loading
+                            // ✅ CRITICAL: Public access to uploaded images
                             .requestMatchers("/uploads/**").permitAll()
 
-                            // Allow OPTIONS requests for CORS preflight
+                            // ✅ Allow OPTIONS for CORS
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                            // Allow register & login for everyone
+                            // ✅ Allow register & login
                             .requestMatchers("/api/auth/**").permitAll()
 
-                            // Allow public GET access to events (view events without login)
+                            // ✅ 🆕 CRITICAL FIX: Allow VISITOR to register for events
+                            // This MUST come BEFORE /api/events/** pattern
+                            .requestMatchers(HttpMethod.POST, "/api/events/*/register")
+                            .authenticated() // Any authenticated user (VISITOR, ORGANIZER, ADMIN)
+
+                            // ✅ Public GET access to events
                             .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
 
-                            // POST, PUT, DELETE on events require authentication
-                            .requestMatchers(HttpMethod.POST, "/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER")
+                            // ✅ Event CRUD - ORGANIZER/ADMIN only
+                            .requestMatchers(HttpMethod.POST, "/api/events").hasAnyAuthority("ADMIN", "ORGANIZER")
                             .requestMatchers(HttpMethod.PUT, "/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER")
                             .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER")
 
-                            // Registrations require authentication
+                            // ✅ Registrations - VISITOR/ADMIN
                             .requestMatchers("/api/registrations/**").hasAnyAuthority("ADMIN", "VISITOR")
 
-                            // User profile access
-                            .requestMatchers("/api/users/**").hasAnyAuthority("ADMIN", "ORGANIZER", "VISITOR")
+                            // ✅ User profile - authenticated
+                            .requestMatchers("/api/users/**").authenticated()
 
-                            // Admin endpoints
+                            // ✅ Admin endpoints
                             .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 
-                            // Any other request needs authentication
+                            // ✅ Everything else needs auth
                             .anyRequest().authenticated();
                 });
 
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        System.out.println("✅ Security Filter Chain configured successfully");
-        System.out.println("✅ /uploads/** is now publicly accessible");
+        System.out.println("✅ Security configured");
+        System.out.println("✅ /api/events/*/register → AUTHENTICATED (VISITOR allowed)");
         return http.build();
     }
 
@@ -96,24 +95,14 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow frontend origins
         configuration.setAllowedOrigins(
                 Arrays.asList("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-
-        // Allow all HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
-
-        // Allow all headers
         configuration.setAllowedHeaders(Arrays.asList("*"));
-
-        // Expose Authorization header
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
-
-        // Allow credentials (cookies, authorization headers)
         configuration.setAllowCredentials(true);
 
-        // Apply CORS configuration to all paths
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 

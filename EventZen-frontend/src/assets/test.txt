@@ -352,6 +352,7 @@
   margin: 0;
 }
 
+/* Thumbnail for event images in registration table */
 .vis-event-thumbnail {
   width: 60px;
   height: 40px;
@@ -396,6 +397,7 @@
 .vis-btn-secondary {
   background: #f0f0f0;
   color: #333;
+  
 }
 
 .vis-btn-secondary:hover {
@@ -561,7 +563,7 @@
 }
 
 .vis-status-badge-vis.vis-past {
- background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   color: #065f46;
   border-color: #10b981;
 }
@@ -632,11 +634,11 @@
 }
 
 /* ============================================ */
-/* PROFILE SECTION - TWO COLUMN LAYOUT */
+/* 🆕 UPDATED PROFILE SECTION - TWO COLUMN LAYOUT */
 /* ============================================ */
 
 .vis-profile-container {
-  max-width: 900px;
+  max-width: 900px; /* Increased width for two-column layout */
   margin: 0 auto;
 }
 
@@ -665,6 +667,7 @@
   padding: 37px;
   border-radius: 15px;
   text-align: center;
+  /* box-shadow: 0 3px 22px rgba(0, 0, 0, 0.1); */
 }
 
 .vis-profile-avatar-wrapper {
@@ -733,16 +736,22 @@
   color: #2c3e50;
 }
 
+/* 🆕 EDIT FORM WITH TWO-COLUMN LAYOUT */
 .vis-profile-edit-form {
-  width: 100%;
+  /* background: #fff;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 3px 22px rgba(0, 0, 0, 0.1); */
 }
 
+/* Full width for image upload section */
 .vis-form-group.vis-full-width {
   width: 100%;
-  /* margin-bottom: 5px; */
+  margin-bottom: 25px;
   text-align: left;
 }
 
+/* Two-column grid layout for form fields */
 .vis-form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -791,8 +800,11 @@
   color: #999;
 }
 
+/* 🆕 PASSWORD CHANGE SECTION STYLING */
 .vis-password-section {
-  margin-top: 10px;
+  /* margin-top: 30px;
+  padding-top: 25px;
+  border-top: 2px solid #e0e0e0; */
 }
 
 .vis-section-title {
@@ -817,6 +829,7 @@
   font-style: italic;
 }
 
+/* Image upload area */
 .vis-image-upload-area {
   display: flex;
   flex-direction: column;
@@ -868,6 +881,7 @@
   object-fit: cover;
 }
 
+/* Form action buttons */
 .vis-form-actions {
   display: flex;
   gap: 12px;
@@ -916,89 +930,94 @@
   transform: translateY(-2px);
 }
 
-/* ============================================ */
-/* 🆕 NEW: REGISTRATION MODAL STYLES */
-/* ============================================ */
-
-/* Registration Form Error Message */
-.vis-reg-error-message {
-  background: #fee;
-  color: #c33;
-  padding: 12px 15px;
-  border-radius: 6px;
-  margin-bottom: 15px;
-  border-left: 3px solid #c33;
-  font-size: 14px;
-  font-weight: 500;
-  animation: vis-slideDown 0.3s ease;
+/* Modal styling remains the same */
+.vis-private-code-modal-visitor {
+  background: white;
+  border-radius: 12px;
+  max-width: 368px;
+  width: 90%;
+  position: relative;
+  animation: vis-modalSlideIn 0.3s ease;
 }
 
-/* Form Textarea */
-.vis-form-textarea {
-  width: 100%;
-  padding: 12px 14px;
-  border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.3s;
-  font-family: inherit;
-  box-sizing: border-box;
-  resize: vertical;
-  min-height: 80px;
+.vis-private-code-header {
+  padding: 22px 22px 15px;
+  text-align: center;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.vis-form-textarea:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+.vis-private-code-header h2 {
+  margin: 0 0 7px 0;
+  color: #333;
+  font-size: 18px;
+  font-weight: 700;
 }
 
-/* Form Hint Text */
-.vis-form-hint {
-  font-size: 12px;
-  color: #7f8c8d;
-  margin-top: 5px;
-  font-style: italic;
+.vis-private-code-header p {
+  margin: 0;
+  color: #666;
+  font-size: 11px;
 }
 
-/* Registration Modal Specific Adjustments */
-.vis-modal-visitor-content form {
-  width: 100%;
+.vis-private-code-body {
+  padding: 22px;
 }
 
-.vis-modal-visitor-content .vis-form-group {
-  margin-bottom: 2px;
-  text-align: left;
+.vis-private-code-body .vis-form-group {
+  margin-bottom: 0;
 }
 
-.vis-modal-visitor-content .vis-form-label {
+.vis-private-code-body label {
   display: block;
+  margin-bottom: 6px;
   font-weight: 600;
-  color: #2c3e50;
-  margin-bottom: 8px;
-  font-size: 14px;
+  color: #333;
+  font-size: 11px;
 }
 
-.vis-modal-visitor-content .vis-form-input,
-.vis-modal-visitor-content .vis-form-textarea {
+.vis-private-code-body input {
   width: 100%;
-  padding: 12px 14px;
+  padding: 8px 11px;
   border: 2px solid #e0e0e0;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.3s;
-  font-family: inherit;
-  box-sizing: border-box;
+  border-radius: 6px;
+  font-size: 11px;
+  transition: border-color 0.3s;
 }
 
-.vis-modal-visitor-content .vis-form-input:focus,
-.vis-modal-visitor-content .vis-form-textarea:focus {
+.vis-private-code-body input:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
-/* Modal styling */
+.vis-private-code-body input.vis-error-input {
+  border-color: #ff5252;
+}
+
+.vis-error-message {
+  color: #ff5252;
+  font-size: 9px;
+  margin-top: 6px;
+  margin-bottom: 0;
+}
+
+.vis-private-code-footer {
+  padding: 15px 22px;
+  display: flex;
+  gap: 11px;
+  justify-content: flex-end;
+  border-top: 1px solid #f0f0f0;
+}
+
+.vis-private-code-footer .vis-btn {
+  padding: 8px 22px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  font-size: 11px;
+}
+
 .vis-modal-visitor-overlay {
   position: fixed;
   top: 0;
@@ -1021,12 +1040,6 @@
   max-height: 90vh;
   overflow-y: auto;
   animation: vis-modalSlideIn 0.3s ease;
-  /* position: relative; */
-}
-
-/* Registration Modal specific width */
-.vis-modal-visitor-content.vis-registration-modal {
-  max-width: 515px;
 }
 
 @keyframes vis-modalSlideIn {
@@ -1042,9 +1055,9 @@
 
 .vis-modal-visitor-close {
   position: absolute;
-  top: 20px;
+  top: 25px;
   right: 410px;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(173, 170, 170);
   border: none;
   width: 35px;
   height: 35px;
@@ -1057,8 +1070,6 @@
   transition: all 0.3s;
   color: white;
   z-index: 1;
-  line-height: 1;
-  padding: 0;
 }
 
 .vis-modal-visitor-close:hover {
@@ -1095,7 +1106,7 @@
 }
 
 .vis-modal-visitor-header h2 {
-  padding: 15px 22px 7px;
+  padding: 5px 22px 7px;
   margin: 0;
   font-size: 21px;
   color: #333;
@@ -1108,9 +1119,8 @@
 
 .vis-modal-visitor-info {
   background: #f9f9f9;
-  padding: 15px;
+  padding: 10px;
   border-radius: 7px;
-  margin-bottom: 15px;
 }
 
 .vis-modal-visitor-info p {
@@ -1148,9 +1158,8 @@
 
 .vis-modal-visitor-footer .vis-btn-primary-visitor,
 .vis-modal-visitor-footer .vis-btn-secondary {
-  padding: 10px 22px;
+  padding: 8px 22px;
   width: auto;
-  flex: none;
 }
 
 /* ============================================ */
@@ -1219,6 +1228,7 @@
     padding: 22px 15px;
   }
   
+  /* 🆕 Two-column form becomes single column on tablet */
   .vis-form-row {
     grid-template-columns: 1fr;
     gap: 15px;
@@ -1235,24 +1245,6 @@
   
   .vis-profile-container {
     max-width: 100%;
-  }
-
-  .vis-modal-visitor-content {
-    max-width: 95%;
-  }
-
-  .vis-modal-visitor-content.vis-registration-modal {
-    max-width: 95%;
-  }
-
-  .vis-reg-error-message {
-    font-size: 13px;
-    padding: 10px 12px;
-  }
-  
-  .vis-form-textarea {
-    font-size: 13px;
-    min-height: 70px;
   }
 }
 
@@ -1311,9 +1303,8 @@
   }
   
   .vis-modal-visitor-content,
-  .vis-modal-visitor-content.vis-registration-modal {
+  .vis-private-code-modal-visitor {
     margin: 7px;
-    max-width: calc(100% - 14px);
   }
   
   .vis-modal-visitor-header h2 {
@@ -1340,6 +1331,7 @@
     height: 88px;
   }
   
+  /* 🆕 Mobile-specific profile form adjustments */
   .vis-form-header h2 {
     font-size: 22px;
   }
@@ -1360,8 +1352,7 @@
     font-size: 13px;
   }
   
-  .vis-form-input,
-  .vis-form-textarea {
+  .vis-form-input {
     padding: 10px 12px;
     font-size: 13px;
   }
@@ -1377,14 +1368,5 @@
     width: 30px;
     height: 30px;
     font-size: 24px;
-  }
-
-  .vis-modal-visitor-footer {
-    flex-direction: column;
-  }
-
-  .vis-modal-visitor-footer .vis-btn-primary-visitor,
-  .vis-modal-visitor-footer .vis-btn-secondary {
-    width: 100%;
   }
 }
