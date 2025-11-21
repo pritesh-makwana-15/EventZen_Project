@@ -2,16 +2,14 @@ package com.eventzen.dto.response;
 
 import java.time.LocalDateTime;
 
-import com.eventzen.entity.RegistrationStatus;
-
 public class RegistrationResponse {
     private Long id;
     private Long eventId;
     private Long visitorId;
-    private RegistrationStatus status;
+    private String status; // changed from RegistrationStatus to String
     private LocalDateTime registeredAt;
 
-    public RegistrationResponse(Long id, Long eventId, Long visitorId, RegistrationStatus status, LocalDateTime registeredAt) {
+    public RegistrationResponse(Long id, Long eventId, Long visitorId, String status, LocalDateTime registeredAt) {
         this.id = id;
         this.eventId = eventId;
         this.visitorId = visitorId;
@@ -19,10 +17,23 @@ public class RegistrationResponse {
         this.registeredAt = registeredAt;
     }
 
-    // Getters
-    public Long getId() { return id; }
-    public Long getEventId() { return eventId; }
-    public Long getVisitorId() { return visitorId; }
-    public RegistrationStatus getStatus() { return status; }
-    public LocalDateTime getRegisteredAt() { return registeredAt; }
+    public Long getId() {
+        return id;
+    }
+
+    public Long getEventId() {
+        return eventId;
+    }
+
+    public Long getVisitorId() {
+        return visitorId;
+    }
+
+    public String getStatus() {
+        return status;
+    } // updated to String
+
+    public LocalDateTime getRegisteredAt() {
+        return registeredAt;
+    }
 }

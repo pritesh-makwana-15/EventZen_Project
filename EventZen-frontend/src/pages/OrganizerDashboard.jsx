@@ -1,22 +1,27 @@
-// ================================================================
-// FILE: src/pages/OrganizerDashboard.jsx
-// CHANGES: 
-// - 30% size reduction (paddings, margins, fonts)
-// - All classNames prefixed with "org-"
-// - Date descending sorting (frontend-side: upcoming DESC, then completed DESC)
-// - Image upload with preview via multipart/form-data
-// - Fixed modal with max-height and internal scroll
-// - Toast notifications with auto-dismiss
-// - Delete confirmation modal
-// - Comprehensive form validation
-// - Profile image upload with preview
-// - Accessibility improvements (ARIA labels, keyboard support)
-// ================================================================
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
+import OrganizerAnalyticsPage from "../pages/OrganizerAnalyticsPage";
+import {
+  Calendar,
+  Users,
+  User,
+  UserPlus,
+  LogOut,
+  Trash2,
+  Edit,
+  X,
+  Save,
+  Loader,
+  Eye,
+  Filter,
+  RotateCcw,
+  Upload,
+  CircleX,
+  ChartBarStacked,
+  ImagePlus
+} from "lucide-react";
 
 // ============ Toast Notification Component ============
 function Toast({ message, type, onClose }) {
@@ -79,31 +84,26 @@ function MyEvents({ onEditEvent }) {
     const now = new Date();
     let filtered = [...events];
 
-    // Filter by search name
     if (searchName.trim()) {
       filtered = filtered.filter(event => 
         event.title.toLowerCase().includes(searchName.toLowerCase())
       );
     }
 
-    // Filter by search location
     if (searchLocation.trim()) {
       filtered = filtered.filter(event => 
         event.location?.toLowerCase().includes(searchLocation.toLowerCase())
       );
     }
 
-    // Filter by category
     if (categoryFilter !== "all") {
       filtered = filtered.filter(event => event.category === categoryFilter);
     }
 
-    // Filter by type
     if (typeFilter !== "all") {
       filtered = filtered.filter(event => (event.eventType || "PUBLIC") === typeFilter);
     }
 
-    // Filter by status
     if (statusFilter !== "all") {
       if (statusFilter === "upcoming") {
         filtered = filtered.filter(event => new Date(event.date) > now);
@@ -112,7 +112,6 @@ function MyEvents({ onEditEvent }) {
       }
     }
 
-    // UPDATED: Sort by date descending - upcoming first (desc), then completed (desc)
     const upcoming = filtered.filter(e => new Date(e.date) > now)
       .sort((a, b) => new Date(b.date) - new Date(a.date));
     const completed = filtered.filter(e => new Date(e.date) <= now)
@@ -200,33 +199,32 @@ function MyEvents({ onEditEvent }) {
 
       <div className="org-stats-grid">
         <div className="org-stat-card org-stat-total">
-          <div className="org-stat-icon" aria-hidden="true">📊</div>
           <div className="org-stat-content">
+            <div className="org-stat-icon" aria-hidden="true">📊</div>
             <span className="org-stat-value">{totalEvents}</span>
-            <span className="org-stat-label">Total Events</span>
           </div>
+          <span className="org-stat-label">Total Events</span>
         </div>
         <div className="org-stat-card org-stat-upcoming">
-          <div className="org-stat-icon" aria-hidden="true">🚀</div>
           <div className="org-stat-content">
+          <div className="org-stat-icon" aria-hidden="true">🚀</div>
             <span className="org-stat-value">{upcomingEvents}</span>
-            <span className="org-stat-label">Upcoming Events</span>
           </div>
+            <span className="org-stat-label">Upcoming Events</span>
         </div>
         <div className="org-stat-card org-stat-past">
-          <div className="org-stat-icon" aria-hidden="true">✓</div>
           <div className="org-stat-content">
+          <div className="org-stat-icon" aria-hidden="true">✓</div>
             <span className="org-stat-value">{pastEvents}</span>
-            <span className="org-stat-label">Completed Events</span>
           </div>
+            <span className="org-stat-label">Completed Events</span>
         </div>
       </div>
 
-      <div className="org-events-header">
+      {/* <div className="org-events-header">
         <h2 className="org-section-title">My Events</h2>
-      </div>
+      </div> */}
 
-      {/* Filters Section */}
       <div className="org-filters-section">
         <div className="org-filters-row">
           <div className="org-filter-container org-filter-search">
@@ -386,7 +384,6 @@ function MyEvents({ onEditEvent }) {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="org-modal-overlay" onClick={() => setDeleteConfirm(null)} role="dialog" aria-modal="true">
           <div className="org-confirm-modal" onClick={(e) => e.stopPropagation()}>
@@ -412,8 +409,7 @@ function MyEvents({ onEditEvent }) {
         </div>
       )}
 
-      {/* View Details Modal */}
-      {showModal && selectedEvent && (
+      {/* {showModal && selectedEvent && (
         <div className="org-modal-overlay" onClick={handleCloseModal} role="dialog" aria-modal="true">
           <div className="org-modal-content" onClick={(e) => e.stopPropagation()}>
             <button 
@@ -478,7 +474,75 @@ function MyEvents({ onEditEvent }) {
             </div>
           </div>
         </div>
-      )}
+      )} */}
+
+      {showModal && selectedEvent && (
+  <div className="org-modal-overlay" onClick={handleCloseModal} role="dialog" aria-modal="true">
+    <div className="org-modal-content" onClick={(e) => e.stopPropagation()}>
+      <button
+        className="org-modal-close"
+        onClick={handleCloseModal}
+        aria-label="Close modal"
+      >
+        ×
+      </button>
+
+      <div className="org-modal-header">
+        <img
+          src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]}
+          alt={`${selectedEvent.title} event`}
+          className="org-modal-image"
+        />
+        <h2>{selectedEvent.title}</h2>
+        <span className="org-category-badge">{selectedEvent.category}</span>
+      </div>
+
+      <div className="org-modal-body">
+        <div className="org-event-info">
+          <p><strong>Description:</strong> {selectedEvent.description}</p>
+          <p><strong>Date:</strong> {formatDateDDMMYYYY(selectedEvent.date)} at {formatTimeHHMM(selectedEvent.date)}</p>
+          <p><strong>Location:</strong> {selectedEvent.location || "Not specified"}</p>
+          <p>
+            <strong>Type:</strong>
+            <span className={`org-type-badge org-type-${selectedEvent.eventType?.toLowerCase()}`}>
+              {selectedEvent.eventType || "PUBLIC"}
+            </span>
+          </p>
+
+          {selectedEvent.eventType === "PRIVATE" && selectedEvent.privateCode && (
+            <p>
+              <strong>Private Code:</strong>
+              <span className="org-private-code">{selectedEvent.privateCode}</span>
+            </p>
+          )}
+
+          <p>
+            <strong>Attendees:</strong> {selectedEvent.currentAttendees || 0} /{" "}
+            {selectedEvent.maxAttendees || "Unlimited"}
+          </p>
+
+          <p>
+            <strong>Status:</strong>
+            <span
+              className={`org-status-badge org-status-${
+                new Date(selectedEvent.date) > new Date() ? "upcoming" : "completed"
+              }`}
+            >
+              {new Date(selectedEvent.date) > new Date() ? "Upcoming" : "Completed"}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      <div className="org-modal-footer">
+        <button className="org-btn-close" onClick={handleCloseModal}>
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }
@@ -604,13 +668,11 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError("Please upload a valid image file (JPEG, PNG, GIF, WebP)");
       return;
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("Image size must be less than 5MB");
       return;
@@ -618,14 +680,12 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
 
     setImageFile(file);
     
-    // Create preview immediately
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
     };
     reader.readAsDataURL(file);
 
-    // Upload to server
     await handleImageUpload(file);
   };
 
@@ -780,7 +840,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               aria-label="Upload event image"
             />
             <label htmlFor="org-image-upload" className="org-upload-label">
-              {uploading ? "Uploading..." : (imagePreview ? "Change Image" : "Upload Image")}
+              <ImagePlus size={20}/>{uploading ? "Uploading..." : (imagePreview ? "Change Image" : "Upload Image")}
             </label>
             {imagePreview && (
               <div className="org-image-preview">
@@ -1015,7 +1075,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   );
 }
 
-// ============ Profile Component ============
+// ============ Profile Component - 🆕 UPDATED WITH TWO-COLUMN LAYOUT + PASSWORD CHANGE ============
 function Profile({ onCancel, onSuccess }) {
   const [profile, setProfile] = useState({
     id: null,
@@ -1031,6 +1091,12 @@ function Profile({ onCancel, onSuccess }) {
   const [error, setError] = useState("");
   const [imagePreview, setImagePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
+
+  // 🆕 NEW: Password change state (matching Visitor Dashboard)
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: ""
+  });
 
   useEffect(() => {
     fetchProfile();
@@ -1057,26 +1123,22 @@ function Profile({ onCancel, onSuccess }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     if (!file.type.startsWith('image/')) {
       setError("Please upload a valid image file");
       return;
     }
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("Image size must be less than 5MB");
       return;
     }
 
-    // Create preview immediately
     const reader = new FileReader();
     reader.onloadend = () => {
       setImagePreview(reader.result);
     };
     reader.readAsDataURL(file);
 
-    // Upload to server
     await handleImageUpload(file);
   };
 
@@ -1107,13 +1169,15 @@ function Profile({ onCancel, onSuccess }) {
     setProfile(prev => ({ ...prev, [name]: value }));
   };
 
+  // 🆕 UPDATED: Handle profile update (without password) + separate password update
   const handleSubmit = async (e) => {
     e.preventDefault();
     
     try {
       setLoading(true);
       setError("");
-
+      
+      // Update profile information
       const profileData = {
         name: profile.name,
         mobileNumber: profile.mobileNumber,
@@ -1125,9 +1189,28 @@ function Profile({ onCancel, onSuccess }) {
       if (response.data.imageUrl) {
         setImagePreview(response.data.imageUrl);
       }
-      setIsEditing(false);
-      onSuccess("Profile updated successfully!");
       
+      // 🆕 NEW: If password fields are filled, update password separately
+      if (passwordForm.currentPassword && passwordForm.newPassword) {
+        try {
+          await API.put("/users/password", {
+            currentPassword: passwordForm.currentPassword,
+            newPassword: passwordForm.newPassword
+          });
+          
+          onSuccess("Profile and password updated successfully!");
+          setPasswordForm({ currentPassword: "", newPassword: "" });
+        } catch (passErr) {
+          console.error("Error updating password:", passErr);
+          setError(passErr.response?.data || "Failed to update password");
+          setLoading(false);
+          return;
+        }
+      } else {
+        onSuccess("Profile updated successfully!");
+      }
+      
+      setIsEditing(false);
     } catch (err) {
       console.error("Error updating profile:", err);
       setError(err.response?.data?.message || "Failed to update profile");
@@ -1142,11 +1225,6 @@ function Profile({ onCancel, onSuccess }) {
 
   return (
     <div className="org-profile-container">
-      <div className="org-form-header">
-        <h2>My Profile</h2>
-        <p className="org-form-subtitle">Manage your profile information</p>
-      </div>
-      
       {error && <div className="org-alert org-alert-error" role="alert">{error}</div>}
 
       {!isEditing ? (
@@ -1175,9 +1253,16 @@ function Profile({ onCancel, onSuccess }) {
         </div>
       ) : (
         <form className="org-profile-edit-form" onSubmit={handleSubmit}>
-          <div className="org-form-group">
+          {/* 🆕 UPDATED: Form header matching Visitor Dashboard */}
+          {/* <div className="org-form-header">
+            <h2>Edit Profile</h2>
+            <p className="org-form-subtitle">Update your profile information and password</p>
+          </div> */}
+
+          {/* 🆕 UPDATED: Profile Image Upload - Full Width */}
+          <div className="org-form-group org-full-width">
             <label className="org-form-label">Profile Image</label>
-            <div className="org-image-upload-area">
+            <div className="org-image-upload-area org-image-upload-area2">
               <input 
                 type="file" 
                 accept="image/*"
@@ -1187,8 +1272,8 @@ function Profile({ onCancel, onSuccess }) {
                 disabled={uploading}
                 aria-label="Upload profile image"
               />
-              <label htmlFor="org-profile-image-upload" className="org-upload-label">
-                {uploading ? "Uploading..." : (imagePreview ? "Change Image" : "Upload Image")}
+              <label htmlFor="org-profile-image-upload" className="org-upload-label org-upload-label2">
+                <ImagePlus size={20}/>{uploading ? "Uploading..." : (imagePreview ? "" : "Upload Image")}
               </label>
               {imagePreview && (
                 <div className="org-image-preview org-profile-preview">
@@ -1197,56 +1282,95 @@ function Profile({ onCancel, onSuccess }) {
               )}
             </div>
           </div>
-          
-          <div className="org-form-group">
-            <label className="org-form-label">Name *</label>
-            <input
-              type="text"
-              name="name"
-              value={profile.name}
-              onChange={handleChange}
-              className="org-form-input"
-              required
-              aria-required="true"
-            />
+
+          {/* 🆕 UPDATED: Two-Column Layout for Form Fields */}
+          <div className="org-form-row">
+            <div className="org-form-col">
+              <label className="org-form-label">Name *</label>
+              <input
+                type="text"
+                name="name"
+                value={profile.name}
+                onChange={handleChange}
+                className="org-form-input"
+                required
+                aria-required="true"
+              />
+            </div>
+            
+            <div className="org-form-col">
+              <label className="org-form-label">Email (Cannot be changed)</label>
+              <input
+                type="email"
+                value={profile.email}
+                disabled
+                className="org-form-input org-disabled"
+                aria-label="Email address (read-only)"
+              />
+            </div>
+          </div>
+
+          <div className="org-form-row">
+            <div className="org-form-col">
+              <label className="org-form-label">Mobile Number</label>
+              <input
+                type="tel"
+                name="mobileNumber"
+                value={profile.mobileNumber || ""}
+                onChange={handleChange}
+                placeholder="+91 9876543210"
+                className="org-form-input"
+                aria-label="Mobile number"
+              />
+            </div>
+            
+            <div className="org-form-col">
+              <label className="org-form-label">Role</label>
+              <input
+                type="text"
+                value={profile.role}
+                disabled
+                className="org-form-input org-disabled"
+                aria-label="User role (read-only)"
+              />
+            </div>
+          </div>
+
+          {/* 🆕 NEW: Password Change Section (matching Visitor Dashboard) */}
+          <div className="org-password-section">
+            {/* <h3 className="org-section-title">Change Password (Optional)</h3> */}
+            <p className="org-section-subtitle">Leave empty to keep your current password</p>
+            
+            <div className="org-form-row">
+              <div className="org-form-col">
+                <label className="org-form-label">Current Password</label>
+                <input
+                  type="password"
+                  name="currentPassword"
+                  value={passwordForm.currentPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                  placeholder="Enter current password"
+                  className="org-form-input"
+                  aria-label="Current password"
+                />
+              </div>
+              
+              <div className="org-form-col">
+                <label className="org-form-label">New Password</label>
+                <input
+                  type="password"
+                  name="newPassword"
+                  value={passwordForm.newPassword}
+                  onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                  placeholder="Enter new password (min 6 characters)"
+                  className="org-form-input"
+                  aria-label="New password"
+                />
+              </div>
+            </div>
           </div>
           
-          <div className="org-form-group">
-            <label className="org-form-label">Email (Cannot be changed)</label>
-            <input
-              type="email"
-              value={profile.email}
-              disabled
-              className="org-form-input org-disabled"
-              aria-label="Email address (read-only)"
-            />
-          </div>
-          
-          <div className="org-form-group">
-            <label className="org-form-label">Role</label>
-            <input
-              type="text"
-              value={profile.role}
-              disabled
-              className="org-form-input org-disabled"
-              aria-label="User role (read-only)"
-            />
-          </div>
-          
-          <div className="org-form-group">
-            <label className="org-form-label">Mobile Number</label>
-            <input
-              type="tel"
-              name="mobileNumber"
-              value={profile.mobileNumber || ""}
-              onChange={handleChange}
-              placeholder="+91 9876543210"
-              className="org-form-input"
-              aria-label="Mobile number"
-            />
-          </div>
-          
-          <div className="org-form-actions">
+          <div className="org-form-actions">  
             <button type="submit" className="org-btn-primary" disabled={loading || uploading}>
               {loading ? "Saving..." : "Save Changes"}
             </button>
@@ -1256,6 +1380,7 @@ function Profile({ onCancel, onSuccess }) {
               onClick={() => {
                 setIsEditing(false);
                 setError("");
+                setPasswordForm({ currentPassword: "", newPassword: "" });
                 fetchProfile();
                 onCancel();
               }}
@@ -1345,6 +1470,16 @@ export default function OrganizerDashboard() {
             <span>Create Event</span>
           </li>
           <li 
+            onClick={() => setActivePage("analytics")}
+            className={activePage === "analytics" ? "org-nav-item org-active" : "org-nav-item"}
+            role="menuitem"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && setActivePage("analytics")}
+          >
+            <span className="org-nav-icon" aria-hidden="true">📊</span>
+            <span>Analytics</span>
+          </li>
+          <li 
             onClick={() => setActivePage("profile")}
             className={activePage === "profile" ? "org-nav-item org-active" : "org-nav-item"}
             role="menuitem"
@@ -1386,6 +1521,10 @@ export default function OrganizerDashboard() {
             onCancel={handleCancelForm}
             onSuccess={handleCreateEventSuccess}
           />
+        )}
+
+        {activePage === "analytics" && (
+          <OrganizerAnalyticsPage />
         )}
         
         {activePage === "profile" && (

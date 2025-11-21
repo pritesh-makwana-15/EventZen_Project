@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.eventzen.dto.request.CreateOrganizerRequest;
 import com.eventzen.dto.request.ProfileUpdateRequest;
+import com.eventzen.dto.request.UpdatePasswordRequest; // 🆕 ADDED
 import com.eventzen.dto.response.EventResponse;
 import com.eventzen.dto.response.UserResponse;
 import com.eventzen.entity.Event;
@@ -215,44 +216,151 @@ public class AdminController {
 
     /**
      * Get current admin profile
+     * 🔧 UPDATED: Now returns mobileNumber and imageUrl
      */
     @GetMapping("/profile")
     public ResponseEntity<?> getAdminProfile() {
         try {
+            System.out.println("📋 Fetching admin profile");
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
 
             User admin = userRepository.findByEmail(email)
                     .orElseThrow(() -> new Exception("Admin not found"));
 
+            // 🆕 UPDATED: Use new constructor with all fields
             UserResponse response = new UserResponse(
                     admin.getId(),
                     admin.getName(),
                     admin.getEmail(),
-                    admin.getRole().name());
+                    admin.getRole().name(),
+                    admin.getMobileNumber(),
+                    admin.getImageUrl());
 
+            System.out.println("✅ Admin profile fetched: " + admin.getName());
             return ResponseEntity.ok(response);
+
         } catch (Exception e) {
+            System.err.println("❌ Error fetching admin profile: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
         }
     }
 
     /**
-     * Update admin profile
+     * Update admin profile (WITHOUT password)
+     * 🔧 UPDATED: Now handles mobileNumber and imageUrl
      */
     @PutMapping("/profile")
     public ResponseEntity<?> updateAdminProfile(@RequestBody ProfileUpdateRequest request) {
         try {
+            System.out.println("🔄 Updating admin profile");
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
 
             User admin = userRepository.findByEmail(email)
                     .orElseThrow(() -> new Exception("Admin not found"));
 
-            UserResponse updatedAdmin = userService.updateUserProfile(admin.getId(), request);
-            return ResponseEntity.ok(updatedAdmin);
+            // Update allowed fields (NOT password, NOT email, NOT role)
+            if (request.getName() != null && !request.getName().trim().isEmpty()) {
+                admin.setName(request.getName().trim());
+                System.out.println("📝 Updated name: " + request.getName());
+            }
+
+            if (request.getMobileNumber() != null) {
+                admin.setMobileNumber(request.getMobileNumber().trim());
+                System.out.println("📞 Updated mobile: " + request.getMobileNumber());
+            }
+
+            if (request.getImageUrl() != null) {
+                String imageUrl = request.getImageUrl();
+                if (imageUrl.length() > 1000) {
+                    System.out.println("⚠️ Image URL too long, skipping update");
+                } else {
+                    admin.setImageUrl(imageUrl);
+                    System.out.println("🖼️ Updated profile image");
+                }
+            }
+
+            User updatedAdmin = userRepository.save(admin);
+
+            // 🆕 UPDATED: Return response with all fields
+            UserResponse response = new UserResponse(
+                    updatedAdmin.getId(),
+                    updatedAdmin.getName(),
+                    updatedAdmin.getEmail(),
+                    updatedAdmin.getRole().name(),
+                    updatedAdmin.getMobileNumber(),
+                    updatedAdmin.getImageUrl());
+
+            System.out.println("✅ Admin profile updated successfully");
+            return ResponseEntity.ok(response);
+
         } catch (Exception e) {
+            System.err.println("❌ Error updating admin profile: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        }
+    }
+
+    /**
+     * 🆕 NEW: Update admin password separately
+     * This is the KEY method that was missing!
+     */
+    @PutMapping("/password")
+    public ResponseEntity<?> updateAdminPassword(@RequestBody UpdatePasswordRequest request) {
+        try {
+            System.out.println("🔐 Admin password change request received");
+
+            // Validate request
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
+                System.out.println("❌ Current password is required");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Current password is required");
+            }
+
+            if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
+                System.out.println("❌ New password is required");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("New password is required");
+            }
+
+            if (request.getNewPassword().length() < 6) {
+                System.out.println("❌ New password must be at least 6 characters");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("New password must be at least 6 characters");
+            }
+
+            // Get current admin from JWT
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String email = authentication.getName();
+
+            User admin = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new Exception("Admin not found"));
+
+            System.out.println("👤 Admin found: " + admin.getName() + " (ID: " + admin.getId() + ")");
+
+            // 🔒 CRITICAL: Verify current password
+            if (!passwordEncoder.matches(request.getCurrentPassword(), admin.getPassword())) {
+                System.out.println("❌ Current password does not match");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                        .body("Current password is incorrect");
+            }
+
+            System.out.println("✅ Current password verified");
+
+            // Update password with encryption
+            admin.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(admin);
+
+            System.out.println("✅ Password updated successfully for admin: " + email);
+            return ResponseEntity.ok("Password updated successfully");
+
+        } catch (Exception e) {
+            System.err.println("❌ Error updating admin password: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Failed to update password: " + e.getMessage());
         }
     }
 

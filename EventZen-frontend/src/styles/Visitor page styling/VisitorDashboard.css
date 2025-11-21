@@ -352,6 +352,14 @@
   margin: 0;
 }
 
+/* Thumbnail for event images in registration table */
+.vis-event-thumbnail {
+  width: 60px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
 .vis-event-actions {
   display: flex;
   gap: 7px;
@@ -389,6 +397,7 @@
 .vis-btn-secondary {
   background: #f0f0f0;
   color: #333;
+  
 }
 
 .vis-btn-secondary:hover {
@@ -411,15 +420,16 @@
 
 .vis-stat-card-visitor {
   background: white;
-  padding: 19px;
+  padding: 12px;
   border-radius: 8px;
   box-shadow: 0 3px 11px rgba(0, 0, 0, 0.08);
   text-align: center;
   border: 2px solid #667eea;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 11px;
+  gap: 4px;
 }
 
 .vis-stat-icon {
@@ -428,7 +438,7 @@
 
 .vis-stat-info {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 3px;
   text-align: left;
 }
@@ -443,7 +453,7 @@
 .vis-stat-card-visitor p {
   color: #666;
   margin: 0;
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 600;
 }
 
@@ -491,6 +501,7 @@
   padding: 8px;
   border-bottom: 1px solid #f0f0f0;
   font-size: 14px;
+  color: #2e3e53;
 }
 
 .vis-registrations-table tr:last-child td {
@@ -582,7 +593,7 @@
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 15 px;
+  font-size: 15px;
   font-weight: 600;
   transition: all 0.3s;
   white-space: nowrap;
@@ -622,25 +633,31 @@
   margin-bottom: 15px;
 }
 
+/* ============================================ */
+/* 🆕 UPDATED PROFILE SECTION - TWO COLUMN LAYOUT */
+/* ============================================ */
+
 .vis-profile-container {
-  max-width: 515px;
+  max-width: 900px; /* Increased width for two-column layout */
   margin: 0 auto;
 }
 
 .vis-form-header {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
 }
 
 .vis-form-header h2 {
-  font-size: 23px;
+  font-size: 28px;
   color: #2c3e50;
-  margin: 0 0 6px 0;
+  margin: 0 0 8px 0;
   font-weight: 700;
 }
 
 .vis-form-subtitle {
-  font-size: 12px;
+  font-size: 14px;
   color: #7f8c8d;
   margin: 0;
 }
@@ -650,7 +667,7 @@
   padding: 37px;
   border-radius: 15px;
   text-align: center;
-  box-shadow: 0 3px 22px rgba(0, 0, 0, 0.1);
+  /* box-shadow: 0 3px 22px rgba(0, 0, 0, 0.1); */
 }
 
 .vis-profile-avatar-wrapper {
@@ -719,11 +736,32 @@
   color: #2c3e50;
 }
 
+/* 🆕 EDIT FORM WITH TWO-COLUMN LAYOUT */
 .vis-profile-edit-form {
-  background: #fff;
-  padding: 29px;
+  /* background: #fff;
+  padding: 20px;
   border-radius: 15px;
-  box-shadow: 0 3px 22px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 22px rgba(0, 0, 0, 0.1); */
+}
+
+/* Full width for image upload section */
+.vis-form-group.vis-full-width {
+  width: 100%;
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+/* Two-column grid layout for form fields */
+.vis-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 2px;
+}
+
+.vis-form-col {
+  display: flex;
+  flex-direction: column;
 }
 
 .vis-form-group {
@@ -735,24 +773,25 @@
   display: block;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 6px;
-  font-size: 11px;
+  margin-bottom: 8px;
+  font-size: 14px;
 }
 
 .vis-form-input {
   width: 100%;
-  padding: 11px 12px;
+  padding: 12px 14px;
   border: 2px solid #e0e0e0;
-  border-radius: 7px;
-  font-size: 11px;
+  border-radius: 8px;
+  font-size: 14px;
   transition: all 0.3s;
   font-family: inherit;
+  box-sizing: border-box;
 }
 
 .vis-form-input:focus {
   outline: none;
   border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
 }
 
 .vis-form-input.vis-disabled {
@@ -761,10 +800,42 @@
   color: #999;
 }
 
+/* 🆕 PASSWORD CHANGE SECTION STYLING */
+.vis-password-section {
+  /* margin-top: 30px;
+  padding-top: 25px;
+  border-top: 2px solid #e0e0e0; */
+}
+
+.vis-section-title {
+  font-size: 20px;
+  color: #2c3e50;
+  margin: 0 0 5px 0;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vis-section-title::before {
+  content: "🔐";
+  font-size: 20px;
+}
+
+.vis-section-subtitle {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin: 0 0 5px 0;
+  font-style: italic;
+}
+
+/* Image upload area */
 .vis-image-upload-area {
   display: flex;
   flex-direction: column;
-  gap: 11px;
+  gap: 15px;
+  align-items: flex-start;
+  position: relative;
 }
 
 .vis-file-input {
@@ -772,22 +843,27 @@
 }
 
 .vis-upload-label {
-  display: inline-block;
-  padding: 8px 18px;
-  background: #667eea;
+  display: flex;
+  align-items: center;
+  padding: 5px 5px;
+  justify-content: center;
+  background: #667eeab8;
   color: white;
-  border-radius: 6px;
+  border-radius: 50%;
   cursor: pointer;
   font-weight: 600;
   text-align: center;
   transition: all 0.3s;
-  max-width: 147px;
-  font-size: 11px;
+  font-size: 17px;
+  position: absolute;
+  top: 80px;
+  left: 67px;
 }
 
 .vis-upload-label:hover {
   background: #5568d3;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .vis-image-preview {
@@ -795,9 +871,8 @@
   height: 110px;
   border-radius: 50%;
   overflow: hidden;
-  border: 3px solid #667eea;
+  border: 4px solid #667eea;
   box-shadow: 0 3px 11px rgba(0, 0, 0, 0.1);
-  margin: 0 auto;
 }
 
 .vis-image-preview img {
@@ -806,51 +881,56 @@
   object-fit: cover;
 }
 
+/* Form action buttons */
 .vis-form-actions {
   display: flex;
-  gap: 8px;
-  margin-top: 22px;
-  justify-content: center;
+  gap: 12px;
+  margin-top: 5px;
+  justify-content: flex-start;
 }
 
 .vis-form-actions .vis-btn {
-  padding: 11px 23px;
-  border-radius: 7px;
+  padding: 12px 28px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s;
   border: none;
-  font-size: 11px;
+  font-size: 15px;
 }
 
 .vis-form-actions .vis-btn-primary-visitor {
   background: #667eea;
   color: white;
   flex: 1;
-  max-width: 147px;
+  max-width: 180px;
 }
 
 .vis-form-actions .vis-btn-primary-visitor:hover:not(:disabled) {
   background: #5568d3;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
 .vis-form-actions .vis-btn-primary-visitor:disabled {
   background: #ccc;
   cursor: not-allowed;
+  transform: none;
 }
 
 .vis-form-actions .vis-btn-secondary {
   background: #f0f0f0;
   color: #333;
   flex: 1;
-  max-width: 147px;
+  max-width: 180px;
 }
 
 .vis-form-actions .vis-btn-secondary:hover {
   background: #e0e0e0;
+  transform: translateY(-2px);
 }
 
+/* Modal styling remains the same */
 .vis-private-code-modal-visitor {
   background: white;
   border-radius: 12px;
@@ -959,7 +1039,6 @@
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  /* position: relative; */
   animation: vis-modalSlideIn 0.3s ease;
 }
 
@@ -976,9 +1055,9 @@
 
 .vis-modal-visitor-close {
   position: absolute;
-  top: 11px;
-  right: 11px;
-  background: rgba(173, 170, 170, 0.753);
+  top: 25px;
+  right: 410px;
+  background: rgb(173, 170, 170);
   border: none;
   width: 35px;
   height: 35px;
@@ -998,19 +1077,36 @@
   transform: rotate(90deg);
 }
 
+.vis-event-close {
+  padding: 3px 10px;
+  color: #333;
+  border-radius: 10px;
+  border: 2px solid #f0f0f0;
+  flex: 1;
+  max-width: 147px;
+  font-size: 20px;
+  color: #6366f1;
+  transition: all 0.8s;
+}
+
+.vis-event-close:hover {
+  background: #6366f1;
+  color: white;
+}
+
 .vis-modal-visitor-header {
   position: relative;
 }
 
 .vis-modal-visitor-image {
   width: 100%;
-  height: 221px;
-  object-fit: cover;
+  height: 200px;
+  object-fit: cover;  
   border-radius: 12px 12px 0 0;
 }
 
 .vis-modal-visitor-header h2 {
-  padding: 15px 22px 7px;
+  padding: 5px 22px 7px;
   margin: 0;
   font-size: 21px;
   color: #333;
@@ -1023,9 +1119,8 @@
 
 .vis-modal-visitor-info {
   background: #f9f9f9;
-  padding: 15px;
+  padding: 10px;
   border-radius: 7px;
-  margin-bottom: 15px;
 }
 
 .vis-modal-visitor-info p {
@@ -1066,6 +1161,10 @@
   padding: 8px 22px;
   width: auto;
 }
+
+/* ============================================ */
+/* 📱 RESPONSIVE DESIGN - MEDIA QUERIES */
+/* ============================================ */
 
 @media (max-width: 1024px) {
   .vis-events-grid {
@@ -1129,12 +1228,22 @@
     padding: 22px 15px;
   }
   
+  /* 🆕 Two-column form becomes single column on tablet */
+  .vis-form-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
   .vis-form-actions {
     flex-direction: column;
   }
   
   .vis-form-actions .vis-btn-primary-visitor,
   .vis-form-actions .vis-btn-secondary {
+    max-width: 100%;
+  }
+  
+  .vis-profile-container {
     max-width: 100%;
   }
 }
@@ -1220,5 +1329,44 @@
   .vis-image-preview {
     width: 88px;
     height: 88px;
+  }
+  
+  /* 🆕 Mobile-specific profile form adjustments */
+  .vis-form-header h2 {
+    font-size: 22px;
+  }
+  
+  .vis-form-subtitle {
+    font-size: 12px;
+  }
+  
+  .vis-section-title {
+    font-size: 18px;
+  }
+  
+  .vis-profile-edit-form {
+    padding: 20px 15px;
+  }
+  
+  .vis-form-label {
+    font-size: 13px;
+  }
+  
+  .vis-form-input {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .vis-form-actions .vis-btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+  
+  .vis-modal-visitor-close {
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    font-size: 24px;
   }
 }

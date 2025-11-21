@@ -4,13 +4,14 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -21,22 +22,44 @@ public class Registration {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @ManyToOne
-    @JoinColumn(name = "user_id", nullable = false) // Changed from visitor_id to user_id
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "visitor_id", nullable = false)
     private User visitor;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private RegistrationStatus status;
+    @Column(nullable = false, length = 50)
+    private String status;
 
-    @Column(name = "registered_at", nullable = false)
-    private LocalDateTime registeredAt;
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
 
-    // Getters & Setters
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    public Registration() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public Registration(Event event, User visitor) {
+        this.event = event;
+        this.visitor = visitor;
+        this.status = "REGISTERED";
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public Registration(Event event, User visitor, String status) {
+        this.event = event;
+        this.visitor = visitor;
+        this.status = status;
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+    }
+
     public Long getId() {
         return id;
     }
@@ -61,19 +84,49 @@ public class Registration {
         this.visitor = visitor;
     }
 
-    public RegistrationStatus getStatus() {
+    public String getStatus() {
         return status;
     }
 
-    public void setStatus(RegistrationStatus status) {
+    public void setStatus(String status) {
         this.status = status;
     }
 
-    public LocalDateTime getRegisteredAt() {
-        return registeredAt;
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
     }
 
-    public void setRegisteredAt(LocalDateTime registeredAt) {
-        this.registeredAt = registeredAt;
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    @Override
+    public String toString() {
+        return "Registration{" +
+                "id=" + id +
+                ", eventId=" + (event != null ? event.getId() : null) +
+                ", visitorId=" + (visitor != null ? visitor.getId() : null) +
+                ", status='" + status + '\'' +
+                ", createdAt=" + createdAt +
+                '}';
     }
 }

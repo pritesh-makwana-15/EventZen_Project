@@ -1,12 +1,13 @@
 /* ================================================================
    FILE: src/styles/Organizer Dashboard/OrganizerDashboard.css
-   CHANGES:
-   - 30% size reduction (all paddings, margins, fonts)
-   - All classNames prefixed with "org-"
-   - Fixed modal with max-height and internal scroll
-   - Toast notifications
-   - Improved responsive design
-   - INCREASED ALL SIZES BY 15% FROM CURRENT VALUES
+   🆕 UPDATED: Profile Section with Two-Column Layout + Password Change
+   Changes:
+   - Added .org-form-row and .org-form-col for two-column layout
+   - Added .org-password-section styling
+   - Added .org-section-title and .org-section-subtitle
+   - Added .org-full-width for full-width form groups
+   - Improved responsive breakpoints for profile section
+   - Matching Visitor Dashboard profile structure
    ================================================================ */
 
 /* ===== Global Styles ===== */
@@ -25,10 +26,10 @@
 
 /* ===== Top Navigation Bar (Left Sidebar) - 15% BIGGER ===== */
 .org-top-navbar {
-  width: 161px; /* Increased by 15% from 140px */
+  width: 161px;
   min-height: 100vh;
   background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
-  padding: 24px 16px; /* Increased by 15% from 21px 14px */
+  padding: 24px 16px;
   display: flex;
   flex-direction: column;
   box-shadow: 4px 0 15px rgba(0, 0, 0, 0.1);
@@ -41,26 +42,26 @@
 .org-navbar-brand {
   display: flex;
   align-items: center;
-  gap: 9px; /* Increased by 15% from 8px */
+  gap: 9px;
   color: #fff;
-  margin-bottom: 40px; /* Increased by 15% from 35px */
-  padding-bottom: 24px; /* Increased by 15% from 21px */
+  margin-bottom: 40px;
+  padding-bottom: 24px;
   border-bottom: 2px solid rgba(255, 255, 255, 0.2);
 }
 
 .org-brand-icon {
-  font-size: 25px; /* Increased by 15% from 22px */
+  font-size: 25px;
 }
 
 .org-logo-img {
-  width: 32px; /* Increased by 15% from 28px */
-  height: 32px; /* Increased by 15% from 28px */
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   object-fit: cover;
 }
 
 .org-brand-text {
-  font-size: 20px; /* Increased by 15% from 17px */
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 0.3px;
 }
@@ -69,7 +70,7 @@
   list-style: none;
   display: flex;
   flex-direction: column;
-  gap: 12px; /* Increased by 15% from 10px */
+  gap: 12px;
   align-items: stretch;
 }
 
@@ -77,19 +78,19 @@
   color: #fff;
   cursor: pointer;
   font-weight: 500;
-  font-size: 13px; /* Increased by 15% from 11px */
-  padding: 12px 16px; /* Increased by 15% from 10px 14px */
-  border-radius: 9px; /* Increased by 15% from 8px */
+  font-size: 13px;
+  padding: 12px 16px;
+  border-radius: 9px;
   transition: all 0.3s ease;
   position: relative;
   text-align: left;
   display: flex;
   align-items: center;
-  gap: 7px; /* Increased by 15% from 6px */
+  gap: 7px;
 }
 
 .org-nav-icon {
-  font-size: 16px; /* Increased by 15% from 14px */
+  font-size: 16px;
 }
 
 .org-nav-item:hover {
@@ -125,28 +126,28 @@
 
 /* ===== Main Content Area - 15% BIGGER ===== */
 .org-dashboard-main {
-  margin-left: 161px; /* Increased by 15% from 140px */
+  margin-left: 161px;
   width: calc(100% - 161px);
-  padding: 32px; /* Increased by 15% from 28px */
+  padding: 20px;
   min-height: 100vh;
 }
 
-/* ===== Toast Notifications (NEW) ===== */
+/* ===== Toast Notifications ===== */
 .org-toast {
   position: fixed;
   top: 20px;
   right: 20px;
-  padding: 14px 23px; /* Increased by 15% from 12px 20px */
-  border-radius: 9px; /* Increased by 15% from 8px */
+  padding: 14px 23px;
+  border-radius: 9px;
   display: flex;
   align-items: center;
-  gap: 12px; /* Increased by 15% from 10px */
+  gap: 12px;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
   z-index: 9999;
   animation: org-slideInRight 0.3s ease;
   cursor: pointer;
-  min-width: 322px; /* Increased by 15% from 280px */
-  max-width: 460px; /* Increased by 15% from 400px */
+  min-width: 322px;
+  max-width: 460px;
 }
 
 @keyframes org-slideInRight {
@@ -171,30 +172,30 @@
 }
 
 .org-toast-icon {
-  font-size: 21px; /* Increased by 15% from 18px */
+  font-size: 21px;
   font-weight: bold;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px; /* Increased by 15% from 24px */
-  height: 28px; /* Increased by 15% from 24px */
+  width: 28px;
+  height: 28px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 50%;
 }
 
 .org-toast-message {
   flex: 1;
-  font-size: 16px; /* Increased by 15% from 14px */
+  font-size: 16px;
   font-weight: 500;
 }
 
-/* ===== Alert Messages - 15% BIGGER ===== */
+/* ===== Alert Messages ===== */
 .org-alert {
-  padding: 13px 20px; /* Increased by 15% from 11px 17px */
-  margin-bottom: 24px; /* Increased by 15% from 21px */
-  border-radius: 9px; /* Increased by 15% from 8px */
+  padding: 13px 20px;
+  margin-bottom: 24px;
+  border-radius: 9px;
   font-weight: 500;
-  font-size: 15px; /* Increased by 15% from 13px */
+  font-size: 15px;
   animation: org-slideDown 0.4s ease;
 }
 
@@ -221,30 +222,31 @@
   }
 }
 
-/* ===== Loading Spinner - 15% BIGGER ===== */
+/* ===== Loading Spinner ===== */
 .org-loading-spinner {
   text-align: center;
-  padding: 48px 16px; /* Increased by 15% from 42px 14px */
-  font-size: 15px; /* Increased by 15% from 13px */
+  padding: 48px 16px;
+  font-size: 15px;
   color: #667eea;
   font-weight: 500;
 }
 
-/* ===== Statistics Grid - 15% BIGGER ===== */
+/* ===== Statistics Grid ===== */
 .org-stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(201px, 1fr)); /* Increased by 15% from 175px */
-  gap: 20px; /* Increased by 15% from 17px */
-  margin-bottom: 32px; /* Increased by 15% from 28px */
+  grid-template-columns: repeat(auto-fit, minmax(201px, 1fr));
+  gap: 20px;
+  margin-bottom: 5px;
 }
 
 .org-stat-card {
   background: #fff;
-  padding: 23px; /* Increased by 15% from 20px */
-  border-radius: 13px; /* Increased by 15% from 11px */
+  padding: 10px;
+  border-radius: 13px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 16px; /* Increased by 15% from 14px */
+  gap: 5px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   border: 2px solid transparent;
@@ -268,7 +270,7 @@
 }
 
 .org-stat-icon {
-  font-size: 33px; /* Increased by 15% from 29px */
+  font-size: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -276,43 +278,43 @@
 
 .org-stat-content {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 3px;
 }
 
 .org-stat-value {
-  font-size: 25px; /* Increased by 15% from 22px */
+  font-size: 25px;
   font-weight: 700;
   color: #2c3e50;
   line-height: 1;
 }
 
 .org-stat-label {
-  font-size: 12px; /* Increased by 15% from 10px */
+  font-size: 12px;
   color: #7f8c8d;
   font-weight: 500;
 }
 
-/* ===== Events Header - 15% BIGGER ===== */
+/* ===== Events Header ===== */
 .org-events-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px; /* Increased by 15% from 17px */
+  margin-bottom: 20px;
   flex-wrap: wrap;
-  gap: 16px; /* Increased by 15% from 14px */
+  gap: 16px;
 }
 
 .org-section-title {
-  font-size: 23px; /* Increased by 15% from 20px */
+  font-size: 23px;
   font-weight: 700;
   color: #2c3e50;
   margin: 0;
 }
 
-/* ===== Filters Section - 15% BIGGER ===== */
+/* ===== Filters Section ===== */
 .org-filters-section {
-  margin: 14px 0 23px; /* Increased by 15% from 12px 0 20px */
+  margin: 14px 0 23px;
   width: 100%;
 }
 
@@ -320,9 +322,9 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 12px; /* Increased by 15% from 10px */
-  padding: 13px; /* Increased by 15% from 11px */
-  border-radius: 9px; /* Increased by 15% from 8px */
+  gap: 12px;
+  padding: 13px;
+  border-radius: 9px;
   background: #ffffff;
   box-shadow: 0 6px 22px rgba(12, 20, 30, 0.06);
   border: 1px solid rgba(15, 23, 42, 0.03);
@@ -331,24 +333,24 @@
 .org-filter-container {
   display: flex;
   flex-direction: column;
-  gap: 6px; /* Increased by 15% from 5px */
+  gap: 6px;
   flex: 0 0 auto;
-  min-width: 113px; /* Increased by 15% from 98px */
+  min-width: 113px;
 }
 
 .org-filter-container.org-filter-search {
-  flex: 1 1 274px; /* Increased by 15% from 238px */
-  min-width: 177px; /* Increased by 15% from 154px */
+  flex: 1 1 274px;
+  min-width: 177px;
 }
 
 .org-filter-input,
 .org-filter-select {
   width: 100%;
-  padding: 8px 9px 8px 31px; /* Increased by 15% from 7px 8px 7px 27px */
-  border-radius: 8px; /* Increased by 15% from 7px */
+  padding: 8px 9px 8px 31px;
+  border-radius: 8px;
   border: 1px solid #e6e9ee;
   background: #fbfdff;
-  font-size: 12px; /* Increased by 15% from 10px */
+  font-size: 12px;
   font-weight: 500;
   color: #24323f;
   outline: none;
@@ -357,8 +359,8 @@
 }
 
 .org-filter-select { 
-  padding-left: 9px; /* Increased by 15% from 8px */
-  padding-right: 9px; /* Increased by 15% from 8px */
+  padding-left: 9px;
+  padding-right: 9px;
   cursor: pointer; 
 }
 
@@ -375,11 +377,11 @@
 }
 
 .org-btn-clear-filters {
-  padding: 8px 12px; /* Increased by 15% from 7px 10px */
-  border-radius: 8px; /* Increased by 15% from 7px */
+  padding: 8px 12px;
+  border-radius: 8px;
   border: none;
   font-weight: 700;
-  font-size: 10px; /* Increased by 15% from 9px */
+  font-size: 10px;
   cursor: pointer;
   transition: transform .12s ease, box-shadow .12s ease;
   background: linear-gradient(90deg,#ff7a7a,#f75e7f);
@@ -391,36 +393,36 @@
   transform: translateY(-2px);
 }
 
-/* ===== Empty State - 15% BIGGER ===== */
+/* ===== Empty State ===== */
 .org-empty-state {
   text-align: center;
-  padding: 64px 16px; /* Increased by 15% from 56px 14px */
+  padding: 64px 16px;
   background: #fff;
-  border-radius: 13px; /* Increased by 15% from 11px */
+  border-radius: 13px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
 .org-empty-icon {
-  font-size: 64px; /* Increased by 15% from 56px */
-  margin-bottom: 16px; /* Increased by 15% from 14px */
+  font-size: 64px;
+  margin-bottom: 16px;
   opacity: 0.5;
 }
 
 .org-empty-state h3 {
-  font-size: 20px; /* Increased by 15% from 17px */
+  font-size: 20px;
   color: #2c3e50;
-  margin-bottom: 8px; /* Increased by 15% from 7px */
+  margin-bottom: 8px;
 }
 
 .org-empty-state p {
-  font-size: 13px; /* Increased by 15% from 11px */
+  font-size: 13px;
   color: #7f8c8d;
 }
 
-/* ===== Events Table - 15% BIGGER ===== */
+/* ===== Events Table ===== */
 .org-table-container {
   background: #fff;
-  border-radius: 13px; /* Increased by 15% from 11px */
+  border-radius: 13px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   overflow: hidden;
 }
@@ -435,20 +437,20 @@
 }
 
 .org-events-table th {
-  padding: 15px 13px; /* Increased by 15% from 13px 11px */
+  padding: 15px 13px;
   text-align: left;
   color: #fff;
   font-weight: 600;
-  font-size: 12px; /* Increased by 15% from 10px */
+  font-size: 12px;
   letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
 .org-events-table td {
-  padding: 8px 8px; /* Increased by 15% from 7px 7px */
+  padding: 8px 8px;
   border-bottom: 1px solid #f0f0f0;
   color: #2c3e50;
-  font-size: 12px; /* Increased by 15% from 10px */
+  font-size: 12px;
 }
 
 .org-events-table tbody tr {
@@ -465,9 +467,9 @@
 }
 
 .org-event-thumbnail {
-  width: 64px; /* Increased by 15% from 56px */
-  height: 48px; /* Increased by 15% from 42px */
-  border-radius: 8px; /* Increased by 15% from 7px */
+  width: 64px;
+  height: 48px;
+  border-radius: 8px;
   object-fit: cover;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -479,19 +481,19 @@
 
 .org-category-badge {
   display: inline-block;
-  padding: 5px 12px; /* Increased by 15% from 4px 10px */
+  padding: 5px 12px;
   background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
   color: #333;
-  border-radius: 16px; /* Increased by 15% from 14px */
-  font-size: 9px; /* Increased by 15% from 8px */
+  border-radius: 16px;
+  font-size: 9px;
   font-weight: 600;
 }
 
 .org-type-badge {
   display: inline-block;
-  padding: 5px 12px; /* Increased by 15% from 4px 10px */
-  border-radius: 16px; /* Increased by 15% from 14px */
-  font-size: 9px; /* Increased by 15% from 8px */
+  padding: 5px 12px;
+  border-radius: 16px;
+  font-size: 9px;
   font-weight: 600;
   text-transform: uppercase;
 }
@@ -514,11 +516,11 @@
 .org-status-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px; /* Increased by 15% from 4px */
+  gap: 5px;
   font-weight: 700;
-  font-size: 9px; /* Increased by 15% from 8px */
-  padding: 5px 12px; /* Increased by 15% from 4px 10px */
-  border-radius: 16px; /* Increased by 15% from 14px */
+  font-size: 9px;
+  padding: 5px 12px;
+  border-radius: 16px;
   line-height: 1;
   letter-spacing: 0.3px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -534,7 +536,7 @@
 
 .org-status-badge.org-status-upcoming::before {
   content: "⏳";
-  font-size: 12px; /* Increased by 15% from 10px */
+  font-size: 12px;
 }
 
 .org-status-badge.org-status-completed {
@@ -548,9 +550,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 13px; /* Increased by 15% from 11px */
-  height: 13px; /* Increased by 15% from 11px */
-  font-size: 9px; /* Increased by 15% from 8px */
+  width: 13px;
+  height: 13px;
+  font-size: 9px;
   background: #10b981;
   color: #fff;
   border-radius: 50%;
@@ -559,15 +561,15 @@
 
 .org-action-buttons {
   display: flex;
-  gap: 6px; /* Increased by 15% from 5px */
+  gap: 6px;
   flex-wrap: wrap;
 }
 
 .org-action-btn {
-  padding: 6px 13px; /* Increased by 15% from 5px 11px */
+  padding: 6px 13px;
   border: none;
-  border-radius: 6px; /* Increased by 15% from 5px */
-  font-size: 10px; /* Increased by 15% from 9px */
+  border-radius: 6px;
+  font-size: 10px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -604,33 +606,20 @@
   box-shadow: 0 4px 12px rgba(55, 178, 77, 0.4);
 }
 
-/* ===== Modal/Popup Styles - FIXED HEIGHT WITH INTERNAL SCROLL ===== */
+/* ===== Modal/Popup Styles (Updated Visitor-like version) ===== */
 .org-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.75);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
-  justify-content: center;
   align-items: center;
+  justify-content: center;
   z-index: 2000;
+  padding: 15px;
   animation: org-fadeIn 0.3s ease;
-  padding: 16px; /* Increased by 15% from 14px */
-  overflow: hidden; /* Prevent page scroll */
-}
-
-.org-modal-content {
-  background: #fff;
-  border-radius: 16px; /* Increased by 15% from 14px */
-  max-width: 564px; /* Increased by 15% from 490px */
-  width: 100%;
-  max-height: 85vh; /* FIXED: Prevent overflow */
-  overflow-y: auto; /* FIXED: Internal scroll only */
-  /* position: relative; */
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: org-slideUp 0.3s ease;
 }
 
 @keyframes org-fadeIn {
@@ -638,10 +627,22 @@
   to { opacity: 1; }
 }
 
+.org-modal-content {
+  background: #fff;
+  border-radius: 12px;
+  max-width: 560px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: org-slideUp 0.3s ease;
+  /* position: relative; */
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
 @keyframes org-slideUp {
   from {
     opacity: 0;
-    transform: translateY(50px);
+    transform: translateY(-40px);
   }
   to {
     opacity: 1;
@@ -651,144 +652,253 @@
 
 .org-modal-close {
   position: absolute;
-  top: 16px; /* Increased by 15% from 14px */
-  right: 16px; /* Increased by 15% from 14px */
-  background: #ff6b6b;
+  top: 25px;
+  right: 325px;
+  background: rgba(160, 160, 160, 0.993);
   color: #fff;
   border: none;
-  width: 32px; /* Increased by 15% from 28px */
-  height: 32px; /* Increased by 15% from 28px */
+  width: 35px;
+  height: 35px;
   border-radius: 50%;
-  font-size: 20px; /* Increased by 15% from 17px */
+  font-size: 26px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: all 0.3s ease;
-  z-index: 10;
-  line-height: 1;
-  font-weight: 300;
+  z-index: 1;
 }
 
 .org-modal-close:hover {
-  background: #ee5a6f;
-  transform: rotate(90deg) scale(1.1);
-  box-shadow: 0 4px 12px rgba(238, 90, 111, 0.4);
+  background: rgba(0, 0, 0, 0.8);
+  transform: rotate(90deg);
 }
 
 .org-modal-header {
-  padding: 24px; /* Increased by 15% from 21px */
-  text-align: center;
-  border-bottom: 2px solid #f0f0f0;
   position: relative;
+  text-align: center;
 }
 
 .org-modal-image {
   width: 100%;
-  height: 201px; /* Increased by 15% from 175px */
+  height: 200px;
   object-fit: cover;
-  border-radius: 9px; /* Increased by 15% from 8px */
-  margin-bottom: 16px; /* Increased by 15% from 14px */
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border-radius: 12px 12px 0 0;
 }
 
 .org-modal-header h2 {
-  font-size: 23px; /* Increased by 15% from 20px */
+  margin: 5px 0 5px;
+  font-size: 22px;
   color: #2c3e50;
-  margin-bottom: 9px; /* Increased by 15% from 8px */
   font-weight: 700;
-  padding-right: 24px; /* Increased by 15% from 21px */
 }
 
-.org-modal-header .org-category-badge {
+.org-category-badge {
   display: inline-block;
-  margin-top: 5px;
+  background: #eef2ff;
+  color: #6366f1;
+  padding: 4px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
 }
 
 .org-modal-body {
-  padding: 24px; /* Increased by 15% from 21px */
+  padding: 0px 22px;
 }
 
-.org-detail-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px; /* Increased by 15% from 5px */
-  margin-bottom: 16px; /* Increased by 15% from 14px */
-  padding-bottom: 16px; /* Increased by 15% from 14px */
-  border-bottom: 1px solid #f0f0f0;
+.org-event-info {
+  background: #f9f9f9;
+  padding: 5px;
+  border-radius: 8px;
 }
 
-.org-detail-row:last-child {
-  border-bottom: none;
-  margin-bottom: 0;
-  padding-bottom: 0;
+.org-event-info p {
+  margin: 3px 0;
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
 }
 
-.org-detail-row strong {
-  font-size: 12px; /* Increased by 15% from 10px */
-  color: #7f8c8d;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
+.org-event-info strong {
+  color: #333;
   font-weight: 600;
-}
-
-.org-detail-row p,
-.org-detail-row span {
-  font-size: 13px; /* Increased by 15% from 11px */
-  color: #2c3e50;
-  line-height: 1.6;
+  margin-right: 5px;
 }
 
 .org-private-code {
   display: inline-block;
-  padding: 8px 15px; /* Increased by 15% from 7px 13px */
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 3px 6px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
   color: #fff;
-  border-radius: 6px; /* Increased by 15% from 5px */
+  border-radius: 6px;
   font-weight: 700;
-  letter-spacing: 1.6px; /* Increased by 15% from 1.4px */
-  font-family: 'Courier New', monospace;
-  font-size: 15px; /* Increased by 15% from 13px */
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  font-family: "Courier New", monospace;
+  letter-spacing: 1.5px;
+  font-size: 14px;
+  margin-left: 5px;
 }
 
-/* ===== Delete Confirmation Modal - 15% BIGGER ===== */
+.org-status-badge {
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  margin-left: 5px;
+}
+
+.org-status-upcoming {
+  background: #22c55e;
+  color: #fff;
+}
+
+.org-status-completed {
+  background: #6366f1;
+  color: #fff;
+}
+
+.org-type-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  margin-left: 5px;
+}
+
+.org-type-public {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.org-type-private {
+  background: #fef3c7;
+  color: #ca8a04;
+}
+
+.org-modal-footer {
+  padding: 5px 10px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.org-btn-close {
+  padding: 3px 22px;
+  border-radius: 8px;
+  border: 2px solid #6366f1;
+  background: transparent;
+  color: #6366f1;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.org-btn-close:hover {
+  background: #6366f1;
+  color: white;
+}
+
+/* ===== Responsive modal tweaks ===== */
+@media (max-width: 768px) {
+  .org-modal-content {
+    max-width: 95%;
+    margin: 8px;
+    max-height: 85vh;
+  }
+
+  .org-modal-image {
+    height: 145px;
+  }
+
+  .org-modal-header h2 {
+    font-size: 18px;
+  }
+
+  .org-modal-close {
+    width: 30px;
+    height: 30px;
+    font-size: 18px;
+    top: 14px;
+    right: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .org-modal-image {
+    height: 120px;
+  }
+
+  .org-modal-header h2 {
+    font-size: 16px;
+  }
+
+  .org-btn-close {
+    font-size: 13px;
+    padding: 7px 18px;
+  }
+}
+
+/* ===== Scrollbar Styling ===== */
+.org-modal-content::-webkit-scrollbar,
+.org-dashboard-main::-webkit-scrollbar {
+  width: 6px;
+}
+
+.org-modal-content::-webkit-scrollbar-track,
+.org-dashboard-main::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 8px;
+}
+
+.org-modal-content::-webkit-scrollbar-thumb,
+.org-dashboard-main::-webkit-scrollbar-thumb {
+  background: #667eea;
+  border-radius: 8px;
+}
+
+.org-modal-content::-webkit-scrollbar-thumb:hover,
+.org-dashboard-main::-webkit-scrollbar-thumb:hover {
+  background: #764ba2;
+}
+/* ===== Delete Confirmation Modal ===== */
 .org-confirm-modal {
   background: #fff;
-  border-radius: 16px; /* Increased by 15% from 14px */
-  padding: 24px; /* Increased by 15% from 21px */
-  max-width: 403px; /* Increased by 15% from 350px */
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 403px;
   width: 90%;
   animation: org-slideUp 0.3s ease;
 }
 
 .org-confirm-modal h3 {
-  font-size: 20px; /* Increased by 15% from 17px */
+  font-size: 20px;
   color: #2c3e50;
-  margin-bottom: 12px; /* Increased by 15% from 10px */
+  margin-bottom: 12px;
   font-weight: 700;
 }
 
 .org-confirm-modal p {
-  font-size: 13px; /* Increased by 15% from 11px */
+  font-size: 13px;
   color: #7f8c8d;
-  margin-bottom: 20px; /* Increased by 15% from 17px */
+  margin-bottom: 20px;
   line-height: 1.5;
 }
 
 .org-confirm-actions {
   display: flex;
-  gap: 12px; /* Increased by 15% from 10px */
+  gap: 12px;
   justify-content: flex-end;
 }
 
 .org-btn-confirm-delete {
-  padding: 9px 18px; /* Increased by 15% from 8px 16px */
+  padding: 9px 18px;
   background: linear-gradient(135deg, #ff6b6b 0%, #ee5a6f 100%);
   color: #fff;
   border: none;
-  border-radius: 7px; /* Increased by 15% from 6px */
-  font-size: 13px; /* Increased by 15% from 11px */
+  border-radius: 7px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -800,12 +910,12 @@
 }
 
 .org-btn-cancel {
-  padding: 9px 18px; /* Increased by 15% from 8px 16px */
+  padding: 9px 18px;
   background: #f8f9fa;
   color: #495057;
   border: 2px solid #dee2e6;
-  border-radius: 7px; /* Increased by 15% from 6px */
-  font-size: 13px; /* Increased by 15% from 11px */
+  border-radius: 7px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -816,49 +926,51 @@
   transform: translateY(-2px);
 }
 
-/* ===== Create/Edit Event Form - 15% BIGGER ===== */
+/* ===== Create/Edit Event Form ===== */
 .org-create-event-wrapper {
   background: #fff;
-  border-radius: 16px; /* Increased by 15% from 14px */
-  padding: 32px; /* Increased by 15% from 28px */
+  border-radius: 16px;
+  padding: 32px;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  max-width: 725px; /* Increased by 15% from 630px */
+  max-width: 725px;
   margin: 0 auto;
 }
 
 .org-form-header {
   text-align: center;
-  margin-bottom: 28px; /* Increased by 15% from 24px */
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
 }
 
 .org-form-header h2 {
-  font-size: 25px; /* Increased by 15% from 22px */
+  font-size: 25px;
   color: #2c3e50;
-  margin-bottom: 6px; /* Increased by 15% from 5px */
+  margin-bottom: 6px;
   font-weight: 700;
 }
 
 .org-form-subtitle {
   color: #7f8c8d;
-  font-size: 13px; /* Increased by 15% from 11px */
+  font-size: 13px;
 }
 
 .org-event-form {
   display: flex;
   flex-direction: column;
-  gap: 20px; /* Increased by 15% from 17px */
+  gap: 20px;
 }
 
 .org-form-section {
-  margin-bottom: 8px; /* Increased by 15% from 7px */
+  margin-bottom: 8px;
 }
 
 .org-form-label {
   display: block;
   font-weight: 600;
   color: #2c3e50;
-  margin-bottom: 8px; /* Increased by 15% from 7px */
-  font-size: 12px; /* Increased by 15% from 10px */
+  margin-bottom: 8px;
+  font-size: 12px;
 }
 
 .org-form-group {
@@ -868,20 +980,22 @@
 
 .org-form-grid-2 {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(201px, 1fr)); /* Increased by 15% from 175px */
-  gap: 16px; /* Increased by 15% from 14px */
+  grid-template-columns: repeat(auto-fit, minmax(201px, 1fr));
+  gap: 16px;
 }
 
 .org-form-input,
 .org-form-textarea {
-  padding: 12px 13px; /* Increased by 15% from 10px 11px */
+  padding: 12px 13px;
   border: 2px solid #e0e0e0;
-  border-radius: 8px; /* Increased by 15% from 7px */
-  font-size: 12px; /* Increased by 15% from 10px */
+  border-radius: 8px;
+  font-size: 12px;
   font-family: inherit;
   transition: all 0.3s ease;
   background: #f8f9fa;
   outline: none;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .org-form-input:focus,
@@ -900,14 +1014,14 @@
 
 .org-form-textarea {
   resize: vertical;
-  min-height: 81px; /* Increased by 15% from 70px */
+  min-height: 81px;
 }
 
 select.org-form-input {
   cursor: pointer;
 }
 
-/* ===== Form Validation Styles - 15% BIGGER ===== */
+/* ===== Form Validation Styles ===== */
 .org-form-input.org-error-field,
 .org-form-textarea.org-error-field {
   border-color: #ff6b6b;
@@ -923,24 +1037,25 @@ select.org-form-input {
 .org-error-message {
   display: block;
   color: #ff6b6b;
-  font-size: 10px; /* Increased by 15% from 9px */
-  margin-top: 5px; /* Increased by 15% from 4px */
+  font-size: 10px;
+  margin-top: 5px;
   font-weight: 500;
 }
 
 .org-form-hint {
   display: block;
-  margin-top: 6px; /* Increased by 15% from 5px */
-  font-size: 10px; /* Increased by 15% from 9px */
+  margin-top: 6px;
+  font-size: 10px;
   color: #7f8c8d;
   font-style: italic;
 }
 
-/* ===== Image Upload - 15% BIGGER ===== */
+/* ===== Image Upload ===== */
 .org-image-upload-area {
   display: flex;
   flex-direction: column;
-  gap: 12px; /* Increased by 15% from 10px */
+  gap: 12px;
+  align-items: flex-start;
 }
 
 .org-file-input {
@@ -948,18 +1063,21 @@ select.org-form-input {
 }
 
 .org-upload-label {
-  display: inline-block;
-  padding: 9px 20px; /* Increased by 15% from 8px 17px */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 9px 10px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
-  border-radius: 8px; /* Increased by 15% from 7px */
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 13px; /* Increased by 15% from 11px */
+  font-size: 15px;
   transition: all 0.3s ease;
   text-align: center;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  max-width: 161px; /* Increased by 15% from 140px */
+  max-width: 161px;
 }
 
 .org-upload-label:hover {
@@ -967,10 +1085,41 @@ select.org-form-input {
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 
+.org-image-upload-area2 {
+  position: relative;
+}
+
+.org-upload-label2 {
+  position: absolute;
+  top: 100px;
+  left: 80px;
+  padding: 4px;
+  border-radius: 50%;
+  background: #667eeac4;
+}
+
+.org-profile-image-upload-icon {
+  position: absolute;
+  top: 100px;
+  left: 80px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 60px;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  transition: all 0.3s ease;
+}
+
 .org-image-preview {
   width: 100%;
-  max-width: 322px; /* Increased by 15% from 280px */
-  border-radius: 9px; /* Increased by 15% from 8px */
+  max-width: 322px;
+  border-radius: 9px;
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
@@ -982,30 +1131,31 @@ select.org-form-input {
 }
 
 .org-image-preview.org-profile-preview {
-  max-width: 121px; /* Increased by 15% from 105px */
+  max-width: 121px;
   border-radius: 50%;
+  border: 3px solid #667eea;
 }
 
 .org-image-preview.org-profile-preview img {
-  width: 121px; /* Increased by 15% from 105px */
-  height: 121px; /* Increased by 15% from 105px */
+  width: 121px;
+  height: 121px;
   object-fit: cover;
 }
 
-/* ===== Form Actions - 15% BIGGER ===== */
+/* ===== Form Actions ===== */
 .org-form-actions {
   display: flex;
-  gap: 12px; /* Increased by 15% from 10px */
-  margin-top: 16px; /* Increased by 15% from 14px */
+  gap: 12px;
+  margin-top: 16px;
 }
 
 .org-btn-primary,
 .org-btn-secondary {
-  flex: 1;
-  padding: 12px 20px; /* Increased by 15% from 10px 17px */
+  /* flex: 1; */
+  padding: 12px 20px;
   border: none;
-  border-radius: 8px; /* Increased by 15% from 7px */
-  font-size: 13px; /* Increased by 15% from 11px */
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -1038,66 +1188,69 @@ select.org-form-input {
   transform: translateY(-2px);
 }
 
-/* ===== Profile Section - 15% BIGGER ===== */
+/* ============================================ */
+/* 🆕 UPDATED PROFILE SECTION - TWO COLUMN LAYOUT + PASSWORD CHANGE */
+/* ============================================ */
+
 .org-profile-container {
-  max-width: 564px; /* Increased by 15% from 490px */
+  max-width: 900px; /* 🆕 Increased width for two-column layout */
   margin: 0 auto;
 }
 
 .org-profile-view-card {
   background: #fff;
-  padding: 40px; /* Increased by 15% from 35px */
-  border-radius: 16px; /* Increased by 15% from 14px */
+  padding: 37px;
+  border-radius: 15px;
   text-align: center;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 22px rgba(0, 0, 0, 0.1);
 }
 
 .org-profile-avatar-wrapper {
-  margin-bottom: 20px; /* Increased by 15% from 17px */
+  margin-bottom: 19px;
 }
 
 .org-profile-avatar {
-  width: 121px; /* Increased by 15% from 105px */
-  height: 121px; /* Increased by 15% from 105px */
+  width: 110px;
+  height: 110px;
   border-radius: 50%;
   object-fit: cover;
-  border: 6px solid #667eea; /* Increased by 15% from 5px */
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  border: 4px solid #667eea;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
 }
 
 .org-profile-details {
-  margin-bottom: 24px; /* Increased by 15% from 21px */
+  margin-bottom: 22px;
 }
 
 .org-profile-name {
-  font-size: 23px; /* Increased by 15% from 20px */
+  font-size: 21px;
   color: #2c3e50;
-  margin-bottom: 6px; /* Increased by 15% from 5px */
+  margin-bottom: 6px;
   font-weight: 700;
 }
 
 .org-profile-email {
-  font-size: 13px; /* Increased by 15% from 11px */
+  font-size: 12px;
   color: #7f8c8d;
-  margin-bottom: 12px; /* Increased by 15% from 10px */
+  margin-bottom: 11px;
 }
 
 .org-role-badge {
   display: inline-block;
-  padding: 6px 16px; /* Increased by 15% from 5px 14px */
+  padding: 6px 15px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: #fff;
-  border-radius: 20px; /* Increased by 15% from 17px */
-  font-size: 12px; /* Increased by 15% from 10px */
+  border-radius: 19px;
+  font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  letter-spacing: 0.4px;
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
 }
 
 .org-profile-meta {
-  margin-top: 20px; /* Increased by 15% from 17px */
-  padding-top: 20px; /* Increased by 15% from 17px */
+  margin-top: 19px;
+  padding-top: 19px;
   border-top: 2px solid #f0f0f0;
 }
 
@@ -1105,8 +1258,8 @@ select.org-form-input {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 8px; /* Increased by 15% from 7px */
-  font-size: 13px; /* Increased by 15% from 11px */
+  gap: 7px;
+  font-size: 12px;
 }
 
 .org-meta-label {
@@ -1118,23 +1271,78 @@ select.org-form-input {
   color: #2c3e50;
 }
 
+/* 🆕 EDIT FORM WITH TWO-COLUMN LAYOUT (Matching Visitor Dashboard) */
 .org-profile-edit-form {
   background: #fff;
-  padding: 32px; /* Increased by 15% from 28px */
-  border-radius: 16px; /* Increased by 15% from 14px */
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  border-radius: 15px;
+  box-shadow: 0 3px 22px rgba(0, 0, 0, 0.1);
+}
+
+/* 🆕 Full width for image upload section */
+.org-form-group.org-full-width {
+  width: 100%;
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+/* 🆕 Two-column grid layout for form fields */
+.org-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  /* margin-bottom: 20px; */
+}
+
+.org-form-col {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 🆕 PASSWORD CHANGE SECTION STYLING (Matching Visitor Dashboard) */
+.org-password-section {
+  /* margin-top: 30px;
+  padding-top: 25px;
+  border-top: 2px solid #e0e0e0; */
+}
+
+.org-section-title {
+  font-size: 20px;
+  color: #2c3e50;
+  margin: 0 0 5px 0;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.org-section-title::before {
+  content: "🔐";
+  font-size: 20px;
+}
+
+.org-section-subtitle {
+  font-size: 13px;
+  color: #7f8c8d;
+  /* margin: 0 0 20px 0; */
+  font-style: italic;
 }
 
 /* ===== Responsive Design ===== */
 @media (max-width: 1024px) {
   .org-dashboard-main {
-    margin-left: 161px; /* Increased by 15% from 140px */
+    margin-left: 161px;
     width: calc(100% - 161px);
-    padding: 24px 16px; /* Increased by 15% from 21px 14px */
+    padding: 24px 16px;
   }
   
   .org-filters-row {
-    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); /* Increased by 15% from 126px */
+    grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  }
+  
+  /* 🆕 Profile responsive adjustments */
+  .org-profile-container {
+    max-width: 100%;
   }
 }
 
@@ -1147,24 +1355,24 @@ select.org-form-input {
     width: 100%;
     min-height: auto;
     position: relative;
-    padding: 16px; /* Increased by 15% from 14px */
+    padding: 16px;
   }
 
   .org-navbar-brand {
-    margin-bottom: 16px; /* Increased by 15% from 14px */
-    padding-bottom: 16px; /* Increased by 15% from 14px */
+    margin-bottom: 16px;
+    padding-bottom: 16px;
   }
   
   .org-nav-menu {
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 8px; /* Increased by 15% from 7px */
+    gap: 8px;
   }
 
   .org-nav-item {
-    padding: 9px 13px; /* Increased by 15% from 8px 11px */
-    font-size: 12px; /* Increased by 15% from 10px */
+    padding: 9px 13px;
+    font-size: 12px;
   }
 
   .org-nav-item:hover {
@@ -1182,7 +1390,7 @@ select.org-form-input {
   .org-dashboard-main {
     margin-left: 0;
     width: 100%;
-    padding: 16px 12px; /* Increased by 15% from 14px 10px */
+    padding: 16px 12px;
   }
   
   .org-stats-grid {
@@ -1207,12 +1415,12 @@ select.org-form-input {
   }
   
   .org-events-table {
-    min-width: 644px; /* Increased by 15% from 560px */
+    min-width: 644px;
   }
   
   .org-create-event-wrapper,
   .org-profile-edit-form {
-    padding: 20px; /* Increased by 15% from 17px */
+    padding: 20px;
   }
   
   .org-form-grid-2 {
@@ -1224,73 +1432,83 @@ select.org-form-input {
   }
   
   .org-profile-view-card {
-    padding: 24px 16px; /* Increased by 15% from 21px 14px */
+    padding: 24px 16px;
   }
 
   .org-modal-content {
     max-width: 95%;
-    margin: 8px; /* Increased by 15% from 7px */
+    margin: 8px;
     max-height: 85vh;
   }
 
   .org-modal-image {
-    height: 145px; /* Increased by 15% from 126px */
+    height: 145px;
   }
 
   .org-modal-header {
-    padding: 16px; /* Increased by 15% from 14px */
+    padding: 16px;
   }
 
   .org-modal-body {
-    padding: 16px; /* Increased by 15% from 14px */
+    padding: 16px;
   }
 
   .org-modal-header h2 {
-    font-size: 17px; /* Increased by 15% from 15px */
-    padding-right: 32px; /* Increased by 15% from 28px */
+    font-size: 17px;
+    padding-right: 32px;
   }
 
   .org-modal-close {
-    width: 29px; /* Increased by 15% from 25px */
-    height: 29px; /* Increased by 15% from 25px */
-    font-size: 16px; /* Increased by 15% from 14px */
-    top: 12px; /* Increased by 15% from 10px */
-    right: 12px; /* Increased by 15% from 10px */
+    width: 29px;
+    height: 29px;
+    font-size: 16px;
+    top: 12px;
+    right: 12px;
+  }
+  
+  /* 🆕 Two-column form becomes single column on tablet */
+  .org-form-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .org-profile-container {
+    max-width: 100%;
   }
 }
 
 @media (max-width: 480px) {
   .org-brand-text {
-    font-size: 15px; /* Increased by 15% from 13px */
+    font-size: 15px;
   }
 
   .org-brand-icon {
-    font-size: 20px; /* Increased by 15% from 17px */
+    font-size: 20px;
   }
   
   .org-section-title {
-    font-size: 17px; /* Increased by 15% from 15px */
+    font-size: 17px;
   }
   
   .org-form-header h2 {
-    font-size: 20px; /* Increased by 15% from 17px */
+    font-size: 20px;
   }
   
   .org-stat-card {
-    padding: 16px; /* Increased by 15% from 14px */
+    padding: 16px;
   }
   
   .org-stat-icon {
-    font-size: 25px; /* Increased by 15% from 22px */
+    font-size: 25px;
   }
   
   .org-stat-value {
-    font-size: 20px; /* Increased by 15% from 17px */
+    font-size: 20px;
   }
 
   .org-action-btn {
-    padding: 5px 9px; /* Increased by 15% from 4px 8px */
-    font-size: 9px; /* Increased by 15% from 8px */
+    padding: 5px 9px;
+    font-size: 9px;
   }
 
   .org-action-buttons {
@@ -1302,11 +1520,67 @@ select.org-form-input {
   }
 
   .org-modal-overlay {
-    padding: 8px; /* Increased by 15% from 7px */
+    padding: 8px;
   }
 
   .org-modal-image {
-    height: 121px; /* Increased by 15% from 105px */
+    height: 121px;
+  }
+  
+  /* 🆕 Mobile-specific profile form adjustments */
+  .org-profile-avatar {
+    width: 88px;
+    height: 88px;
+  }
+  
+  .org-profile-name {
+    font-size: 18px;
+  }
+  
+  .org-image-preview.org-profile-preview,
+  .org-image-preview.org-profile-preview img {
+    width: 88px;
+    height: 88px;
+  }
+  
+  .org-form-header h2 {
+    font-size: 22px;
+  }
+  
+  .org-form-subtitle {
+    font-size: 12px;
+  }
+  
+  .org-section-title {
+    font-size: 18px;
+  }
+  
+  .org-section-subtitle {
+    font-size: 12px;
+  }
+  
+  .org-profile-edit-form {
+    padding: 20px 15px;
+  }
+  
+  .org-form-label {
+    font-size: 13px;
+  }
+  
+  .org-form-input,
+  .org-form-textarea {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+  
+  .org-form-actions {
+    flex-direction: column;
+  }
+  
+  .org-btn-primary,
+  .org-btn-secondary {
+    padding: 10px 20px;
+    font-size: 14px;
   }
 }
 
@@ -1329,19 +1603,19 @@ select.org-form-input {
 /* ===== Scrollbar Styling ===== */
 .org-modal-content::-webkit-scrollbar,
 .org-dashboard-main::-webkit-scrollbar {
-  width: 6px; /* Increased by 15% from 5px */
+  width: 6px;
 }
 
 .org-modal-content::-webkit-scrollbar-track,
 .org-dashboard-main::-webkit-scrollbar-track {
   background: #f1f1f1;
-  border-radius: 8px; /* Increased by 15% from 7px */
+  border-radius: 8px;
 }
 
 .org-modal-content::-webkit-scrollbar-thumb,
 .org-dashboard-main::-webkit-scrollbar-thumb {
   background: #667eea;
-  border-radius: 8px; /* Increased by 15% from 7px */
+  border-radius: 8px;
 }
 
 .org-modal-content::-webkit-scrollbar-thumb:hover,

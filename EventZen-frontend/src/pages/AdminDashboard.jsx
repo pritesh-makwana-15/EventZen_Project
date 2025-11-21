@@ -1,4 +1,3 @@
-// src/pages/AdminDashboard.jsx
 import React, { useState, useEffect } from "react";
 import {
   Calendar,
@@ -15,6 +14,8 @@ import {
   Filter,
   RotateCcw,
   Upload,
+  CircleX,
+  ChartBarStacked
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Admin Dashborad/AdminDashboard.css";
@@ -30,6 +31,7 @@ import {
   updateAdminProfile,
 } from "../services/adminService";
 import { logout } from "../services/api";
+import AdminAnalyticsPage from "../pages/AdminAnalyticsPage";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -47,36 +49,35 @@ const AdminDashboard = () => {
   const [filteredVisitors, setFilteredVisitors] = useState([]);
   const [adminProfile, setAdminProfile] = useState(null);
 
-  // Filter states for Events (enhanced)
+  // Filter states for Events
   const [filters, setFilters] = useState({
     organizer: "",
     category: "",
     type: "",
     status: "",
-    eventName: "", // NEW: Search by event name
+    eventName: "",
   });
 
-  // Filter states for Organizers (NEW)
+  // Filter states for Organizers
   const [organizerFilters, setOrganizerFilters] = useState({
     id: "",
     name: "",
   });
 
-  // Filter states for Visitors (NEW)
+  // Filter states for Visitors
   const [visitorFilters, setVisitorFilters] = useState({
     id: "",
     name: "",
   });
 
-  // Modal states
+  // Modal states (for events, organizers, visitors - NOT profile)
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showProfileModal, setShowProfileModal] = useState(false);
   const [showEventDetailModal, setShowEventDetailModal] = useState(false);
   const [currentItem, setCurrentItem] = useState(null);
   const [editType, setEditType] = useState("");
 
-  // Profile editing state (NEW for enhanced profile)
+  // 🆕 NEW: Profile editing state (for full-page profile)
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
 
@@ -85,10 +86,9 @@ const AdminDashboard = () => {
     name: "",
     email: "",
     password: "",
-    confirmPassword: "", // NEW: Confirm password field
+    confirmPassword: "",
   });
 
-  // Password validation error (NEW)
   const [passwordError, setPasswordError] = useState("");
 
   const [editForm, setEditForm] = useState({
@@ -97,12 +97,18 @@ const AdminDashboard = () => {
     password: "",
   });
 
+  // 🆕 NEW: Profile form for full-page profile
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
-    password: "",
     mobileNumber: "",
     imageUrl: "",
+  });
+
+  // 🆕 NEW: Separate password change form
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
   });
 
   useEffect(() => {
@@ -117,12 +123,10 @@ const AdminDashboard = () => {
     applyFilters();
   }, [filters, events]);
 
-  // NEW: Apply organizer filters
   useEffect(() => {
     applyOrganizerFilters();
   }, [organizerFilters, organizers]);
 
-  // NEW: Apply visitor filters
   useEffect(() => {
     applyVisitorFilters();
   }, [visitorFilters, visitors]);
@@ -134,7 +138,6 @@ const AdminDashboard = () => {
       setProfileForm({
         name: profile.name,
         email: profile.email,
-        password: "",
         mobileNumber: profile.mobileNumber || "",
         imageUrl: profile.imageUrl || "",
       });
@@ -160,6 +163,7 @@ const AdminDashboard = () => {
         setEvents(data);
         setFilteredEvents(data);
       }
+      // 🆕 No data loading needed for profile page
     } catch (err) {
       setError("Failed to load data. Please try again.");
       console.error("Error loading data:", err);
@@ -168,37 +172,31 @@ const AdminDashboard = () => {
     }
   };
 
-  // Enhanced filter application for Events
   const applyFilters = () => {
     let filtered = [...events];
 
-    // Filter by organizer name
     if (filters.organizer) {
       filtered = filtered.filter((e) =>
         e.organizerName?.toLowerCase().includes(filters.organizer.toLowerCase())
       );
     }
 
-    // Filter by category
     if (filters.category) {
       filtered = filtered.filter((e) =>
         e.category?.toLowerCase() === filters.category.toLowerCase()
       );
     }
 
-    // Filter by event type (public/private)
     if (filters.type) {
       filtered = filtered.filter((e) =>
         e.eventType?.toLowerCase() === filters.type.toLowerCase()
       );
     }
 
-    // Filter by status
     if (filters.status) {
       filtered = filtered.filter((e) => getEventStatus(e) === filters.status);
     }
 
-    // NEW: Filter by event name/title
     if (filters.eventName) {
       filtered = filtered.filter((e) =>
         e.title?.toLowerCase().includes(filters.eventName.toLowerCase())
@@ -208,18 +206,15 @@ const AdminDashboard = () => {
     setFilteredEvents(filtered);
   };
 
-  // NEW: Apply organizer filters
   const applyOrganizerFilters = () => {
     let filtered = [...organizers];
 
-    // Filter by organizer ID (exact match)
     if (organizerFilters.id) {
       filtered = filtered.filter((o) =>
         o.id.toString() === organizerFilters.id.toString()
       );
     }
 
-    // Filter by organizer name (partial match)
     if (organizerFilters.name) {
       filtered = filtered.filter((o) =>
         o.name?.toLowerCase().includes(organizerFilters.name.toLowerCase())
@@ -229,18 +224,15 @@ const AdminDashboard = () => {
     setFilteredOrganizers(filtered);
   };
 
-  // NEW: Apply visitor filters
   const applyVisitorFilters = () => {
     let filtered = [...visitors];
 
-    // Filter by visitor ID (exact match)
     if (visitorFilters.id) {
       filtered = filtered.filter((v) =>
         v.id.toString() === visitorFilters.id.toString()
       );
     }
 
-    // Filter by visitor name (partial match)
     if (visitorFilters.name) {
       filtered = filtered.filter((v) =>
         v.name?.toLowerCase().includes(visitorFilters.name.toLowerCase())
@@ -260,7 +252,6 @@ const AdminDashboard = () => {
     });
   };
 
-  // NEW: Reset organizer filters
   const resetOrganizerFilters = () => {
     setOrganizerFilters({
       id: "",
@@ -268,7 +259,6 @@ const AdminDashboard = () => {
     });
   };
 
-  // NEW: Reset visitor filters
   const resetVisitorFilters = () => {
     setVisitorFilters({
       id: "",
@@ -297,7 +287,6 @@ const AdminDashboard = () => {
     return events.filter((e) => e.organizerId === organizerId).length;
   };
 
-  // Enhanced Create Organizer with confirm password validation
   const handleCreateOrganizer = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -305,7 +294,6 @@ const AdminDashboard = () => {
     setSuccess("");
     setPasswordError("");
 
-    // Validate password match
     if (newOrganizer.password !== newOrganizer.confirmPassword) {
       setPasswordError("Passwords do not match");
       setLoading(false);
@@ -313,7 +301,6 @@ const AdminDashboard = () => {
     }
 
     try {
-      // Send only required fields (no confirmPassword or role)
       const organizerData = {
         name: newOrganizer.name,
         email: newOrganizer.email,
@@ -381,7 +368,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // NEW: Enhanced profile image upload
+  // 🆕 NEW: Profile image upload handler
   const handleProfileImageUpload = async (file) => {
     if (!file) return;
 
@@ -400,7 +387,6 @@ const AdminDashboard = () => {
       const formData = new FormData();
       formData.append("file", file);
 
-      // You'll need to implement this upload endpoint
       const response = await fetch("/api/uploads", {
         method: "POST",
         body: formData,
@@ -420,15 +406,50 @@ const AdminDashboard = () => {
     }
   };
 
+  // 🆕 NEW: Profile update handler with separate password update
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     try {
-      const updated = await updateAdminProfile(profileForm);
+      // Update profile information (without password)
+      const updated = await updateAdminProfile({
+        name: profileForm.name,
+        mobileNumber: profileForm.mobileNumber,
+        imageUrl: profileForm.imageUrl,
+      });
+      
       setAdminProfile(updated);
+
+      // 🆕 If password fields are filled, update password separately
+      if (passwordForm.currentPassword && passwordForm.newPassword) {
+        try {
+          // You'll need to add this endpoint to your adminService
+          await fetch("/api/users/password", {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${localStorage.getItem("token")}`,
+            },
+            body: JSON.stringify({
+              currentPassword: passwordForm.currentPassword,
+              newPassword: passwordForm.newPassword,
+            }),
+          });
+
+          setSuccess("Profile and password updated successfully!");
+          setPasswordForm({ currentPassword: "", newPassword: "" });
+        } catch (passErr) {
+          console.error("Error updating password:", passErr);
+          setError("Failed to update password. Please check your current password.");
+          setLoading(false);
+          return;
+        }
+      } else {
+        setSuccess("Profile updated successfully!");
+      }
+
       setIsEditingProfile(false);
-      setSuccess("Profile updated successfully!");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       setError("Failed to update profile");
@@ -464,60 +485,98 @@ const AdminDashboard = () => {
     navigate("/login");
   };
 
+  // Default event images
+  const defaultImages = {
+    Technology: "https://via.placeholder.com/400x200/667eea/ffffff?text=Technology",
+    Business: "https://via.placeholder.com/400x200/f59e0b/ffffff?text=Business",
+    Music: "https://via.placeholder.com/400x200/ec4899/ffffff?text=Music",
+    Health: "https://via.placeholder.com/400x200/10b981/ffffff?text=Health",
+    Food: "https://via.placeholder.com/400x200/f97316/ffffff?text=Food",
+    Art: "https://via.placeholder.com/400x200/8b5cf6/ffffff?text=Art",
+    Community: "https://via.placeholder.com/400x200/3b82f6/ffffff?text=Community",
+    Entertainment: "https://via.placeholder.com/400x200/ef4444/ffffff?text=Entertainment",
+    Education: "https://via.placeholder.com/400x200/06b6d4/ffffff?text=Education",
+    Sports: "https://via.placeholder.com/400x200/84cc16/ffffff?text=Sports",
+    Other: "https://via.placeholder.com/400x200/6b7280/ffffff?text=Event"
+  };
+
   // Sidebar
   const rendersidebrAdmin = () => (
-    <div className="sidebrAdmin">
-      <div className="logo-section">
-        <div className="logo-box">
-          <img src="/src/assets/EZ-logo1.png" alt="logo" className="logo-img-admin" />
+    <div className="ad-sidebrAdmin">
+      <div className="ad-logo-section">
+        <div className="ad-logo-box">
+          <img src="/src/assets/EZ-logo1.png" alt="logo" className="ad-logo-img-admin" />
         </div>
-        <span className="logo-text">EventZen</span>
+        <span className="ad-logo-text">EventZen</span>
       </div>
 
-      <nav className="nav-links">
+      <nav className="ad-nav-links">
         <button
-          className={`nav-btn ${activeSection === "events" ? "active" : ""}`}
+          className={`ad-nav-btn ${activeSection === "events" ? "ad-active" : ""}`}
           onClick={() => setActiveSection("events")}
           aria-label="View Events"
           aria-current={activeSection === "events" ? "page" : undefined}
         >
           <Calendar size={20} />
-          <div className="nav-btn-content">
+          <div className="ad-nav-btn-content">
             <span>Events</span>
-            <span className="nav-count">{events.length}</span>
+            <span className="ad-nav-count">{events.length}</span>
           </div>
         </button>
         <button
-          className={`nav-btn ${activeSection === "organizers" ? "active" : ""}`}
+          className={`ad-nav-btn ${activeSection === "organizers" ? "ad-active" : ""}`}
           onClick={() => setActiveSection("organizers")}
           aria-label="View Organizers"
           aria-current={activeSection === "organizers" ? "page" : undefined}
         >
           <User size={20} />
-          <div className="nav-btn-content">
+          <div className="ad-nav-btn-content">
             <span>Organizers</span>
-            <span className="nav-count">{organizers.length}</span>
+            <span className="ad-nav-count">{organizers.length}</span>
           </div>
         </button>
         <button
-          className={`nav-btn ${activeSection === "visitors" ? "active" : ""}`}
+          className={`ad-nav-btn ${activeSection === "visitors" ? "ad-active" : ""}`}
           onClick={() => setActiveSection("visitors")}
           aria-label="View Visitors"
           aria-current={activeSection === "visitors" ? "page" : undefined}
         >
           <Users size={20} />
-          <div className="nav-btn-content">
+          <div className="ad-nav-btn-content">
             <span>Visitors</span>
-            <span className="nav-count">{visitors.length}</span>
+            <span className="ad-nav-count">{visitors.length}</span>
           </div>
         </button>
         <button
-          className={`nav-btn ${activeSection === "create-organizer" ? "active" : ""}`}
+          className={`ad-nav-btn ${activeSection === "create-organizer" ? "ad-active" : ""}`}
           onClick={() => setActiveSection("create-organizer")}
           aria-label="Create New Organizer"
           aria-current={activeSection === "create-organizer" ? "page" : undefined}
         >
           <UserPlus size={20} /> Create Organizer
+        </button>
+        {/* 🆕 NEW: Profile navigation button */}
+        <button
+          className={`ad-nav-btn ${activeSection === "profile" ? "ad-active" : ""}`}
+          onClick={() => {
+            setActiveSection("profile");
+            setIsEditingProfile(false);
+          }}
+          aria-label="View Profile"
+          aria-current={activeSection === "profile" ? "page" : undefined}
+        >
+          <User size={20} /> Profile
+        </button>
+        <button
+          className={`ad-nav-btn ${activeSection === "analytics" ? "ad-active" : ""}`}
+          onClick={() => setActiveSection("analytics")}
+          aria-label="View Analytics"
+          aria-current={activeSection === "analytics" ? "page" : undefined}
+        >
+          <ChartBarStacked size={20} />
+          <div className="ad-nav-btn-content">
+            <span>Analytics</span>
+          </div>
         </button>
       </nav>
     </div>
@@ -525,43 +584,30 @@ const AdminDashboard = () => {
 
   // Topbar
   const renderTopbar = () => (
-    <div className="topbar">
+    <div className="ad-topbar">
       <h1>Admin Dashboard</h1>
-      <div className="topbar-actions">
-        <button
-          className="btn-outline"
-          onClick={() => {
-            setShowProfileModal(true);
-            setIsEditingProfile(false);
-          }}
-          aria-label="View Profile"
-        >
-          <User size={18} />
-          Profile
-        </button>
-        <button className="btn-primary" onClick={handleLogout} aria-label="Logout">
+      <div className="ad-topbar-actions">
+        <button className="ad-btn-primary" onClick={handleLogout} aria-label="Logout">
           <LogOut size={18} /> Logout
         </button>
       </div>
     </div>
   );
 
-  // Events with Enhanced Filters
+  // Events Section (unchanged)
   const renderEvents = () => (
-    <div className="content">
-      {error && <div className="alert alert-error" role="alert">{error}</div>}
-      {success && <div className="alert alert-success" role="alert">{success}</div>}
+    <div className="ad-content">
+      {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
+      {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
 
-      <div className="card">
-        <div className="card-header">
+      <div className="ad-card">
+        <div className="ad-card-header">
           <h2>Events Overview</h2>
-          <span className="card-count">{filteredEvents.length} Total</span>
+          <span className="ad-card-count">{filteredEvents.length} Total</span>
         </div>
 
-        {/* Enhanced Filters Section */}
-        <div className="filters-section" role="search" aria-label="Event Filters">
-          {/* NEW: Event Name Search */}
-          <div className="filter-group">
+        <div className="ad-filters-section" role="search" aria-label="Event Filters">
+          <div className="ad-filter-group">
             <label htmlFor="filter-event-name">
               <Filter size={14} /> Event Name
             </label>
@@ -575,7 +621,7 @@ const AdminDashboard = () => {
             />
           </div>
 
-          <div className="filter-group">
+          <div className="ad-filter-group">
             <label htmlFor="filter-organizer">
               <Filter size={14} /> Organizer
             </label>
@@ -585,12 +631,12 @@ const AdminDashboard = () => {
               placeholder="Search by organizer"
               value={filters.organizer}
               onChange={(e) => setFilters({ ...filters, organizer: e.target.value })}
-              aria-label="  Search events by organizer name"
+              aria-label="Search events by organizer name"
             />
           </div>
 
-          <div className="filter-group">
-            <label htmlFor="filter-category">Category</label>
+          <div className="ad-filter-group">
+            <label htmlFor="filter-category"> <ChartBarStacked size={14} />Category</label>
             <select
               id="filter-category"
               value={filters.category}
@@ -606,15 +652,14 @@ const AdminDashboard = () => {
             </select>
           </div>
 
-          {/* Enhanced Type Filter with explicit options */}
-          <div className="filter-group">
+          <div className="ad-filter-group">
             <label htmlFor="filter-type">Type</label>
             <select
               id="filter-type"
               value={filters.type}
               onChange={(e) => setFilters({ ...filters, type: e.target.value })}
               aria-label="Filter events by type"
-              className={filters.type ? "filter-selected" : ""}
+              className={filters.type ? "ad-filter-selected" : ""}
             >
               <option value="">All Types</option>
               <option value="public">Public</option>
@@ -622,7 +667,7 @@ const AdminDashboard = () => {
             </select>
           </div>
 
-          <div className="filter-group">
+          <div className="ad-filter-group">
             <label htmlFor="filter-status">Status</label>
             <select
               id="filter-status"
@@ -637,7 +682,7 @@ const AdminDashboard = () => {
           </div>
 
           <button
-            className="btn-reset"
+            className="ad-btn-reset"
             onClick={resetFilters}
             aria-label="Reset all filters"
           >
@@ -646,26 +691,27 @@ const AdminDashboard = () => {
         </div>
 
         {loading ? (
-          <div className="loading-container">
-            <Loader className="spinner" size={40} />
+          <div className="ad-loading-container">
+            <Loader className="ad-spinner" size={40} />
             <p>Loading events...</p>
           </div>
         ) : filteredEvents.length === 0 ? (
-          <div className="no-data">
+          <div className="ad-no-data">
             <Calendar size={48} />
             <p>No events found matching your filters.</p>
             {(filters.eventName || filters.organizer || filters.category || filters.type || filters.status) && (
-              <button className="btn-outline" onClick={resetFilters}>
+              <button className="ad-btn-outline" onClick={resetFilters}>
                 Clear Filters
               </button>
             )}
           </div>
         ) : (
-          <div className="table-wrapper">
+          <div className="ad-table-wrapper">
             <table>
               <thead>
                 <tr>
                   <th>ID</th>
+                  <th>Image</th>
                   <th>Title</th>
                   <th>Organizer</th>
                   <th>Date</th>
@@ -679,8 +725,15 @@ const AdminDashboard = () => {
               <tbody>
                 {filteredEvents.map((e) => (
                   <tr key={e.id}>
-                    <td className="td-id">{e.id}</td>
-                    <td className="td-title">{e.title}</td>
+                    <td className="ad-td-id">{e.id}</td>
+                    <td>
+                      <img 
+                        src={e.imageUrl || defaultImages[e.category] || defaultImages["Other"]} 
+                        alt={`${e.title} event image`}
+                        className="ad-org-event-thumbnail"
+                      />
+                    </td>
+                    <td className="ad-td-title">{e.title}</td>
                     <td>{e.organizerName}</td>
                     <td>{formatDate(e.date)}</td>
                     <td>{e.category || "N/A"}</td>
@@ -688,19 +741,19 @@ const AdminDashboard = () => {
                       {e.currentAttendees || 0}/{e.maxAttendees || "∞"}
                     </td>
                     <td>
-                      <span className={`type-badge ${e.eventType?.toLowerCase()}`}>
+                      <span className={`ad-type-badge ${e.eventType?.toLowerCase()}`}>
                         {e.eventType || "Public"}
                       </span>
                     </td>
                     <td>
-                      <span className={`status-badge ${getEventStatus(e).toLowerCase()}`}>
+                      <span className={`ad-status-badge ${getEventStatus(e).toLowerCase()}`}>
                         {getEventStatus(e)}
                       </span>
                     </td>
                     <td>
-                      <div className="action-buttons">
+                      <div className="ad-action-buttons">
                         <button
-                          className="btn-icon btn-view"
+                          className="ad-btn-icon ad-btn-view"
                           onClick={() => openEventDetailModal(e)}
                           title="View Details"
                           aria-label={`View details for ${e.title}`}
@@ -708,7 +761,7 @@ const AdminDashboard = () => {
                           <Eye size={18} />
                         </button>
                         <button
-                          className="btn-icon btn-delete"
+                          className="ad-btn-icon ad-btn-delete"
                           onClick={() => openDeleteModal(e, "event")}
                           title="Delete"
                           aria-label={`Delete ${e.title}`}
@@ -727,21 +780,20 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Organizers with NEW Filters
+  // Organizers Section (unchanged)
   const renderOrganizers = () => (
-    <div className="content">
-      {error && <div className="alert alert-error" role="alert">{error}</div>}
-      {success && <div className="alert alert-success" role="alert">{success}</div>}
+    <div className="ad-content">
+      {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
+      {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
 
-      <div className="card">
-        <div className="card-header">
+      <div className="ad-card">
+        <div className="ad-card-header">
           <h2>Organizers</h2>
-          <span className="card-count">{filteredOrganizers.length} Total</span>
+          <span className="ad-card-count">{filteredOrganizers.length} Total</span>
         </div>
 
-        {/* NEW: Organizer Filters */}
-        <div className="filters-section" role="search" aria-label="Organizer Filters">
-          <div className="filter-group">
+        <div className="ad-filters-section" role="search" aria-label="Organizer Filters">
+          <div className="ad-filter-group">
             <label htmlFor="organizer-filter-id">
               <Filter size={14} /> Organizer ID
             </label>
@@ -755,7 +807,7 @@ const AdminDashboard = () => {
             />
           </div>
 
-          <div className="filter-group">
+          <div className="ad-filter-group">
             <label htmlFor="organizer-filter-name">
               <Filter size={14} /> Organizer Name
             </label>
@@ -770,7 +822,7 @@ const AdminDashboard = () => {
           </div>
 
           <button
-            className="btn-reset"
+            className="ad-btn-reset"
             onClick={resetOrganizerFilters}
             aria-label="Reset organizer filters"
           >
@@ -779,22 +831,22 @@ const AdminDashboard = () => {
         </div>
 
         {loading ? (
-          <div className="loading-container">
-            <Loader className="spinner" size={40} />
+          <div className="ad-loading-container">
+            <Loader className="ad-spinner" size={40} />
             <p>Loading organizers...</p>
           </div>
         ) : filteredOrganizers.length === 0 ? (
-          <div className="no-data">
+          <div className="ad-no-data">
             <User size={48} />
             <p>No organizers found matching your filters.</p>
             {(organizerFilters.id || organizerFilters.name) && (
-              <button className="btn-outline" onClick={resetOrganizerFilters}>
+              <button className="ad-btn-outline" onClick={resetOrganizerFilters}>
                 Clear Filters
               </button>
             )}
           </div>
         ) : (
-          <div className="table-wrapper">
+          <div className="ad-table-wrapper">
             <table>
               <thead>
                 <tr>
@@ -808,18 +860,18 @@ const AdminDashboard = () => {
               <tbody>
                 {filteredOrganizers.map((o) => (
                   <tr key={o.id}>
-                    <td className="td-id">{o.id}</td>
-                    <td className="td-name">{o.name}</td>
+                    <td className="ad-td-id">{o.id}</td>
+                    <td className="ad-td-name">{o.name}</td>
                     <td>{o.email}</td>
                     <td>
-                      <span className="event-count-badge">
+                      <span className="ad-event-count-badge">
                         {getOrganizerEventCount(o.id)}
                       </span>
                     </td>
                     <td>
-                      <div className="action-buttons">
+                      <div className="ad-action-buttons">
                         <button
-                          className="btn-icon btn-edit"
+                          className="ad-btn-icon ad-btn-edit"
                           onClick={() => openEditModal(o, "organizer")}
                           title="Edit"
                           aria-label={`Edit ${o.name}`}
@@ -827,7 +879,7 @@ const AdminDashboard = () => {
                           <Edit size={18} />
                         </button>
                         <button
-                          className="btn-icon btn-delete"
+                          className="ad-btn-icon ad-btn-delete"
                           onClick={() => openDeleteModal(o, "organizer")}
                           title="Delete"
                           aria-label={`Delete ${o.name}`}
@@ -846,21 +898,20 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Visitors with NEW Filters
+  // Visitors Section (unchanged)
   const renderVisitors = () => (
-    <div className="content">
-      {error && <div className="alert alert-error" role="alert">{error}</div>}
-      {success && <div className="alert alert-success" role="alert">{success}</div>}
+    <div className="ad-content">
+      {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
+      {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
 
-      <div className="card">
-        <div className="card-header">
+      <div className="ad-card">
+        <div className="ad-card-header">
           <h2>Visitors</h2>
-          <span className="card-count">{filteredVisitors.length} Total</span>
+          <span className="ad-card-count">{filteredVisitors.length} Total</span>
         </div>
 
-        {/* NEW: Visitor Filters */}
-        <div className="filters-section" role="search" aria-label="Visitor Filters">
-          <div className="filter-group">
+        <div className="ad-filters-section" role="search" aria-label="Visitor Filters">
+          <div className="ad-filter-group">
             <label htmlFor="visitor-filter-id">
               <Filter size={14} /> Visitor ID
             </label>
@@ -874,7 +925,7 @@ const AdminDashboard = () => {
             />
           </div>
 
-          <div className="filter-group">
+          <div className="ad-filter-group">
             <label htmlFor="visitor-filter-name">
               <Filter size={14} /> Visitor Name
             </label>
@@ -889,7 +940,7 @@ const AdminDashboard = () => {
           </div>
 
           <button
-            className="btn-reset"
+            className="ad-btn-reset"
             onClick={resetVisitorFilters}
             aria-label="Reset visitor filters"
           >
@@ -898,22 +949,22 @@ const AdminDashboard = () => {
         </div>
 
         {loading ? (
-          <div className="loading-container">
-            <Loader className="spinner" size={40} />
+          <div className="ad-loading-container">
+            <Loader className="ad-spinner" size={40} />
             <p>Loading visitors...</p>
           </div>
         ) : filteredVisitors.length === 0 ? (
-          <div className="no-data">
+          <div className="ad-no-data">
             <Users size={48} />
             <p>No visitors found matching your filters.</p>
             {(visitorFilters.id || visitorFilters.name) && (
-              <button className="btn-outline" onClick={resetVisitorFilters}>
+              <button className="ad-btn-outline" onClick={resetVisitorFilters}>
                 Clear Filters
               </button>
             )}
           </div>
         ) : (
-          <div className="table-wrapper">
+          <div className="ad-table-wrapper">
             <table>
               <thead>
                 <tr>
@@ -926,13 +977,13 @@ const AdminDashboard = () => {
               <tbody>
                 {filteredVisitors.map((v) => (
                   <tr key={v.id}>
-                    <td className="td-id">{v.id}</td>
-                    <td className="td-name">{v.name}</td>
+                    <td className="ad-td-id">{v.id}</td>
+                    <td className="ad-td-name">{v.name}</td>
                     <td>{v.email}</td>
                     <td>
-                      <div className="action-buttons">
+                      <div className="ad-action-buttons">
                         <button
-                          className="btn-icon btn-edit"
+                          className="ad-btn-icon ad-btn-edit"
                           onClick={() => openEditModal(v, "visitor")}
                           title="Edit"
                           aria-label={`Edit ${v.name}`}
@@ -940,7 +991,7 @@ const AdminDashboard = () => {
                           <Edit size={18} />
                         </button>
                         <button
-                          className="btn-icon btn-delete"
+                          className="ad-btn-icon ad-btn-delete"
                           onClick={() => openDeleteModal(v, "visitor")}
                           title="Delete"
                           aria-label={`Delete ${v.name}`}
@@ -959,25 +1010,23 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Create Organizer Form - UPDATED: No Role field, Added Confirm Password, New Layout
+  // Create Organizer Form (unchanged)
   const renderCreateOrganizer = () => (
-    <section className="create-organizer">
-      {error && <div className="alert alert-error" role="alert">{error}</div>}
-      {success && <div className="alert alert-success" role="alert">{success}</div>}
-      {passwordError && <div className="alert alert-error" role="alert">{passwordError}</div>}
+    <section className="ad-create-organizer">
+      {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
+      {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
+      {passwordError && <div className="ad-alert ad-alert-error" role="alert">{passwordError}</div>}
 
-      <div className="form-header">
-        <div className="form-header-icon">
-          <UserPlus size={32} />
+      <div className="ad-form-header">
+        <div className="ad-form-header-icon">
+          <UserPlus size={28} />
         </div>
         <h2>Create New Organizer</h2>
-        <p>Add a new organizer to manage events</p>
       </div>
 
-      <form className="organizer-form" onSubmit={handleCreateOrganizer}>
-        {/* Row 1: Name and Email side-by-side */}
-        <div className="form-row">
-          <div className="form-group">
+      <form className="ad-organizer-form" onSubmit={handleCreateOrganizer}>
+        <div className="ad-form-row">
+          <div className="ad-form-group">
             <label htmlFor="organizer-name">Full Name *</label>
             <input
               id="organizer-name"
@@ -991,7 +1040,7 @@ const AdminDashboard = () => {
               aria-required="true"
             />
           </div>
-          <div className="form-group">
+          <div className="ad-form-group">
             <label htmlFor="organizer-email">Email *</label>
             <input
               id="organizer-email"
@@ -1007,9 +1056,8 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Row 2: Password and Confirm Password side-by-side */}
-        <div className="form-row">
-          <div className="form-group">
+        <div className="ad-form-row">
+          <div className="ad-form-group">
             <label htmlFor="organizer-password">Password *</label>
             <input
               id="organizer-password"
@@ -1026,7 +1074,7 @@ const AdminDashboard = () => {
               aria-describedby={passwordError ? "password-error" : undefined}
             />
           </div>
-          <div className="form-group">
+          <div className="ad-form-group">
             <label htmlFor="organizer-confirm-password">Confirm Password *</label>
             <input
               id="organizer-confirm-password"
@@ -1045,17 +1093,16 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Inline password error display */}
         {passwordError && (
-          <div id="password-error" className="inline-error" role="alert">
+          <div id="password-error" className="ad-inline-error" role="alert">
             {passwordError}
           </div>
         )}
 
-        <div className="form-actions">
+        <div className="ad-form-actions">
           <button
             type="button"
-            className="btn-outline"
+            className="ad-btn-outline"
             onClick={() => {
               setNewOrganizer({ name: "", email: "", password: "", confirmPassword: "" });
               setPasswordError("");
@@ -1063,10 +1110,10 @@ const AdminDashboard = () => {
           >
             Clear Form
           </button>
-          <button type="submit" className="btn-primary" disabled={loading}>
+          <button type="submit" className="ad-btn-primary" disabled={loading}>
             {loading ? (
               <>
-                <Loader className="spinner-small" size={18} /> Creating...
+                <Loader className="ad-spinner-small" size={18} /> Creating...
               </>
             ) : (
               <>
@@ -1079,112 +1126,279 @@ const AdminDashboard = () => {
     </section>
   );
 
-  // Event Detail Modal
-  const renderEventDetailModal = () => (
-    <div className="modal-overlay" onClick={() => setShowEventDetailModal(false)}>
-      <div className="modal-content event-detail-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>Event Details</h3>
-          <button
-            className="modal-close"
-            onClick={() => setShowEventDetailModal(false)}
-            aria-label="Close modal"
-          >
-            <X size={22} />
-          </button>
-        </div>
+  // 🆕 NEW: Full-page Profile Section (matching Visitor Dashboard layout)
+  const renderProfile = () => (
+    <section className="ad-profile-page">
+      <div className="ad-content">
+        {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
+        {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
 
-        {currentItem && (
-          <div className="event-details">
-            {currentItem.imageUrl && (
-              <div className="detail-row detail-row-image">
-                <img
-                  src={currentItem.imageUrl}
-                  alt={currentItem.title}
-                  className="event-detail-image"
+        <div className="ad-profile-container">
+          {!isEditingProfile ? (
+            // View Mode
+            <div className="ad-profile-view-card">
+              <div className="ad-profile-avatar-wrapper">
+                <img 
+                  src={adminProfile?.imageUrl || "/src/assets/EZ-logo1.png"} 
+                  alt="Admin Profile" 
+                  className="ad-profile-avatar"
                 />
               </div>
-            )}
-            <div className="detail-row">
-              <strong>Title:</strong>
-              <span>{currentItem.title}</span>
-            </div>
-            <div className="detail-row">
-              <strong>Description:</strong>
-              <span>{currentItem.description || "No description"}</span>
-            </div>
-            <div className="detail-row">
-              <strong>Organizer:</strong>
-              <span>{currentItem.organizerName}</span>
-            </div>
-            <div className="detail-row">
-              <strong>Date:</strong>
-              <span>{formatDate(currentItem.date)}</span>
-            </div>
-            <div className="detail-row">
-              <strong>Location:</strong>
-              <span>{currentItem.location || "N/A"}</span>
-            </div>
-            <div className="detail-row">
-              <strong>Category:</strong>
-              <span>{currentItem.category || "N/A"}</span>
-            </div>
-            <div className="detail-row">
-              <strong>Type:</strong>
-              <span className={`type-badge ${currentItem.eventType?.toLowerCase()}`}>
-                {currentItem.eventType || "Public"}
-              </span>
-            </div>
-            {currentItem.eventType === "PRIVATE" && currentItem.privateCode && (
-              <div className="detail-row">
-                <strong>Private Code:</strong>
-                <span className="private-code">{currentItem.privateCode}</span>
+              <div className="ad-profile-details">
+                <h3 className="ad-profile-name">{adminProfile?.name || "Admin"}</h3>
+                <p className="ad-profile-email">{adminProfile?.email || ""}</p>
+                <span className="ad-role-badge">Admin</span>
+                <div className="ad-profile-meta">
+                  <div className="ad-meta-item">
+                    <span className="ad-meta-label">Mobile:</span>
+                    <span className="ad-meta-value">
+                      {adminProfile?.mobileNumber || "Not provided"}
+                    </span>
+                  </div>
+                </div>
               </div>
-            )}
-            <div className="detail-row">
-              <strong>Attendees:</strong>
-              <span>
-                {currentItem.currentAttendees || 0} / {currentItem.maxAttendees || "Unlimited"}
-              </span>
+              <button 
+                className="ad-btn ad-btn-primary-visitor" 
+                onClick={() => setIsEditingProfile(true)}
+              >
+                <Edit size={18} /> Edit Profile
+              </button>
             </div>
-            <div className="detail-row">
-              <strong>Status:</strong>
-              <span className={`status-badge ${getEventStatus(currentItem).toLowerCase()}`}>
-                {getEventStatus(currentItem)}
-              </span>
-            </div>
-          </div>
-        )}
+          ) : (
+            // Edit Mode - Two Column Layout
+            <form className="ad-profile-edit-form" onSubmit={handleProfileUpdate}>
+              {/* <div className="ad-form-header-profile">
+                <h2>Edit Profile</h2>
+                <p className="ad-form-subtitle">Update your profile information and password</p>
+              </div> */}
 
-        <div className="modal-actions">
-          <button
-            className="btn-outline"
-            onClick={() => setShowEventDetailModal(false)}
-          >
-            Close
-          </button>
+              {/* Profile Image Upload - Full Width */}
+              <div className="ad-form-group ad-full-width">
+                <label className="ad-form-label">Profile Image</label>
+                <div className="ad-image-upload-area">
+                  <input 
+                    type="file" 
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      handleProfileImageUpload(file);
+                    }}
+                    className="ad-file-input"
+                    id="admin-profile-image-upload"
+                    disabled={uploadingImage}
+                  />
+                  <label htmlFor="admin-profile-image-upload" className="ad-upload-label">
+                    <Upload size={18} />
+                    {uploadingImage
+                      ? "Uploading..."
+                      : profileForm.imageUrl
+                      ? "Change Image"
+                      : "Upload Image"}
+                  </label>
+                  {profileForm.imageUrl && (
+                    <div className="ad-image-preview ad-profile-preview">
+                      <img src={profileForm.imageUrl} alt="Profile preview" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Two Column Layout for Form Fields */}
+              <div className="ad-form-row-profile">
+                <div className="ad-form-col">
+                  <label className="ad-form-label">Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                    className="ad-form-input"
+                    required
+                  />
+                </div>
+                
+                <div className="ad-form-col">
+                  <label className="ad-form-label">Email (Cannot be changed)</label>
+                  <input
+                    type="email"
+                    value={profileForm.email}
+                    disabled
+                    className="ad-form-input ad-disabled"
+                  />
+                </div>
+              </div>
+
+              <div className="ad-form-row-profile">
+                <div className="ad-form-col">
+                  <label className="ad-form-label">Mobile Number</label>
+                  <input
+                    type="tel"
+                    name="mobileNumber"
+                    value={profileForm.mobileNumber || ""}
+                    onChange={(e) => setProfileForm({...profileForm, mobileNumber: e.target.value})}
+                    placeholder="+91 9876543210"
+                    className="ad-form-input"
+                  />
+                </div>
+                
+                <div className="ad-form-col">
+                  <label className="ad-form-label">Role</label>
+                  <input
+                    type="text"
+                    value="ADMIN"
+                    disabled
+                    className="ad-form-input ad-disabled"
+                  />
+                </div>
+              </div>
+
+              {/* Password Change Section */}
+              <div className="ad-password-section">
+                {/* <h3 className="ad-section-title">Change Password (Optional)</h3> */}
+                <p className="ad-section-subtitle">Leave empty to keep your current password</p>
+                
+                <div className="ad-form-row-profile">
+                  <div className="ad-form-col">
+                    <label className="ad-form-label">Current Password</label>
+                    <input
+                      type="password"
+                      name="currentPassword"
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                      placeholder="Enter current password"
+                      className="ad-form-input"
+                    />
+                  </div>
+                  
+                  <div className="ad-form-col">
+                    <label className="ad-form-label">New Password (leave empty to keep current)</label>
+                    <input
+                      type="password"
+                      name="newPassword"
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                      placeholder="Enter new password (min 6 characters)"
+                      className="ad-form-input"
+                      minLength={6}
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div className="ad-form-actions-profile">
+                <button type="submit" className="ad-btn ad-btn-primary-visitor" disabled={loading}>
+                  {loading ? (
+                    <>
+                      <Loader className="ad-spinner-small" size={18} /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={18} /> Save Changes
+                    </>
+                  )}
+                </button>
+                <button
+                  type="button"
+                  className="ad-btn ad-btn-secondary"
+                  onClick={() => {
+                    setIsEditingProfile(false);
+                    setError("");
+                    setPasswordForm({ currentPassword: "", newPassword: "" });
+                    loadAdminProfile();
+                  }}
+                >
+                  <CircleX size={18}/>
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </div>
-    </div>
+    </section>
   );
 
-  // Edit Modal
+  const renderEventDetailModal = () => (
+  <div className="ad-modal-overlay" onClick={() => setShowEventDetailModal(false)}>
+    <div
+      className="ad-modal-content"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <button
+        className="ad-modal-close"
+        onClick={() => setShowEventDetailModal(false)}
+        aria-label="Close modal"
+      >
+        ×
+      </button>
+
+      {currentItem && (
+        <div className="ad-modal-body">
+          <div className="ad-modal-header">
+            <img
+              src={currentItem.imageUrl || "https://via.placeholder.com/400x200?text=Event"}
+              alt={currentItem.title}
+              className="ad-event-detail-image"
+            />
+            <h2>{currentItem.title}</h2>
+          </div>
+
+          <div className="ad-event-info">
+            <p><strong>Category:</strong> {currentItem.category || "N/A"}</p>
+            <p><strong>Date:</strong> {formatDate(currentItem.date)}</p>
+            <p><strong>Location:</strong> {currentItem.location || "N/A"}</p>
+            <p><strong>Organizer:</strong> {currentItem.organizerName}</p>
+            {currentItem.maxAttendees && (
+              <p><strong>Capacity:</strong> {currentItem.currentAttendees || 0} / {currentItem.maxAttendees}</p>
+            )}
+            <p><strong>Type:</strong> {currentItem.eventType === "PRIVATE" ? "🔒 Private" : "🌐 Public"}</p>
+            {currentItem.eventType === "PRIVATE" && currentItem.privateCode && (
+              <p><strong>Private Code:</strong> <span className="ad-private-code">{currentItem.privateCode}</span></p>
+            )}
+            <p><strong>Status:</strong>
+              <span className={`ad-status-badge ${getEventStatus(currentItem).toLowerCase()}`}>
+                {getEventStatus(currentItem)}
+              </span>
+            </p>
+          </div>
+
+          <div className="ad-modal-description">
+            <h3>About this Event</h3>
+            <p>{currentItem.description || "No description available."}</p>
+          </div>
+        </div>
+      )}
+
+      <div className="ad-modal-footer">
+        <button
+          className="ad-btn-close"
+          onClick={() => setShowEventDetailModal(false)}
+        >
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+);
+
+
+  // Edit Modal (unchanged)
   const renderEditModal = () => (
-    <div className="modal-overlay" onClick={() => setShowEditModal(false)}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className="ad-modal-overlay" onClick={() => setShowEditModal(false)}>
+      <div className="ad-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="ad-modal-header">
           <h3>Edit {editType}</h3>
-          <button
-            className="modal-close"
+          {/* <button
+            className="ad-modal-close"
             onClick={() => setShowEditModal(false)}
             aria-label="Close modal"
           >
             <X size={22} />
-          </button>
+          </button> */}
         </div>
 
         <form onSubmit={handleEdit}>
-          <div className="form-group">
+          <div className="ad-form-group">
             <label htmlFor="edit-name">Name *</label>
             <input
               id="edit-name"
@@ -1195,7 +1409,7 @@ const AdminDashboard = () => {
             />
           </div>
 
-          <div className="form-group">
+          <div className="ad-form-group">
             <label htmlFor="edit-email">Email *</label>
             <input
               id="edit-email"
@@ -1206,7 +1420,7 @@ const AdminDashboard = () => {
             />
           </div>
 
-          <div className="form-group">
+          <div className="ad-form-group">
             <label htmlFor="edit-password">New Password (leave empty to keep current)</label>
             <input
               id="edit-password"
@@ -1218,19 +1432,19 @@ const AdminDashboard = () => {
             />
           </div>
 
-          {error && <div className="alert alert-error" role="alert">{error}</div>}
+          {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
 
-          <div className="modal-actions">
+          <div className="ad-modal-actions">
             <button
               type="button"
-              className="btn-outline"
+              className="ad-btn-outline"
               onClick={() => setShowEditModal(false)}
             >
               Cancel
             </button>
-            <button type="submit" className="btn-primary" disabled={loading}>
-              {loading ? <Loader className="spinner-small" size={18} /> : <Save size={18} />}
-              Save Changes
+            <button type="submit" className="ad-btn-primary" disabled={loading}>
+              {loading ? <Loader className="ad-spinner-small" size={18} /> : <Save size={18} />}
+              Save
             </button>
           </div>
         </form>
@@ -1238,224 +1452,42 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Delete Modal
+  // Delete Modal (unchanged)
   const renderDeleteModal = () => (
-    <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-      <div className="modal-content modal-danger" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
+    <div className="ad-modal-overlay" onClick={() => setShowDeleteModal(false)}>
+      <div className="ad-modal-content ad-modal-danger" onClick={(e) => e.stopPropagation()}>
+        <div className="ad-modal-header">
           <h3>Confirm Delete</h3>
-          <button
-            className="modal-close"
+          {/* <button
+            className="ad-modal-close"
             onClick={() => setShowDeleteModal(false)}
             aria-label="Close modal"
           >
             <X size={22} />
-          </button>
+          </button>    */}
         </div>
 
-        <div className="modal-body">
+        <div className="ad-modal-body">
           <p>
             Are you sure you want to delete this {editType}:{" "}
             <strong>{currentItem?.name || currentItem?.title}</strong>?
           </p>
-          <p className="warning-text">This action cannot be undone.</p>
+          <p className="ad-warning-text">This action cannot be undone.</p>
         </div>
 
-        {error && <div className="alert alert-error" role="alert">{error}</div>}
+        {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
 
-        <div className="modal-actions">
+        <div className="ad-modal-actions">
           <button
-            className="btn-outline"
+            className="ad-btn-outline"
             onClick={() => setShowDeleteModal(false)}
           >
             Cancel
           </button>
-          <button className="btn-danger" onClick={handleDelete} disabled={loading}>
-            {loading ? <Loader className="spinner-small" size={18} /> : <Trash2 size={18} />}
+          <button className="ad-btn-danger" onClick={handleDelete} disabled={loading}>
+            {loading ? <Loader className="ad-spinner-small" size={18} /> : <Trash2 size={18} />}
             Delete
           </button>
-        </div>
-      </div>
-    </div>
-  );
-
-  // Enhanced Profile Modal with View/Edit modes
-  const renderProfileModal = () => (
-    <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
-      <div
-        className="modal-content profile-modal-content"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="modal-header">
-          <h3>Admin Profile</h3>
-          <button
-            className="modal-close"
-            onClick={() => {
-              setShowProfileModal(false);
-              setIsEditingProfile(false);
-              setError("");
-            }}
-            aria-label="Close modal"
-          >
-            <X size={22} />
-          </button>
-        </div>
-
-        {error && <div className="alert alert-error" role="alert">{error}</div>}
-        {success && <div className="alert alert-success" role="alert">{success}</div>}
-
-        <div className="profile-container">
-          {!isEditingProfile ? (
-            /* View Mode */
-            <div className="profile-view-card">
-              <div className="profile-avatar-wrapper">
-                <img
-                  src={adminProfile?.imageUrl || "/src/assets/EZ-logo1.png"}
-                  alt="Admin Profile"
-                  className="profile-avatar"
-                />
-              </div>
-              <div className="profile-details">
-                <h3 className="profile-name">{adminProfile?.name || "Admin"}</h3>
-                <p className="profile-email">{adminProfile?.email || ""}</p>
-                <span className="role-badge">Admin</span>
-                <div className="profile-meta">
-                  <div className="meta-item">
-                    <span className="meta-label">Mobile:</span>
-                    <span className="meta-value">
-                      {adminProfile?.mobileNumber || "Not provided"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button
-                className="btn-primary"
-                onClick={() => setIsEditingProfile(true)}
-              >
-                <Edit size={18} /> Edit Profile
-              </button>
-            </div>
-          ) : (
-            /* Edit Mode */
-            <form className="profile-edit-form" onSubmit={handleProfileUpdate}>
-              <div className="form-group">
-                <label className="form-label">Profile Image</label>
-                <div className="image-upload-area">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      handleProfileImageUpload(file);
-                    }}
-                    className="file-input"
-                    id="profile-image-upload"
-                    disabled={uploadingImage}
-                  />
-                  <label htmlFor="profile-image-upload" className="upload-label">
-                    <Upload size={18} />
-                    {uploadingImage
-                      ? "Uploading..."
-                      : profileForm.imageUrl
-                      ? "Change Image"
-                      : "Upload Image"}
-                  </label>
-                  {profileForm.imageUrl && (
-                    <div className="image-preview profile-preview">
-                      <img src={profileForm.imageUrl} alt="Profile preview" />
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="profile-name">
-                  Name *
-                </label>
-                <input
-                  id="profile-name"
-                  type="text"
-                  className="form-input"
-                  value={profileForm.name}
-                  onChange={(e) =>
-                    setProfileForm({ ...profileForm, name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="profile-email">
-                  Email (Cannot be changed)
-                </label>
-                <input
-                  id="profile-email"
-                  type="email"
-                  className="form-input disabled"
-                  value={profileForm.email}
-                  disabled
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="profile-mobile">
-                  Mobile Number
-                </label>
-                <input
-                  id="profile-mobile"
-                  type="tel"
-                  className="form-input"
-                  value={profileForm.mobileNumber || ""}
-                  onChange={(e) =>
-                    setProfileForm({ ...profileForm, mobileNumber: e.target.value })
-                  }
-                  placeholder="+91 9876543210"
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label" htmlFor="profile-password">
-                  New Password (leave empty to keep current)
-                </label>
-                <input
-                  id="profile-password"
-                  type="password"
-                  className="form-input"
-                  value={profileForm.password}
-                  onChange={(e) =>
-                    setProfileForm({ ...profileForm, password: e.target.value })
-                  }
-                  placeholder="Enter new password"
-                  minLength={6}
-                />
-              </div>
-
-              <div className="form-actions">
-                <button type="submit" className="btn-primary" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader className="spinner-small" size={18} /> Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={18} /> Save Changes
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={() => {
-                    setIsEditingProfile(false);
-                    setError("");
-                    loadAdminProfile();
-                  }}
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          )}
         </div>
       </div>
     </div>
@@ -1472,22 +1504,26 @@ const AdminDashboard = () => {
         return renderEvents();
       case "create-organizer":
         return renderCreateOrganizer();
+      case "profile": // 🆕 NEW: Profile page route
+        return renderProfile();
+      case "analytics":
+        return <AdminAnalyticsPage />;
       default:
         return renderEvents();
     }
   };
 
   return (
-    <div className="dashboard">
+    <div className="ad-dashboard">
       {rendersidebrAdmin()}
-      <div className="main">
+      <div className="ad-main">
         {renderTopbar()}
         {renderContent()}
       </div>
 
+      {/* Modals (only for events, organizers, visitors - NOT profile) */}
       {showEditModal && renderEditModal()}
       {showDeleteModal && renderDeleteModal()}
-      {showProfileModal && renderProfileModal()}
       {showEventDetailModal && renderEventDetailModal()}
     </div>
   );

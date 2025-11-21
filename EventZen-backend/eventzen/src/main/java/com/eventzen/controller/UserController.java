@@ -5,12 +5,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.eventzen.dto.request.UpdatePasswordRequest;
 import com.eventzen.dto.request.UpdateProfileRequest;
 import com.eventzen.dto.response.UserProfileResponse;
 import com.eventzen.entity.User;
@@ -22,6 +24,9 @@ public class UserController {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     /**
      * Get current user's profile (for organizer dashboard)
@@ -104,6 +109,55 @@ public class UserController {
         } catch (Exception e) {
             System.out.println("Error updating profile: " + e.getMessage());
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Update current user's password
+     * 🆕 NEW ENDPOINT for password change
+     */
+    @PutMapping("/password")
+    @PreAuthorize("hasAnyAuthority('ORGANIZER', 'VISITOR', 'ADMIN')")
+    public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordRequest request) {
+        try {
+            System.out.println("🔐 Password change request received");
+
+            // Validate request
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Current password is required");
+            }
+
+            if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("New password is required");
+            }
+
+            if (request.getNewPassword().length() < 6) {
+                return ResponseEntity.badRequest().body("New password must be at least 6 characters");
+            }
+
+            // Get current user from JWT
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String email = authentication.getName();
+
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new Exception("User not found"));
+
+            // Verify current password
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                System.out.println("❌ Current password does not match");
+                return ResponseEntity.badRequest().body("Current password is incorrect");
+            }
+
+            // Update password
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            System.out.println("✅ Password updated successfully for user: " + email);
+            return ResponseEntity.ok().body("Password updated successfully");
+
+        } catch (Exception e) {
+            System.out.println("❌ Error updating password: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Failed to update password: " + e.getMessage());
         }
     }
 }

@@ -3,6 +3,25 @@ import { useNavigate } from "react-router-dom";
 import "../styles/Visitor page styling/VisitorDashboard.css";
 import API from "../services/api";
 import { registerForEvent, getMyRegistrations, cancelRegistration } from "../services/registrations";
+import {
+  Calendar,
+  Users,
+  User,
+  UserPlus,
+  LogOut,
+  Trash2,
+  Edit,
+  X,
+  Save,
+  Loader,
+  Eye,
+  Filter,
+  RotateCcw,
+  Upload,
+  CircleX,
+  ChartBarStacked,
+  ImagePlus
+} from "lucide-react";
 
 export default function VisitorDashboard() {
   const navigate = useNavigate();
@@ -45,6 +64,12 @@ export default function VisitorDashboard() {
     email: "",
     mobileNumber: "",
     imageUrl: ""
+  });
+
+  // 🆕 NEW: Password change state
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: ""
   });
 
   useEffect(() => {
@@ -275,22 +300,49 @@ export default function VisitorDashboard() {
     }
   };
 
+  // 🆕 UPDATED: Handle profile update (without password)
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
+      setLoading(true);
+      
+      // Update profile information
       const response = await API.put("/users/profile", {
         name: profileForm.name,
         mobileNumber: profileForm.mobileNumber,
         profileImage: profileForm.imageUrl
       });
+      
       setUserProfile(response.data);
+      
+      // 🆕 NEW: If password fields are filled, update password separately
+      if (passwordForm.currentPassword && passwordForm.newPassword) {
+        try {
+          await API.put("/users/password", {
+            currentPassword: passwordForm.currentPassword,
+            newPassword: passwordForm.newPassword
+          });
+          
+          setSuccess("Profile and password updated successfully!");
+          setPasswordForm({ currentPassword: "", newPassword: "" });
+        } catch (passErr) {
+          console.error("Error updating password:", passErr);
+          setError(passErr.response?.data || "Failed to update password");
+          setLoading(false);
+          return;
+        }
+      } else {
+        setSuccess("Profile updated successfully!");
+      }
+      
       setEditing(false);
-      setSuccess("Profile updated successfully!");
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
       console.error("Error updating profile:", err);
       setError("Failed to update profile");
       setTimeout(() => setError(""), 5000);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -394,6 +446,21 @@ export default function VisitorDashboard() {
   const today = new Date();
   const upcomingRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) >= today);
   const pastRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) < today);
+
+  // 🆕 Default images for event cards
+  const defaultImages = {
+    Technology: "https://via.placeholder.com/400x200/667eea/ffffff?text=Technology",
+    Business: "https://via.placeholder.com/400x200/f59e0b/ffffff?text=Business",
+    Music: "https://via.placeholder.com/400x200/ec4899/ffffff?text=Music",
+    Health: "https://via.placeholder.com/400x200/10b981/ffffff?text=Health",
+    Food: "https://via.placeholder.com/400x200/f97316/ffffff?text=Food",
+    Art: "https://via.placeholder.com/400x200/8b5cf6/ffffff?text=Art",
+    Community: "https://via.placeholder.com/400x200/3b82f6/ffffff?text=Community",
+    Entertainment: "https://via.placeholder.com/400x200/ef4444/ffffff?text=Entertainment",
+    Education: "https://via.placeholder.com/400x200/06b6d4/ffffff?text=Education",
+    Sports: "https://via.placeholder.com/400x200/84cc16/ffffff?text=Sports",
+    Other: "https://via.placeholder.com/400x200/6b7280/ffffff?text=Event"
+  };
 
   return (
     <div className="vis-visitor-dashboard">
@@ -542,7 +609,7 @@ export default function VisitorDashboard() {
                         <div key={event.id} className="vis-event-card-visitor">
                           <div className="vis-event-image">
                             <img 
-                              src={event.imageUrl || "https://via.placeholder.com/400x200?text=Event"} 
+                              src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
                               alt={event.title} 
                             />
                             <span className={`vis-event-badge ${
@@ -610,32 +677,32 @@ export default function VisitorDashboard() {
 
               {activePage === "registrations" && (
                 <section className="vis-registrations-page">
-                  <div className="vis-page-header">
+                  {/* <div className="vis-page-header">
                     <h1>My Registrations</h1>
                     <p className="vis-subtitle">Manage your event registrations</p>
-                  </div>
+                  </div> */}
 
                   <div className="vis-stats-cards">
                     <div className="vis-stat-card-visitor">
+                      <div className="vis-stat-info">
                       <div className="vis-stat-icon">📊</div>
-                      <div className="vis-stat-info">
                         <h3>{myRegistrations.length}</h3>
+                      </div>
                         <p>Total Registrations</p>
-                      </div>
                     </div>
                     <div className="vis-stat-card-visitor">
+                      <div className="vis-stat-info">
                       <div className="vis-stat-icon">🚀</div>
-                      <div className="vis-stat-info">
                         <h3>{upcomingRegistrations.length}</h3>
-                        <p>Upcoming Events</p>
                       </div>
+                        <p>Upcoming Events</p>
                     </div>
                     <div className="vis-stat-card-visitor">
-                      <div className="vis-stat-icon">✓</div>
                       <div className="vis-stat-info">
+                      <div className="vis-stat-icon">✓</div>
                         <h3>{pastRegistrations.length}</h3>
-                        <p>Completed Events</p>
                       </div>
+                        <p>Completed Events</p>
                     </div>
                   </div>
 
@@ -730,6 +797,7 @@ export default function VisitorDashboard() {
                       <table>
                         <thead>
                           <tr>
+                            <th>Image</th>
                             <th>Event</th>
                             <th>Category</th>
                             <th>Date</th>
@@ -745,6 +813,13 @@ export default function VisitorDashboard() {
                             const isUpcoming = new Date(reg.event.date) >= today;
                             return (
                               <tr key={reg.id}>
+                                <td>
+                                  <img 
+                                    src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]} 
+                                    alt={`${reg.event.title} event image`}
+                                    className="vis-event-thumbnail"
+                                  />
+                                </td>
                                 <td>{reg.event.title}</td>
                                 <td>{reg.event.category}</td>
                                 <td>{formatDateTime(reg.event.date)}</td>
@@ -752,13 +827,8 @@ export default function VisitorDashboard() {
                                 <td>{reg.event.organizerName}</td>
                                 <td>
                                   <span className={`vis-type-badge-vis ${
-  reg.event.eventType === 'PRIVATE'
-    ? 'vis-private'
-    : reg.event.eventType === 'PUBLIC'
-      ? 'vis-public'
-      : ''
-}`}
->
+                                    reg.event.eventType === 'PRIVATE' ? 'vis-private' : 'vis-public'
+                                  }`}>
                                     {reg.event.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}
                                   </span>
                                 </td>
@@ -802,14 +872,10 @@ export default function VisitorDashboard() {
                 </section>
               )}
 
+              {/* 🆕 UPDATED: Profile section with two-column layout */}
               {activePage === "profile" && userProfile && (
                 <section className="vis-profile-page">
                   <div className="vis-profile-container">
-                    <div className="vis-form-header">
-                      <h2>My Profile</h2>
-                      <p className="vis-form-subtitle">Manage your profile information</p>
-                    </div>
-                    
                     {!editing ? (
                       <div className="vis-profile-view-card">
                         <div className="vis-profile-avatar-wrapper">
@@ -836,7 +902,13 @@ export default function VisitorDashboard() {
                       </div>
                     ) : (
                       <form className="vis-profile-edit-form" onSubmit={handleProfileUpdate}>
-                        <div className="vis-form-group">
+                        {/* <div className="vis-form-header">
+                          <h2>Edit Profile</h2>
+                          <p className="vis-form-subtitle">Update your profile information and password</p>
+                        </div> */}
+
+                        {/* Profile Image Upload - Full Width */}
+                        <div className="vis-form-group vis-full-width">
                           <label className="vis-form-label">Profile Image</label>
                           <div className="vis-image-upload-area">
                             <input 
@@ -850,7 +922,8 @@ export default function VisitorDashboard() {
                               id="profile-image-upload"
                             />
                             <label htmlFor="profile-image-upload" className="vis-upload-label">
-                              {profileForm.imageUrl ? "Change Image" : "Upload Image"}
+                              <ImagePlus size={20}/>
+                              {profileForm.imageUrl ? "" : "Upload Image"}
                             </label>
                             {profileForm.imageUrl && (
                               <div className="vis-image-preview vis-profile-preview">
@@ -859,49 +932,86 @@ export default function VisitorDashboard() {
                             )}
                           </div>
                         </div>
-                        
-                        <div className="vis-form-group">
-                          <label className="vis-form-label">Name *</label>
-                          <input
-                            type="text"
-                            name="name"
-                            value={profileForm.name}
-                            onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
-                            className="vis-form-input"
-                            required
-                          />
+
+                        {/* Two Column Layout for Form Fields */}
+                        <div className="vis-form-row">
+                          <div className="vis-form-col">
+                            <label className="vis-form-label">Name *</label>
+                            <input
+                              type="text"
+                              name="name"
+                              value={profileForm.name}
+                              onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                              className="vis-form-input"
+                              required
+                            />
+                          </div>
+                          
+                          <div className="vis-form-col">
+                            <label className="vis-form-label">Email (Cannot be changed)</label>
+                            <input
+                              type="email"
+                              value={profileForm.email}
+                              disabled
+                              className="vis-form-input vis-disabled"
+                            />
+                          </div>
                         </div>
-                        
-                        <div className="vis-form-group">
-                          <label className="vis-form-label">Email (Cannot be changed)</label>
-                          <input
-                            type="email"
-                            value={profileForm.email}
-                            disabled
-                            className="vis-form-input vis-disabled"
-                          />
+
+                        <div className="vis-form-row">
+                          <div className="vis-form-col">
+                            <label className="vis-form-label">Mobile Number</label>
+                            <input
+                              type="tel"
+                              name="mobileNumber"
+                              value={profileForm.mobileNumber || ""}
+                              onChange={(e) => setProfileForm({...profileForm, mobileNumber: e.target.value})}
+                              placeholder="+91 9876543210"
+                              className="vis-form-input"
+                            />
+                          </div>
+                          
+                          <div className="vis-form-col">
+                            <label className="vis-form-label">Role</label>
+                            <input
+                              type="text"
+                              value={userProfile.role}
+                              disabled
+                              className="vis-form-input vis-disabled"
+                            />
+                          </div>
                         </div>
-                        
-                        <div className="vis-form-group">
-                          <label className="vis-form-label">Role</label>
-                          <input
-                            type="text"
-                            value={userProfile.role}
-                            disabled
-                            className="vis-form-input vis-disabled"
-                          />
-                        </div>
-                        
-                        <div className="vis-form-group">
-                          <label className="vis-form-label">Mobile Number</label>
-                          <input
-                            type="tel"
-                            name="mobileNumber"
-                            value={profileForm.mobileNumber || ""}
-                            onChange={(e) => setProfileForm({...profileForm, mobileNumber: e.target.value})}
-                            placeholder="+91 9876543210"
-                            className="vis-form-input"
-                          />
+
+                        {/* Password Change Section */}
+                        <div className="vis-password-section">
+                          {/* <h3 className="vis-section-title">Change Password (Optional)</h3> */}
+                          <p className="vis-section-subtitle">Leave empty to keep your current password</p>
+                          
+                          <div className="vis-form-row">
+                            <div className="vis-form-col">
+                              <label className="vis-form-label">Current Password</label>
+                              <input
+                                type="password"
+                                name="currentPassword"
+                                value={passwordForm.currentPassword}
+                                onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                                placeholder="Enter current password"
+                                className="vis-form-input"
+                              />
+                            </div>
+                            
+                            <div className="vis-form-col">
+                              <label className="vis-form-label">New Password</label>
+                              <input
+                                type="password"
+                                name="newPassword"
+                                value={passwordForm.newPassword}
+                                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                                placeholder="Enter new password (min 6 characters)"
+                                className="vis-form-input"
+                              />
+                            </div>
+                          </div>
                         </div>
                         
                         <div className="vis-form-actions">
@@ -914,6 +1024,7 @@ export default function VisitorDashboard() {
                             onClick={() => {
                               setEditing(false);
                               setError("");
+                              setPasswordForm({ currentPassword: "", newPassword: "" });
                               loadUserData();
                             }}
                           >
@@ -929,7 +1040,7 @@ export default function VisitorDashboard() {
           )}
         </div>
       </main>
-
+          
       {selectedEvent && (
         <div className="vis-modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
           <div className="vis-modal-visitor-content" onClick={(e) => e.stopPropagation()}>
@@ -971,7 +1082,7 @@ export default function VisitorDashboard() {
                   Register Now
                 </button>
               )}
-              <button className="vis-btn vis-btn-secondary" onClick={() => setSelectedEvent(null)}>
+              <button className="vis-btn vis-event-close" onClick={() => setSelectedEvent(null)}>
                 Close
               </button>
             </div>

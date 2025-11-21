@@ -342,7 +342,7 @@ const loadEvents = async () => {
 
       {/* ===== MAIN CONTENT ===== */}
       <div className="main-content-events">
-        <h1 className="page-title">Upcoming Events</h1>
+        <h1 className="page-title">Browse Events</h1>
 
         {/* ===== FILTERS SECTION ===== */}
         <div className="filters">
@@ -434,7 +434,7 @@ const loadEvents = async () => {
                     onClick={() => handleDetails(event)}
                     className="details-btn"
                   >
-                    View Details
+                    View
                   </button>
                 </div>
               </div>

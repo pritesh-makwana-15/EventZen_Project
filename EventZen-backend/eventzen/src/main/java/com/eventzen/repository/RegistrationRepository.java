@@ -52,4 +52,6 @@ public interface RegistrationRepository extends JpaRepository<Registration, Long
     // NEW: Count registrations by user ID
     @Query("SELECT COUNT(r) FROM Registration r WHERE r.visitor.id = :userId")
     long countByUserId(@Param("userId") Long userId);
+
+    
 }

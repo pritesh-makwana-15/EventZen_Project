@@ -1,6 +1,3 @@
-// =====================================
-// UserResponse.java
-// =====================================
 package com.eventzen.dto.response;
 
 public class UserResponse {
@@ -8,16 +5,31 @@ public class UserResponse {
     private String name;
     private String email;
     private String role;
+    // 🆕 ADDED: These fields for profile display
+    private String mobileNumber;
+    private String imageUrl;
 
-    // Constructors
+    // Default Constructor
     public UserResponse() {
     }
 
+    // Legacy Constructor (for backward compatibility)
     public UserResponse(Long id, String name, String email, String role) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.role = role;
+    }
+
+    // 🆕 NEW: Full Constructor with all fields
+    public UserResponse(Long id, String name, String email, String role, 
+                       String mobileNumber, String imageUrl) {
+        this.id = id;
+        this.name = name;
+        this.email = email;
+        this.role = role;
+        this.mobileNumber = mobileNumber;
+        this.imageUrl = imageUrl;
     }
 
     // Getters and Setters
@@ -53,6 +65,23 @@ public class UserResponse {
         this.role = role;
     }
 
+    // 🆕 NEW: Getters and Setters for new fields
+    public String getMobileNumber() {
+        return mobileNumber;
+    }
+
+    public void setMobileNumber(String mobileNumber) {
+        this.mobileNumber = mobileNumber;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
     @Override
     public String toString() {
         return "UserResponse{" +
@@ -60,6 +89,8 @@ public class UserResponse {
                 ", name='" + name + '\'' +
                 ", email='" + email + '\'' +
                 ", role='" + role + '\'' +
+                ", mobileNumber='" + mobileNumber + '\'' +
+                ", imageUrl='" + imageUrl + '\'' +
                 '}';
     }
-}
+}   
