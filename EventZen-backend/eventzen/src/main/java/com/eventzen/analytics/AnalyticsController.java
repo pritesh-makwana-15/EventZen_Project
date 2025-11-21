@@ -15,12 +15,14 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * REST Controller for Analytics endpoints
  * 
- * Endpoints:
- * - GET /api/analytics/admin/summary → Admin: Global platform summary
- * - GET /api/analytics/admin/categories → Admin: Event category distribution
- * - GET /api/analytics/admin/monthly-trends → Admin: Monthly registration
- * trends
- * - GET /api/analytics/organizer/{id}/performance → Organizer-specific metrics
+ * FIX APPLIED: Changed hasRole() to hasAuthority()
+ * 
+ * Why this fix works:
+ * - hasRole('ADMIN') internally checks for 'ROLE_ADMIN' authority
+ * - Our JWT stores role as 'ADMIN' (without ROLE_ prefix)
+ * - hasAuthority('ADMIN') checks for exact 'ADMIN' authority
+ * - This matches what JwtAuthenticationFilter creates:
+ * SimpleGrantedAuthority("ADMIN")
  */
 @RestController
 @RequestMapping("/api/analytics")
@@ -31,10 +33,9 @@ public class AnalyticsController {
 
     /**
      * Get global platform summary (Admin only)
-     * Returns: total users, total events, total registrations
      */
     @GetMapping("/admin/summary")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')") // ✅ FIXED: was hasRole('ADMIN')
     public ResponseEntity<Map<String, Object>> getAdminSummary() {
         try {
             Map<String, Object> summary = analyticsService.getAdminSummary();
@@ -47,10 +48,9 @@ public class AnalyticsController {
 
     /**
      * Get event category distribution (Admin only)
-     * Returns: list of categories with event counts
      */
     @GetMapping("/admin/categories")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')") // ✅ FIXED: was hasRole('ADMIN')
     public ResponseEntity<List<Map<String, Object>>> getCategoryDistribution() {
         try {
             List<Map<String, Object>> categories = analyticsService.getCategoryDistribution();
@@ -63,10 +63,9 @@ public class AnalyticsController {
 
     /**
      * Get monthly registration trends (Admin only)
-     * Returns: list of months with registration counts (includes zero months)
      */
     @GetMapping("/admin/monthly-trends")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAuthority('ADMIN')") // ✅ FIXED: was hasRole('ADMIN')
     public ResponseEntity<List<Map<String, Object>>> getMonthlyTrends() {
         try {
             List<Map<String, Object>> trends = analyticsService.getMonthlyRegistrationTrends();
@@ -79,12 +78,9 @@ public class AnalyticsController {
 
     /**
      * Get organizer performance metrics
-     * Can be called by:
-     * - Admin for any organizer (pass organizerId as path variable)
-     * - Organizer for their own data
      */
     @GetMapping("/organizer/{organizerId}/performance")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('ORGANIZER')")
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ORGANIZER')") // ✅ FIXED
     public ResponseEntity<Map<String, Object>> getOrganizerPerformance(
             @PathVariable Long organizerId) {
         try {

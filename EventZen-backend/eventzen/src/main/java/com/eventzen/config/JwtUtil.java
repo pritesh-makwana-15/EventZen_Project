@@ -9,7 +9,7 @@ import io.jsonwebtoken.SignatureAlgorithm;
 
 @Component
 public class JwtUtil {
-    
+
     private final String jwtSecret = "eventzen-secret-key";
     private final long jwtExpirationMs = 86400000; // 1 day
 

@@ -33,7 +33,7 @@ export default function CategoryChart({ data }) {
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={500}>
       <PieChart>
         <Pie
           data={chartData}
