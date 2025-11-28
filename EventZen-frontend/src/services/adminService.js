@@ -1,5 +1,5 @@
 // src/services/adminService.js
-// 🔧 UPDATED: Added password update functionality
+// ✅ UPDATED: Added getTopOrganizers function
 
 import API from "./api";
 
@@ -119,26 +119,17 @@ export const deleteEventAdmin = async (eventId) => {
 
 // ==================== ADMIN PROFILE ====================
 
-/**
- * Get admin profile
- * 🔧 UPDATED: Now returns mobileNumber and imageUrl
- */
+// Get admin profile
 export const getAdminProfile = async () => {
   try {
-    console.log("📋 Fetching admin profile...");
     const { data } = await API.get("/admin/profile");
-    console.log("✅ Admin profile fetched:", data);
     return data;
   } catch (error) {
-    console.error("❌ Error fetching admin profile:", error);
     throw error;
   }
 };
 
-/**
- * Update admin profile (WITHOUT password)
- * 🔧 UPDATED: Now handles mobileNumber and imageUrl
- */
+// Update admin profile (WITHOUT password)
 export const updateAdminProfile = async (profileData) => {
   try {
     console.log("🔄 Updating admin profile...", profileData);
@@ -155,10 +146,7 @@ export const updateAdminProfile = async (profileData) => {
   }
 };
 
-/**
- * 🆕 NEW: Update admin password separately
- * This is the KEY function that was missing!
- */
+// Update admin password separately
 export const updateAdminPassword = async (currentPassword, newPassword) => {
   try {
     console.log("🔐 Updating admin password...");
@@ -187,6 +175,19 @@ export const getDashboardStats = async () => {
   }
 };
 
+/**
+ * 🆕 NEW: Get top organizers by registrations
+ */
+export const getTopOrganizers = async () => {
+  try {
+    const { data } = await API.get("/analytics/admin/top-organizers");
+    return data;
+  } catch (error) {
+    console.error("Error fetching top organizers:", error);
+    throw error;
+  }
+};
+
 // ==================== EXPORTS ====================
 
 export default {
@@ -209,8 +210,9 @@ export default {
   // Admin Profile
   getAdminProfile,
   updateAdminProfile,
-  updateAdminPassword, // 🆕 NEW
+  updateAdminPassword,
   
   // Statistics
   getDashboardStats,
+  getTopOrganizers, // 🆕 NEW
 };

@@ -1318,6 +1318,10 @@ const AdminDashboard = () => {
     </section>
   );
 
+  const renderAdminAnalyticsPage = () => (
+    <AdminAnalyticsPage />
+  );
+
   const renderEventDetailModal = () => (
   <div className="ad-modal-overlay" onClick={() => setShowEventDetailModal(false)}>
     <div
@@ -1507,7 +1511,7 @@ const AdminDashboard = () => {
       case "profile": // 🆕 NEW: Profile page route
         return renderProfile();
       case "analytics":
-        return <AdminAnalyticsPage />;
+        return renderAdminAnalyticsPage();
       default:
         return renderEvents();
     }

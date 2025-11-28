@@ -1,5 +1,6 @@
 package com.eventzen.analytics;
 
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -11,18 +12,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.eventzen.entity.Event;
+import com.eventzen.entity.Registration;
+import com.eventzen.entity.Role;
+import com.eventzen.entity.User;
 import com.eventzen.repository.EventRepository;
 import com.eventzen.repository.RegistrationRepository;
 import com.eventzen.repository.UserRepository;
 
 /**
- * Service for analytics aggregations
+ * ✅ FIXED Analytics Service
  * 
- * Features:
- * - Admin-level platform analytics
- * - Organizer-specific performance metrics
- * - Category distribution
- * - Monthly trends with zero-value months
+ * Changes:
+ * 1. Monthly trends now use REGISTRATION date (not event date)
+ * 2. Changed from 12 months to 6 months
+ * 3. Added Top Organizers method
  */
 @Service
 public class AnalyticsService {
@@ -38,7 +41,6 @@ public class AnalyticsService {
 
     /**
      * Get global platform summary statistics (Admin)
-     * Returns: total users, total events, total registrations
      */
     public Map<String, Object> getAdminSummary() {
         Map<String, Object> summary = new HashMap<>();
@@ -56,7 +58,6 @@ public class AnalyticsService {
 
     /**
      * Get event category distribution (Admin)
-     * Returns: list of {category, count} objects sorted by count descending
      */
     public List<Map<String, Object>> getCategoryDistribution() {
         List<Event> allEvents = eventRepository.findAll();
@@ -79,25 +80,28 @@ public class AnalyticsService {
     }
 
     /**
-     * Get monthly registration trends (Admin)
-     * Returns: list of {month, year, count} for last 12 months
-     * Includes months with zero registrations
+     * ✅ FIXED: Get monthly registration trends (Admin)
+     * 
+     * Changes:
+     * - Now uses REGISTRATION date instead of event date
+     * - Changed from 12 months to 6 months
+     * - Uses registrationRepository.findRegistrationsInLast6Months()
      */
     public List<Map<String, Object>> getMonthlyRegistrationTrends() {
-        List<Event> allEvents = eventRepository.findAll();
+        // Get registrations from last 6 months
+        LocalDateTime sixMonthsAgo = LocalDateTime.now().minusMonths(6);
+        List<Registration> registrations = registrationRepository.findRegistrationsInLast6Months(sixMonthsAgo);
 
-        Map<YearMonth, Long> monthlyCount = new HashMap<>();
+        // Group by YearMonth of registration date
+        Map<YearMonth, Long> monthlyCount = registrations.stream()
+                .filter(r -> r.getRegisteredAt() != null)
+                .collect(Collectors.groupingBy(
+                        r -> YearMonth.from(r.getRegisteredAt()),
+                        Collectors.counting()));
 
-        for (Event event : allEvents) {
-            if (event.getDate() != null) {
-                YearMonth month = YearMonth.from(event.getDate());
-                long registrationCount = registrationRepository.countByEventId(event.getId());
-                monthlyCount.put(month, monthlyCount.getOrDefault(month, 0L) + registrationCount);
-            }
-        }
-
+        // Generate last 6 months including zeros
         YearMonth now = YearMonth.now();
-        YearMonth startMonth = now.minusMonths(11);
+        YearMonth startMonth = now.minusMonths(5); // 6 months total including current
 
         List<Map<String, Object>> result = new ArrayList<>();
         for (YearMonth month = startMonth; !month.isAfter(now); month = month.plusMonths(1)) {
@@ -113,9 +117,49 @@ public class AnalyticsService {
     }
 
     /**
+     * 🆕 NEW: Get top organizers by total registrations (Admin)
+     * 
+     * Returns: list of {organizerId, organizerName, totalEvents,
+     * totalRegistrations}
+     * Sorted by total registrations descending
+     */
+    public List<Map<String, Object>> getTopOrganizers() {
+        // Get all organizers
+        List<User> organizers = userRepository.findAll().stream()
+                .filter(u -> u.getRole() == Role.ORGANIZER)
+                .collect(Collectors.toList());
+
+        List<Map<String, Object>> organizerStats = new ArrayList<>();
+
+        for (User organizer : organizers) {
+            List<Event> events = eventRepository.findByOrganizerId(organizer.getId());
+
+            long totalEvents = events.size();
+            long totalRegistrations = events.stream()
+                    .mapToLong(event -> registrationRepository.countByEventId(event.getId()))
+                    .sum();
+
+            Map<String, Object> stat = new HashMap<>();
+            stat.put("organizerId", organizer.getId());
+            stat.put("organizerName", organizer.getName());
+            stat.put("organizerEmail", organizer.getEmail());
+            stat.put("totalEvents", totalEvents);
+            stat.put("totalRegistrations", totalRegistrations);
+
+            organizerStats.add(stat);
+        }
+
+        // Sort by total registrations descending and return top 10
+        return organizerStats.stream()
+                .sorted((a, b) -> Long.compare(
+                        (Long) b.get("totalRegistrations"),
+                        (Long) a.get("totalRegistrations")))
+                .limit(10)
+                .collect(Collectors.toList());
+    }
+
+    /**
      * Get organizer performance metrics
-     * Returns: total events, total registrations, average attendance rate, top
-     * events
      */
     public Map<String, Object> getOrganizerPerformance(Long organizerId) {
         Map<String, Object> performance = new HashMap<>();

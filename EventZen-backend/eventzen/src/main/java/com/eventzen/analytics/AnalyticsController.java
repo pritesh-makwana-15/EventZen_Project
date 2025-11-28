@@ -13,16 +13,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * REST Controller for Analytics endpoints
+ * ✅ UPDATED Analytics Controller
  * 
- * FIX APPLIED: Changed hasRole() to hasAuthority()
- * 
- * Why this fix works:
- * - hasRole('ADMIN') internally checks for 'ROLE_ADMIN' authority
- * - Our JWT stores role as 'ADMIN' (without ROLE_ prefix)
- * - hasAuthority('ADMIN') checks for exact 'ADMIN' authority
- * - This matches what JwtAuthenticationFilter creates:
- * SimpleGrantedAuthority("ADMIN")
+ * Added: GET /api/analytics/admin/top-organizers endpoint
  */
 @RestController
 @RequestMapping("/api/analytics")
@@ -35,7 +28,7 @@ public class AnalyticsController {
      * Get global platform summary (Admin only)
      */
     @GetMapping("/admin/summary")
-    @PreAuthorize("hasAuthority('ADMIN')") // ✅ FIXED: was hasRole('ADMIN')
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<Map<String, Object>> getAdminSummary() {
         try {
             Map<String, Object> summary = analyticsService.getAdminSummary();
@@ -50,7 +43,7 @@ public class AnalyticsController {
      * Get event category distribution (Admin only)
      */
     @GetMapping("/admin/categories")
-    @PreAuthorize("hasAuthority('ADMIN')") // ✅ FIXED: was hasRole('ADMIN')
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> getCategoryDistribution() {
         try {
             List<Map<String, Object>> categories = analyticsService.getCategoryDistribution();
@@ -65,7 +58,7 @@ public class AnalyticsController {
      * Get monthly registration trends (Admin only)
      */
     @GetMapping("/admin/monthly-trends")
-    @PreAuthorize("hasAuthority('ADMIN')") // ✅ FIXED: was hasRole('ADMIN')
+    @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> getMonthlyTrends() {
         try {
             List<Map<String, Object>> trends = analyticsService.getMonthlyRegistrationTrends();
@@ -77,10 +70,25 @@ public class AnalyticsController {
     }
 
     /**
+     * 🆕 NEW: Get top organizers by registrations (Admin only)
+     */
+    @GetMapping("/admin/top-organizers")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<Map<String, Object>>> getTopOrganizers() {
+        try {
+            List<Map<String, Object>> topOrganizers = analyticsService.getTopOrganizers();
+            return ResponseEntity.ok(topOrganizers);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(null);
+        }
+    }
+
+    /**
      * Get organizer performance metrics
      */
     @GetMapping("/organizer/{organizerId}/performance")
-    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ORGANIZER')") // ✅ FIXED
+    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ORGANIZER')")
     public ResponseEntity<Map<String, Object>> getOrganizerPerformance(
             @PathVariable Long organizerId) {
         try {
