@@ -1,8 +1,10 @@
-/* AdminDashboard.css - Complete Redesigned Styles */
-/* 🆕 UPDATED: Added full-page profile section styles matching Visitor Dashboard */
-/* All classes prefixed with "ad-" to prevent conflicts */
+/* ================================================================
+   FILE: src/styles/Admin Dashboard/AdminDashboard.css (PART 1/3)
+   🆕 UPDATED: Added mobile sidebar, organizer filter styles, responsive breakpoints
+   All classes prefixed with "ad-" to prevent conflicts
+   ================================================================ */
 
-/* CSS Variables */
+/* ===== CSS Variables ===== */
 :root {
   --ad-primary-color: #6366f1;
   --ad-primary-hover: #4f46e5;
@@ -40,7 +42,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Dashboard Layout */
+/* ===== Dashboard Layout ===== */
 .ad-dashboard {
   display: flex;
   min-height: 100vh;
@@ -48,8 +50,8 @@ body {
   background-attachment: fixed;
 }
 
-/* Sidebar */
-.ad-sidebrAdmin {
+/* ===== Sidebar ===== */
+.ad-sidebarAdmin {
   width: 240px;
   background: #fff;
   border-right: 1px solid #ddd;
@@ -59,7 +61,44 @@ body {
   left: 0;
   bottom: 0;
   z-index: 1000;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease;
+  overflow-y: auto;
+}
+
+/* 🆕 NEW: Sidebar close button (hidden on desktop) */
+.ad-sidebar-close-btn {
+  display: none;
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--ad-gray-lighter);
+  border: none;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--ad-dark);
+  transition: var(--ad-transition);
+  z-index: 1001;
+}
+
+.ad-sidebar-close-btn:hover {
+  background: var(--ad-danger-color);
+  color: var(--ad-white);
+}
+
+/* 🆕 NEW: Sidebar overlay for mobile */
+.ad-sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
 }
 
 .ad-logo-section {
@@ -181,7 +220,7 @@ body {
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
 }
 
-/* Main Content */
+/* ===== Main Content ===== */
 .ad-main {
   margin-left: 240px;
   flex: 1;
@@ -189,7 +228,7 @@ body {
   flex-direction: column;
 }
 
-/* Topbar */
+/* ===== Topbar ===== */
 .ad-topbar {
   position: fixed;
   top: 0;
@@ -202,6 +241,23 @@ body {
   justify-content: space-between;
   align-items: center;
   z-index: 900;
+}
+
+/* 🆕 NEW: Hamburger menu button (hidden on desktop) */
+.ad-menu-btn {
+  display: none;
+  background: var(--ad-primary-light);
+  border: none;
+  border-radius: var(--ad-radius-sm);
+  padding: 8px;
+  cursor: pointer;
+  color: var(--ad-primary-color);
+  transition: var(--ad-transition);
+}
+
+.ad-menu-btn:hover {
+  background: var(--ad-primary-color);
+  color: var(--ad-white);
 }
 
 .ad-topbar h1 {
@@ -220,7 +276,7 @@ body {
   gap: 12px;
 }
 
-/* Buttons */
+/* ===== Buttons ===== */
 .ad-btn-outline {
   padding: 10px 20px;
   border: 2px solid var(--ad-primary-color);
@@ -341,7 +397,14 @@ body {
   box-shadow: var(--ad-shadow-md);
 }
 
-/* Content Area */
+/* Continues in Part 2... */
+/* ================================================================
+   FILE: src/styles/Admin Dashboard/AdminDashboard.css (PART 2/3)
+   Content Areas, Cards, Tables, Filters, Alerts
+   🆕 UPDATED: Added organizer filter indicator styles
+   ================================================================ */
+
+/* ===== Content Area ===== */
 .ad-content {
   padding: 20px;
   margin-top: 70px;
@@ -392,7 +455,56 @@ body {
   box-shadow: var(--ad-shadow);
 }
 
-/* Filters Section */
+/* 🆕 NEW: Active Organizer Filter Indicator */
+.ad-active-filter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+  border: 2px solid #fbbf24;
+  border-radius: var(--ad-radius-sm);
+  font-size: 14px;
+  color: var(--ad-dark);
+  animation: ad-slideDown 0.3s ease;
+}
+
+.ad-active-filter span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+}
+
+.ad-active-filter strong {
+  color: var(--ad-primary-color);
+  font-weight: 700;
+}
+
+.ad-btn-clear-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--ad-white);
+  border: 2px solid var(--ad-warning-color);
+  border-radius: var(--ad-radius-sm);
+  color: var(--ad-warning-color);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--ad-transition);
+}
+
+.ad-btn-clear-filter:hover {
+  background: var(--ad-warning-color);
+  color: var(--ad-white);
+  transform: translateY(-1px);
+  box-shadow: var(--ad-shadow-md);
+}
+
+/* ===== Filters Section ===== */
 .ad-filters-section {
   display: flex;
   gap: 16px;
@@ -448,7 +560,7 @@ body {
   background: var(--ad-primary-light);
 }
 
-/* Alerts */
+/* ===== Alerts ===== */
 .ad-alert {
   padding: 16px 20px;
   border-radius: var(--ad-radius-sm);
@@ -496,7 +608,7 @@ body {
   animation: ad-slideDown 0.3s ease;
 }
 
-/* Loading */
+/* ===== Loading ===== */
 .ad-loading-container {
   display: flex;
   flex-direction: column;
@@ -550,7 +662,7 @@ body {
   font-size: 18px;
 }
 
-/* Tables */
+/* ===== Tables ===== */
 .ad-table-wrapper {
   width: 100%;
   overflow-x: auto;
@@ -560,7 +672,7 @@ body {
 
 .ad-table-wrapper table {
   width: 100%;
-  min-width: 800px;
+  min-width: 1000px;
   border-collapse: collapse;
 }
 
@@ -597,6 +709,12 @@ body {
   transform: scale(1.01);
 }
 
+/* 🆕 NEW: Organizer row hover effect */
+.ad-organizer-row:hover {
+  background: #f0f9ff !important;
+  cursor: pointer;
+}
+
 .ad-td-id {
   font-weight: 700;
   color: var(--ad-gray);
@@ -616,7 +734,7 @@ body {
   border-radius: 4px;
 }
 
-/* Action Buttons */
+/* ===== Action Buttons ===== */
 .ad-action-buttons {
   display: flex;
   gap: 8px;
@@ -658,7 +776,7 @@ body {
   color: var(--ad-white);
 }
 
-/* Badges */
+/* ===== Badges ===== */
 .ad-status-badge {
   display: inline-flex;
   align-items: center;
@@ -674,24 +792,24 @@ body {
   text-transform: uppercase;
 }
 
-.ad-status-badge.ad-upcoming {
+.ad-status-badge.upcoming {
   background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
   color: #78350f;
   border-color: #fbbf24;
 }
 
-.ad-status-badge.ad-upcoming::before {
+.ad-status-badge.upcoming::before {
   content: "⏳";
   font-size: 14px;
 }
 
-.ad-status-badge.ad-completed {
+.ad-status-badge.completed {
   background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
   color: #065f46;
   border-color: #10b981;
 }
 
-.ad-status-badge.ad-completed::before {
+.ad-status-badge.completed::before {
   content: "✓";
   display: inline-flex;
   align-items: center;
@@ -720,24 +838,24 @@ body {
   text-transform: uppercase;
 }
 
-.ad-type-badge.ad-public {
+.ad-type-badge.public {
   background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
   color: #1e40af;
   border-color: #3b82f6;
 }
 
-.ad-type-badge.ad-public::before {
+.ad-type-badge.public::before {
   content: "🌍";
   font-size: 14px;
 }
 
-.ad-type-badge.ad-private {
+.ad-type-badge.private {
   background: linear-gradient(135deg, #fce7f3 0%, #fbcfe8 100%);
   color: #9f1239;
   border-color: #ec4899;
 }
 
-.ad-type-badge.ad-private::before {
+.ad-type-badge.private::before {
   content: "🔒";
   font-size: 14px;
 }
@@ -764,7 +882,14 @@ body {
   border-radius: 4px;
 }
 
-/* Create Organizer Form */
+/* Continues in Part 3... */
+/* ================================================================
+   FILE: src/styles/Admin Dashboard/AdminDashboard.css (PART 3/3)
+   Forms, Profile Section, Modals, Responsive Design
+   🆕 UPDATED: Added mobile breakpoints, sidebar animations
+   ================================================================ */
+
+/* ===== Create Organizer Form ===== */
 .ad-create-organizer {
   padding: 32px;
   max-width: 800px;
@@ -803,12 +928,6 @@ body {
   color: var(--ad-dark);
   margin-bottom: 8px;
   letter-spacing: -0.5px;
-}
-
-.ad-form-header p {
-  font-size: 15px;
-  color: var(--ad-gray);
-  font-weight: 500;
 }
 
 .ad-organizer-form .ad-form-group {
@@ -861,11 +980,7 @@ body {
   border-top: 2px solid var(--ad-gray-lighter);
 }
 
-/* ============================================ */
-/* 🆕 FULL-PAGE PROFILE SECTION */
-/* Matching Visitor Dashboard design with "ad-" prefix */
-/* ============================================ */
-
+/* ===== FULL-PAGE PROFILE SECTION ===== */
 .ad-profile-page {
   padding: 0;
 }
@@ -875,35 +990,12 @@ body {
   margin: 0 auto;
 }
 
-/* Profile Header for Edit Form */
-.ad-form-header-profile {
-  text-align: center;
-  margin-bottom: 30px;
-  padding-bottom: 20px;
-  border-bottom: 2px solid var(--ad-border);
-}
-
-.ad-form-header-profile h2 {
-  font-size: 28px;
-  color: var(--ad-dark);
-  margin: 0 0 8px 0;
-  font-weight: 700;
-}
-
-.ad-form-subtitle {
-  font-size: 14px;
-  color: var(--ad-gray);
-  margin: 0;
-}
-
-/* Profile View Card */
 .ad-profile-view-card {
   background: #fff;
   padding: 40px;
   border-radius: 20px;
   text-align: center;
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  position: relative;
 }
 
 .ad-profile-avatar-wrapper {
@@ -972,7 +1064,6 @@ body {
   color: var(--ad-dark);
 }
 
-/* 🆕 Edit Profile Button in View Mode */
 .ad-btn-primary-visitor {
   padding: 12px 28px;
   background: var(--ad-primary-color);
@@ -1009,14 +1100,12 @@ body {
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
 }
 
-/* Full width for image upload section */
 .ad-form-group.ad-full-width {
   width: 100%;
   margin-bottom: 25px;
   text-align: left;
 }
 
-/* 🆕 Two-column grid layout for profile form fields */
 .ad-form-row-profile {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1060,26 +1149,8 @@ body {
   color: #999;
 }
 
-/* 🆕 Password Change Section */
 .ad-password-section {
-  /* margin-top: 30px; */
   padding-top: 5px;
-  /* border-top: 2px solid var(--ad-border); */
-}
-
-.ad-section-title {
-  font-size: 20px;
-  color: var(--ad-dark);
-  margin: 0 0 5px 0;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.ad-section-title::before {
-  content: "🔐";
-  font-size: 20px;
 }
 
 .ad-section-subtitle {
@@ -1089,7 +1160,7 @@ body {
   font-style: italic;
 }
 
-/* Image upload area */
+/* 🆕 NEW: Image upload area with preview */
 .ad-image-upload-area {
   display: flex;
   flex-direction: column;
@@ -1144,7 +1215,6 @@ body {
   border: 4px solid var(--ad-primary-color);
 }
 
-/* Profile Form Actions */
 .ad-form-actions-profile {
   display: flex;
   gap: 12px;
@@ -1185,34 +1255,7 @@ body {
   transform: translateY(-2px);
 }
 
-/* ============================================ */
-/* MODAL STYLES (for events, organizers, visitors) */
-/* ============================================ */
-
-.ad-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(30, 41, 59, 0.7);
-  backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2000;
-  animation: ad-fadeIn 0.3s ease;
-}
-
-@keyframes ad-fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
+/* ===== MODAL STYLES ===== */
 .ad-modal-overlay {
   position: fixed;
   top: 0;
@@ -1225,12 +1268,16 @@ body {
   justify-content: center;
   z-index: 1000;
   padding: 15px;
+  animation: ad-fadeIn 0.3s ease;
 }
 
-.ad-modal-actions {
-    display: flex;
-    flex-direction: row-reverse;
-    gap: 10px;
+@keyframes ad-fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .ad-modal-content {
@@ -1241,7 +1288,6 @@ body {
   width: 100%;
   max-height: 90vh;
   overflow-y: auto;
-  /* position: relative; */
   animation: ad-modalSlideIn 0.3s ease;
 }
 
@@ -1283,19 +1329,20 @@ body {
   position: relative;
 }
 
-.ad-event-detail-image {
-  width: 100%;
-  height: 205px;
-  object-fit: cover;
-  border-radius: 12px 12px 0 0;
-}
-
-.ad-modal-header h2 {
+.ad-modal-header h2,
+.ad-modal-header h3 {
   padding: 5px 22px;
   margin: 0;
   font-size: 22px;
   font-weight: 700;
   color: #333;
+}
+
+.ad-event-detail-image {
+  width: 100%;
+  height: 205px;
+  object-fit: cover;
+  border-radius: 12px 12px 0 0;
 }
 
 .ad-modal-body {
@@ -1306,7 +1353,6 @@ body {
   background: #f9f9f9;
   padding: 10px;
   border-radius: 8px;
-  /* margin-bottom: 15px; */
 }
 
 .ad-event-info p {
@@ -1321,40 +1367,10 @@ body {
   margin-right: 6px;
 }
 
-.ad-status-badge {
-  padding: 2px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  margin-left: 6px;
-}
-
-.ad-status-badge.active {
-  background: #22c55e;
-  color: white;
-}
-
-.ad-status-badge.completed {
-  background: #6366f1;
-  color: white;
-}
-
-.ad-status-badge.cancelled {
-  background: #ef4444;
-  color: white;
-}
-
-.ad-private-code {
-  font-family: monospace;
-  background: #eef2ff;
-  padding: 3px 8px;
-  border-radius: 6px;
-}
-
 .ad-modal-description h3 {
   font-size: 19px;
   color: #333;
   font-weight: 700;
-  /* margin-bottom: 8px; */
 }
 
 .ad-modal-description p {
@@ -1387,8 +1403,13 @@ body {
   color: white;
 }
 
+.ad-modal-actions {
+  display: flex;
+  flex-direction: row-reverse;
+  gap: 10px;
+  padding: 10px 22px;
+}
 
-/* Form Groups in Modal */
 .ad-modal-content .ad-form-group {
   margin-bottom: 20px;
 }
@@ -1421,12 +1442,15 @@ body {
   box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
 }
 
-/* ============================================ */
-/* 📱 RESPONSIVE DESIGN */
-/* ============================================ */
+.ad-warning-text {
+  color: var(--ad-danger-color);
+  font-weight: 600;
+  margin-top: 8px;
+}
 
+/* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 1024px) {
-  .ad-sidebrAdmin {
+  .ad-sidebarAdmin {
     width: 240px;
   }
 
@@ -1445,29 +1469,26 @@ body {
   .ad-filter-group {
     min-width: 100%;
   }
-
-  .ad-card {
-    padding: 20px;
-  }
-
-  .ad-content {
-    padding: 24px;
-  }
-
-  /* 🆕 Profile responsive adjustments */
-  .ad-profile-container {
-    max-width: 100%;
-  }
 }
 
+/* 🆕 NEW: Mobile responsive (768px and below) */
 @media (max-width: 768px) {
-  .ad-sidebrAdmin {
+  .ad-sidebarAdmin {
     transform: translateX(-100%);
     width: 280px;
+    box-shadow: var(--ad-shadow-xl);
   }
 
-  .ad-sidebrAdmin.ad-open {
+  .ad-sidebarAdmin.ad-open {
     transform: translateX(0);
+  }
+
+  .ad-sidebar-close-btn {
+    display: flex;
+  }
+
+  .ad-sidebar-overlay {
+    display: block;
   }
 
   .ad-main {
@@ -1477,6 +1498,10 @@ body {
   .ad-topbar {
     left: 0;
     padding: 16px 20px;
+  }
+
+  .ad-menu-btn {
+    display: block;
   }
 
   .ad-topbar h1 {
@@ -1496,6 +1521,8 @@ body {
   .ad-create-organizer {
     padding: 24px;
     margin: 80px 16px 20px;
+    position: relative;
+    right: auto;
   }
 
   .ad-form-row {
@@ -1503,20 +1530,24 @@ body {
     gap: 0;
   }
 
+  .ad-form-row-profile {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
   .ad-modal-content {
     width: 95%;
     padding: 24px;
   }
 
+  .ad-modal-close {
+    top: 10px;
+    right: 10px;
+  }
+
   .ad-profile-view-card,
   .ad-profile-edit-form {
     padding: 30px 20px;
-  }
-
-  /* 🆕 Two-column form becomes single column on tablet */
-  .ad-form-row-profile {
-    grid-template-columns: 1fr;
-    gap: 15px;
   }
 
   .ad-form-actions,
@@ -1530,90 +1561,23 @@ body {
     max-width: 100%;
   }
 
-  .ad-nav-btn {
-    padding: 12px 14px;
-    font-size: 14px;
-  }
-
-  .ad-nav-count {
-    font-size: 11px;
-    padding: 3px 8px;
-  }
-
   .ad-content {
     padding: 20px 16px;
     margin-top: 70px;
   }
 
-  .ad-card {
-    padding: 20px 16px;
-  }
-
-  .ad-card-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-
   .ad-table-wrapper table {
+    min-width: 1000px;
     font-size: 13px;
-  }
-
-  .ad-table-wrapper th,
-  .ad-table-wrapper td {
-    padding: 12px 14px;
   }
 }
 
+/* 🆕 NEW: Extra small mobile (480px and below) */
 @media (max-width: 480px) {
   .ad-topbar h1 {
     font-size: 18px;
   }
 
-  .ad-btn-outline span:not(.ad-nav-count),
-  .ad-btn-primary span:not(.ad-spinner-small) {
-    display: none;
-  }
-
-  .ad-logo-text {
-    font-size: 18px;
-  }
-
-  .ad-table-wrapper th,
-  .ad-table-wrapper td {
-    font-size: 12px;
-    padding: 10px 12px;
-  }
-
-  .ad-card-header h2 {
-    font-size: 20px;
-  }
-
-  .ad-detail-row {
-    flex-direction: column;
-    gap: 8px;
-  }
-
-  .ad-detail-row strong {
-    min-width: auto;
-  }
-
-  .ad-form-header h2,
-  .ad-form-header-profile h2 {
-    font-size: 22px;
-  }
-
-  .ad-form-header-icon {
-    width: 56px;
-    height: 56px;
-  }
-
-  .ad-form-header-icon svg {
-    width: 24px;
-    height: 24px;
-  }
-
-  /* 🆕 Profile mobile adjustments */
   .ad-profile-avatar {
     width: 120px;
     height: 120px;
@@ -1623,39 +1587,12 @@ body {
     font-size: 24px;
   }
 
-  .ad-image-preview {
-    width: 100px;
-    height: 100px;
-  }
-
   .ad-profile-edit-form {
     padding: 20px 15px;
   }
-
-  .ad-form-label {
-    font-size: 13px;
-  }
-
-  .ad-form-input {
-    padding: 10px 12px;
-    font-size: 13px;
-  }
-
-  .ad-form-actions-profile .ad-btn {
-    padding: 10px 20px;
-    font-size: 14px;
-  }
-
-  .ad-section-title {
-    font-size: 18px;
-  }
-
-  .ad-modal-content {
-    margin: 10px;
-  }
 }
 
-/* Scrollbar Styling */
+/* ===== Scrollbar Styling ===== */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -1676,7 +1613,7 @@ body {
   background: var(--ad-gray);
 }
 
-/* Custom Animations */
+/* ===== Animations ===== */
 @keyframes ad-pulse {
   0%, 100% {
     opacity: 1;
@@ -1690,12 +1627,14 @@ body {
   animation: ad-pulse 2s ease-in-out infinite;
 }
 
-/* Print Styles */
+/* ===== Print Styles ===== */
 @media print {
-  .ad-sidebrAdmin,
+  .ad-sidebarAdmin,
   .ad-topbar,
   .ad-btn-icon,
-  .ad-modal-overlay {
+  .ad-modal-overlay,
+  .ad-menu-btn,
+  .ad-sidebar-overlay {
     display: none !important;
   }
 
