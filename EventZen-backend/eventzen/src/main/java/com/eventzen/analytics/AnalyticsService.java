@@ -19,14 +19,6 @@ import com.eventzen.repository.EventRepository;
 import com.eventzen.repository.RegistrationRepository;
 import com.eventzen.repository.UserRepository;
 
-/**
- * ✅ FIXED Analytics Service
- * 
- * Changes:
- * 1. Monthly trends now use REGISTRATION date (not event date)
- * 2. Changed from 12 months to 6 months
- * 3. Added Top Organizers method
- */
 @Service
 public class AnalyticsService {
 
@@ -39,9 +31,6 @@ public class AnalyticsService {
     @Autowired
     private UserRepository userRepository;
 
-    /**
-     * Get global platform summary statistics (Admin)
-     */
     public Map<String, Object> getAdminSummary() {
         Map<String, Object> summary = new HashMap<>();
 
@@ -56,9 +45,6 @@ public class AnalyticsService {
         return summary;
     }
 
-    /**
-     * Get event category distribution (Admin)
-     */
     public List<Map<String, Object>> getCategoryDistribution() {
         List<Event> allEvents = eventRepository.findAll();
 
@@ -79,14 +65,6 @@ public class AnalyticsService {
         return result;
     }
 
-    /**
-     * ✅ FIXED: Get monthly registration trends (Admin)
-     * 
-     * Changes:
-     * - Now uses REGISTRATION date instead of event date
-     * - Changed from 12 months to 6 months
-     * - Uses registrationRepository.findRegistrationsInLast6Months()
-     */
     public List<Map<String, Object>> getMonthlyRegistrationTrends() {
         // Get registrations from last 6 months
         LocalDateTime sixMonthsAgo = LocalDateTime.now().minusMonths(6);
@@ -116,13 +94,6 @@ public class AnalyticsService {
         return result;
     }
 
-    /**
-     * 🆕 NEW: Get top organizers by total registrations (Admin)
-     * 
-     * Returns: list of {organizerId, organizerName, totalEvents,
-     * totalRegistrations}
-     * Sorted by total registrations descending
-     */
     public List<Map<String, Object>> getTopOrganizers() {
         // Get all organizers
         List<User> organizers = userRepository.findAll().stream()

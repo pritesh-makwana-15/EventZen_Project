@@ -1,7 +1,7 @@
 import React from "react";
 import { Users, Calendar, UserCheck, TrendingUp } from "lucide-react";
 
-/**
+/** 
  * Summary Cards Component
  * Displays key metrics in card format
  * 

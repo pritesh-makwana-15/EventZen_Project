@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
-import OrganizerAnalyticsPage from "../pages/OrganizerAnalyticsPage";
 import {
   Calendar,
   Users,
@@ -20,8 +19,28 @@ import {
   Upload,
   CircleX,
   ChartBarStacked,
-  ImagePlus
+  ImagePlus,
+  Menu,
+  Clock,
+  MapPin,
+  CalendarDays,
+  TrendingUp,
+  Award
 } from "lucide-react";
+
+// 🆕 Import Analytics Components
+import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
+
+// 🆕 Import DateTime Utilities
+import {
+  formatDateDDMMYYYY,
+  formatTimeAMPM,
+  formatDateTimeAMPM,
+  validateDateTime,
+  getTomorrowDate,
+  isUpcomingEvent,
+  parseLocation
+} from "../utils/dateTime";
 
 // ============ Toast Notification Component ============
 function Toast({ message, type, onClose }) {
@@ -36,6 +55,256 @@ function Toast({ message, type, onClose }) {
         {type === 'success' ? '✓' : '✕'}
       </span>
       <span className="org-toast-message">{message}</span>
+    </div>
+  );
+}
+
+// ============ 🆕 Analytics Components (Embedded) ============
+
+// Summary Cards Component
+function SummaryCards({ totalUsers, totalEvents, totalRegistrations, avgAttendance }) {
+  const cards = [];
+
+  if (totalUsers !== undefined) {
+    cards.push({
+      id: "users",
+      icon: Users,
+      label: "Total Users",
+      value: totalUsers,
+      color: "card-blue",
+    });
+  }
+
+  if (totalEvents !== undefined) {
+    cards.push({
+      id: "events",
+      icon: Calendar,
+      label: "Total Events",
+      value: totalEvents,
+      color: "card-purple",
+    });
+  }
+
+  if (totalRegistrations !== undefined) {
+    cards.push({
+      id: "registrations",
+      icon: UserPlus,
+      label: "Total Registrations",
+      value: totalRegistrations,
+      color: "card-green",
+    });
+  }
+
+  if (avgAttendance !== undefined) {
+    cards.push({
+      id: "attendance",
+      icon: TrendingUp,
+      label: "Avg Attendance Rate",
+      value: `${avgAttendance}%`,
+      color: "card-orange",
+    });
+  }
+
+  return (
+    <div className="summary-cards-grid">
+      {cards.map((card) => {
+        const Icon = card.icon;
+        return (
+          <div key={card.id} className={`summary-card ${card.color}`}>
+            <div className="card-icon">
+              <Icon size={28} />
+            </div>
+            <div className="card-content">
+              <p className="card-label">{card.label}</p>
+              <h3 className="card-value">{card.value}</h3>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Category Chart Component
+function CategoryChart({ data }) {
+  const COLORS = [
+    "#667eea", "#764ba2", "#f093fb", "#4facfe", "#00f2fe",
+    "#43e97b", "#fa709a", "#feca57", "#ff9ff3", "#54a0ff", "#48dbfb"
+  ];
+
+  if (!data || data.length === 0) {
+    return <div className="chart-empty">No category data available</div>;
+  }
+
+  const chartData = data.map((item) => ({
+    name: item.category,
+    value: item.count,
+  }));
+
+  return (
+    <ResponsiveContainer width="100%" height={500}>
+      <PieChart>
+        <Pie
+          data={chartData}
+          cx="50%"
+          cy="50%"
+          labelLine={false}
+          label={({ name, value }) => `${name}: ${value}`}
+          outerRadius={100}
+          fill="#8884d8"
+          dataKey="value"
+        >
+          {chartData.map((entry, index) => (
+            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          ))}
+        </Pie>
+        <Tooltip formatter={(value) => `${value} events`} />
+        <Legend />
+      </PieChart>
+    </ResponsiveContainer>
+  );
+}
+
+// Monthly Trends Chart Component
+function MonthlyTrendsChart({ data }) {
+  if (!data || data.length === 0) {
+    return <div className="chart-empty">No trend data available</div>;
+  }
+
+  const chartData = data.map((item) => ({
+    name: `${item.monthName.substring(0, 3)} ${item.year}`,
+    registrations: item.count,
+    month: item.month,
+    year: item.year,
+  }));
+
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={chartData} margin={{ top: 5, right: 30, left: 0, bottom: 5 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
+        <XAxis 
+          dataKey="name" 
+          stroke="#666"
+          style={{ fontSize: "12px" }}
+          angle={-45}
+          textAnchor="end"
+          height={80}
+        />
+        <YAxis 
+          stroke="#666"
+          style={{ fontSize: "12px" }}
+        />
+        <Tooltip 
+          contentStyle={{
+            backgroundColor: "#fff",
+            border: "1px solid #ccc",
+            borderRadius: "8px",
+            padding: "10px",
+          }}
+          formatter={(value) => [`${value} registrations`, "Registrations"]}
+        />
+        <Legend />
+        <Line
+          type="monotone"
+          dataKey="registrations"
+          stroke="#667eea"
+          strokeWidth={2}
+          dot={{ fill: "#667eea", r: 5 }}
+          activeDot={{ r: 7 }}
+          isAnimationActive={true}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+// Analytics Dashboard Component
+function AnalyticsDashboard({ organizerId }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [organizerPerformance, setOrganizerPerformance] = useState(null);
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, [organizerId]);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      
+      if (organizerId) {
+        const perfRes = await API.get(`/analytics/organizer/${organizerId}/performance`);
+        setOrganizerPerformance(perfRes.data);
+      }
+    } catch (err) {
+      console.error("Error fetching analytics:", err);
+      setError("Failed to load analytics data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="analytics-loading">
+        <Loader className="analytics-spinner" size={48} />
+        <p>Loading analytics...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="analytics-error">
+        <p>{error}</p>
+        <button onClick={fetchAnalyticsData} className="analytics-retry-btn">
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="analytics-container">
+      {organizerPerformance && (
+        <div className="analytics-organizer-view">
+          {/* Performance Cards */}
+          <SummaryCards
+            totalEvents={organizerPerformance.totalEvents}
+            totalRegistrations={organizerPerformance.totalRegistrations}
+            avgAttendance={organizerPerformance.averageAttendanceRate}
+          />
+
+          {/* Top Events */}
+          <div className="analytics-top-events">
+            <h3>🌟 Your Top Events</h3>
+            {organizerPerformance.topEvents && organizerPerformance.topEvents.length > 0 ? (
+              <div className="analytics-events-list">
+                {organizerPerformance.topEvents.map((event, idx) => (
+                  <div key={idx} className="analytics-event-item">
+                    <div className="event-rank">#{idx + 1}</div>
+                    <div className="event-info">
+                      <h4>{event.eventTitle}</h4>
+                      <p>
+                        {event.registrations} Registration{event.registrations !== 1 ? 's' : ''}
+                      </p>
+                    </div>
+                    <div className="event-rate">
+                      <span className="rate-value">{event.attendanceRate}%</span>
+                      <span className="rate-label">Attendance</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="analytics-no-data">
+                <p>📭 No events yet. Create your first event to see analytics!</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -106,16 +375,28 @@ function MyEvents({ onEditEvent }) {
 
     if (statusFilter !== "all") {
       if (statusFilter === "upcoming") {
-        filtered = filtered.filter(event => new Date(event.date) > now);
+        filtered = filtered.filter(event => {
+          const eventStart = new Date(`${event.startDate}T${event.startTime || '00:00'}`);
+          return eventStart > now;
+        });
       } else if (statusFilter === "completed") {
-        filtered = filtered.filter(event => new Date(event.date) <= now);
+        filtered = filtered.filter(event => {
+          const eventEnd = new Date(`${event.endDate || event.startDate}T${event.endTime || '23:59'}`);
+          return eventEnd <= now;
+        });
       }
     }
 
-    const upcoming = filtered.filter(e => new Date(e.date) > now)
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
-    const completed = filtered.filter(e => new Date(e.date) <= now)
-      .sort((a, b) => new Date(b.date) - new Date(a.date));
+    // 🆕 Sort by start date
+    const upcoming = filtered.filter(e => {
+      const eventStart = new Date(`${e.startDate}T${e.startTime || '00:00'}`);
+      return eventStart > now;
+    }).sort((a, b) => new Date(`${b.startDate}T${b.startTime}`) - new Date(`${a.startDate}T${a.startTime}`));
+    
+    const completed = filtered.filter(e => {
+      const eventEnd = new Date(`${e.endDate || e.startDate}T${e.endTime || '23:59'}`);
+      return eventEnd <= now;
+    }).sort((a, b) => new Date(`${b.startDate}T${b.startTime}`) - new Date(`${a.startDate}T${a.startTime}`));
     
     setFilteredEvents([...upcoming, ...completed]);
   };
@@ -152,20 +433,6 @@ function MyEvents({ onEditEvent }) {
     setStatusFilter("all");
   };
 
-  const formatDateDDMMYYYY = (isoDateStr) => {
-    const date = new Date(isoDateStr);
-    return date.toLocaleDateString('en-GB');
-  };
-
-  const formatTimeHHMM = (isoDateStr) => {
-    const date = new Date(isoDateStr);
-    return date.toLocaleTimeString('en-GB', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: false 
-    });
-  };
-
   const defaultImages = {
     "Music": "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&h=300&fit=crop",
     "Technology": "https://images.unsplash.com/photo-1518709268805-4e9042af2176?w=400&h=300&fit=crop",
@@ -186,7 +453,10 @@ function MyEvents({ onEditEvent }) {
   ];
 
   const totalEvents = events.length;
-  const upcomingEvents = events.filter(e => new Date(e.date) > new Date()).length;
+  const upcomingEvents = events.filter(e => {
+    const eventStart = new Date(`${e.startDate}T${e.startTime || '00:00'}`);
+    return eventStart > new Date();
+  }).length;
   const pastEvents = totalEvents - upcomingEvents;
 
   if (loading && events.length === 0) {
@@ -207,23 +477,19 @@ function MyEvents({ onEditEvent }) {
         </div>
         <div className="org-stat-card org-stat-upcoming">
           <div className="org-stat-content">
-          <div className="org-stat-icon" aria-hidden="true">🚀</div>
+            <div className="org-stat-icon" aria-hidden="true">🚀</div>
             <span className="org-stat-value">{upcomingEvents}</span>
           </div>
-            <span className="org-stat-label">Upcoming Events</span>
+          <span className="org-stat-label">Upcoming Events</span>
         </div>
         <div className="org-stat-card org-stat-past">
           <div className="org-stat-content">
-          <div className="org-stat-icon" aria-hidden="true">✓</div>
+            <div className="org-stat-icon" aria-hidden="true">✓</div>
             <span className="org-stat-value">{pastEvents}</span>
           </div>
-            <span className="org-stat-label">Completed Events</span>
+          <span className="org-stat-label">Completed Events</span>
         </div>
       </div>
-
-      {/* <div className="org-events-header">
-        <h2 className="org-section-title">My Events</h2>
-      </div> */}
 
       <div className="org-filters-section">
         <div className="org-filters-row">
@@ -284,6 +550,7 @@ function MyEvents({ onEditEvent }) {
               onClick={handleClearFilters}
               aria-label="Clear all filters"
             >
+              <RotateCcw size={14} />
               Clear Filters
             </button>
           </div>
@@ -302,86 +569,181 @@ function MyEvents({ onEditEvent }) {
           </p>
         </div>
       ) : (
-        <div className="org-table-container">
-          <table className="org-events-table">
-            <thead>
-              <tr>
-                <th scope="col">Image</th>
-                <th scope="col">Title</th>
-                <th scope="col">Date</th>
-                <th scope="col">Time</th>
-                <th scope="col">Category</th>
-                <th scope="col">Type</th>
-                <th scope="col">Attendees</th>
-                <th scope="col">Status</th>
-                <th scope="col">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredEvents.map((event) => {
-                const eventDate = new Date(event.date);
-                const isUpcoming = eventDate > new Date();
-                return (
-                  <tr key={event.id}>
-                    <td>
-                      <img 
-                        src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
-                        alt={`${event.title} event image`}
-                        className="org-event-thumbnail"
-                      />
-                    </td>
-                    <td><span className="org-event-title">{event.title}</span></td>
-                    <td>{formatDateDDMMYYYY(event.date)}</td>
-                    <td>{formatTimeHHMM(event.date)}</td>
-                    <td><span className="org-category-badge">{event.category}</span></td>
-                    <td>
+        <>
+          {/* 🆕 Desktop Table View */}
+          <div className="org-table-container">
+            <table className="org-events-table">
+              <thead>
+                <tr>
+                  <th scope="col">Image</th>
+                  <th scope="col">Title</th>
+                  <th scope="col">Start Date</th>
+                  <th scope="col">End Date</th>
+                  <th scope="col">Start Time</th>
+                  <th scope="col">End Time</th>
+                  <th scope="col">Category</th>
+                  <th scope="col">Type</th>
+                  <th scope="col">Attendees</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>  
+              <tbody>
+                {filteredEvents.map((event) => {
+                  const eventStart = new Date(`${event.startDate}T${event.startTime || '00:00'}`);
+                  const isUpcoming = eventStart > new Date();
+                  return (
+                    <tr key={event.id}>
+                      <td>
+                        <img 
+                          src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
+                          alt={`${event.title} event image`}
+                          className="org-event-thumbnail"
+                        />
+                      </td>
+                      <td><span className="org-event-title">{event.title}</span></td>
+                      <td>{formatDateDDMMYYYY(event.startDate)}</td>
+                      <td>{formatDateDDMMYYYY(event.endDate || event.startDate)}</td>
+                      <td>{formatTimeAMPM(event.startTime || '00:00')}</td>
+                      <td>{formatTimeAMPM(event.endTime || '23:59')}</td>
+                      <td><span className="org-category-badge">{event.category}</span></td>
+                      <td>
+                        <span className={`org-type-badge org-type-${event.eventType?.toLowerCase()}`}>
+                          {event.eventType || 'PUBLIC'}
+                        </span>
+                      </td>
+                      <td className="org-attendees-cell">
+                        {(event.currentAttendees || 0)} / {event.maxAttendees || 0}
+                      </td>
+                      <td>
+                        <span className={`org-status-badge org-status-${isUpcoming ? 'upcoming' : 'completed'}`}>
+                          {isUpcoming ? 'Upcoming' : 'Completed'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="org-action-buttons">
+                          {isUpcoming ? (
+                            <>
+                              <button 
+                                className="org-action-btn org-btn-edit"
+                                onClick={() => onEditEvent(event)}
+                                aria-label={`Edit ${event.title}`}
+                              >
+                                <Edit size={14} />
+                                Edit
+                              </button>
+                              <button 
+                                className="org-action-btn org-btn-delete"
+                                onClick={() => setDeleteConfirm(event)}
+                                aria-label={`Delete ${event.title}`}
+                              >
+                                <Trash2 size={14} />
+                                Delete
+                              </button>
+                            </>
+                          ) : null}
+                          <button 
+                            className="org-action-btn org-btn-view"
+                            onClick={() => handleViewDetails(event)}
+                            aria-label={`View details for ${event.title}`}
+                          >
+                            <Eye size={14} />
+                            View
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* 🆕 Mobile Card View */}
+          <div className="org-events-cards">
+            {filteredEvents.map((event) => {
+              const eventStart = new Date(`${event.startDate}T${event.startTime || '00:00'}`);
+              const isUpcoming = eventStart > new Date();
+              return (
+                <div key={event.id} className="org-event-card">
+                  <img 
+                    src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
+                    alt={`${event.title} event`}
+                    className="org-event-card-image"
+                  />
+                  <div className="org-event-card-content">
+                    <h3 className="org-event-card-title">{event.title}</h3>
+                    
+                    <div className="org-event-card-details">
+                      <div className="org-event-card-detail">
+                        <CalendarDays size={16} />
+                        <span>Start: {formatDateDDMMYYYY(event.startDate)}</span>
+                      </div>
+                      <div className="org-event-card-detail">
+                        <CalendarDays size={16} />
+                        <span>End: {formatDateDDMMYYYY(event.endDate || event.startDate)}</span>
+                      </div>
+                      <div className="org-event-card-detail">
+                        <Clock size={16} />
+                        <span>{formatTimeAMPM(event.startTime || '00:00')}</span>
+                      </div>
+                      <div className="org-event-card-detail">
+                        <Clock size={16} />
+                        <span>{formatTimeAMPM(event.endTime || '23:59')}</span>
+                      </div>
+                      <div className="org-event-card-detail">
+                        <MapPin size={16} />
+                        <span>{event.location || 'No location'}</span>
+                      </div>
+                      <div className="org-event-card-detail">
+                        <Users size={16} />
+                        <span>{event.currentAttendees || 0}/{event.maxAttendees || 0}</span>
+                      </div>
+                    </div>
+
+                    <div className="org-event-card-badges">
+                      <span className="org-category-badge">{event.category}</span>
                       <span className={`org-type-badge org-type-${event.eventType?.toLowerCase()}`}>
                         {event.eventType || 'PUBLIC'}
                       </span>
-                    </td>
-                    <td className="org-attendees-cell">
-                      {(event.currentAttendees || 0)} / {event.maxAttendees || 0}
-                    </td>
-                    <td>
                       <span className={`org-status-badge org-status-${isUpcoming ? 'upcoming' : 'completed'}`}>
                         {isUpcoming ? 'Upcoming' : 'Completed'}
                       </span>
-                    </td>
-                    <td>
-                      <div className="org-action-buttons">
-                        {isUpcoming ? (
-                          <>
-                            <button 
-                              className="org-action-btn org-btn-edit"
-                              onClick={() => onEditEvent(event)}
-                              aria-label={`Edit ${event.title}`}
-                            >
-                              Edit
-                            </button>
-                            <button 
-                              className="org-action-btn org-btn-delete"
-                              onClick={() => setDeleteConfirm(event)}
-                              aria-label={`Delete ${event.title}`}
-                            >
-                              Delete
-                            </button>
-                          </>
-                        ) : null}
-                        <button 
-                          className="org-action-btn org-btn-view"
-                          onClick={() => handleViewDetails(event)}
-                          aria-label={`View details for ${event.title}`}
-                        >
-                          View
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+                    </div>
+
+                    <div className="org-event-card-actions">
+                      {isUpcoming && (
+                        <>
+                          <button 
+                            className="org-action-btn org-btn-edit"
+                            onClick={() => onEditEvent(event)}
+                          >
+                            <Edit size={14} />
+                            Edit
+                          </button>
+                          <button 
+                            className="org-action-btn org-btn-delete"
+                            onClick={() => setDeleteConfirm(event)}
+                          >
+                            <Trash2 size={14} />
+                            Delete
+                          </button>
+                        </>
+                      )}
+                      <button 
+                        className="org-action-btn org-btn-view"
+                        onClick={() => handleViewDetails(event)}
+                      >
+                        <Eye size={14} />
+                        View
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       {deleteConfirm && (
@@ -409,20 +771,20 @@ function MyEvents({ onEditEvent }) {
         </div>
       )}
 
-      {/* {showModal && selectedEvent && (
+      {showModal && selectedEvent && (
         <div className="org-modal-overlay" onClick={handleCloseModal} role="dialog" aria-modal="true">
           <div className="org-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button 
-              className="org-modal-close" 
-              onClick={handleCloseModal} 
+            <button
+              className="org-modal-close"
+              onClick={handleCloseModal}
               aria-label="Close modal"
             >
-              ×
+              <X size={20} />
             </button>
-            
+
             <div className="org-modal-header">
-              <img 
-                src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]} 
+              <img
+                src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]}
                 alt={`${selectedEvent.title} event`}
                 className="org-modal-image"
               />
@@ -431,118 +793,58 @@ function MyEvents({ onEditEvent }) {
             </div>
 
             <div className="org-modal-body">
-              <div className="org-detail-row">
-                <strong>Description</strong>
-                <p>{selectedEvent.description}</p>
-              </div>
+              <div className="org-event-info">
+                <p><strong>Description:</strong> {selectedEvent.description}</p>
+                
+                {/* 🆕 Updated Date/Time Display */}
+                <p>
+                  <strong>Start:</strong> {formatDateDDMMYYYY(selectedEvent.startDate)} at {formatTimeAMPM(selectedEvent.startTime || '00:00')}
+                </p>
+                <p>
+                  <strong>End:</strong> {formatDateDDMMYYYY(selectedEvent.endDate || selectedEvent.startDate)} at {formatTimeAMPM(selectedEvent.endTime || '23:59')}
+                </p>
+                
+                <p><strong>Location:</strong> {selectedEvent.location || "Not specified"}</p>
+                <p>
+                  <strong>Type:</strong>
+                  <span className={`org-type-badge org-type-${selectedEvent.eventType?.toLowerCase()}`}>
+                    {selectedEvent.eventType || "PUBLIC"}
+                  </span>
+                </p>
 
-              <div className="org-detail-row">
-                <strong>Date & Time</strong>
-                <p>{formatDateDDMMYYYY(selectedEvent.date)} at {formatTimeHHMM(selectedEvent.date)}</p>
-              </div>
+                {selectedEvent.eventType === "PRIVATE" && selectedEvent.privateCode && (
+                  <p>
+                    <strong>Private Code:</strong>
+                    <span className="org-private-code">{selectedEvent.privateCode}</span>
+                  </p>
+                )}
 
-              <div className="org-detail-row">
-                <strong>Location</strong>
-                <p>{selectedEvent.location || "Not specified"}</p>
-              </div>
+                <p>
+                  <strong>Attendees:</strong> {selectedEvent.currentAttendees || 0} /{" "}
+                  {selectedEvent.maxAttendees || "Unlimited"}
+                </p>
 
-              <div className="org-detail-row">
-                <strong>Event Type</strong>
-                <span className={`org-type-badge org-type-${selectedEvent.eventType?.toLowerCase()}`}>
-                  {selectedEvent.eventType || 'PUBLIC'}
-                </span>
+                <p>
+                  <strong>Status:</strong>
+                  <span
+                    className={`org-status-badge org-status-${
+                      new Date(`${selectedEvent.startDate}T${selectedEvent.startTime || '00:00'}`) > new Date() ? "upcoming" : "completed"
+                    }`}
+                  >
+                    {new Date(`${selectedEvent.startDate}T${selectedEvent.startTime || '00:00'}`) > new Date() ? "Upcoming" : "Completed"}
+                  </span>
+                </p>
               </div>
+            </div>
 
-              {selectedEvent.eventType === "PRIVATE" && selectedEvent.privateCode && (
-                <div className="org-detail-row">
-                  <strong>Private Code</strong>
-                  <span className="org-private-code">{selectedEvent.privateCode}</span>
-                </div>
-              )}
-
-              <div className="org-detail-row">
-                <strong>Attendees</strong>
-                <p>{selectedEvent.currentAttendees || 0} / {selectedEvent.maxAttendees || "Unlimited"}</p>
-              </div>
-
-              <div className="org-detail-row">
-                <strong>Status</strong>
-                <span className={`org-status-badge org-status-${new Date(selectedEvent.date) > new Date() ? 'upcoming' : 'completed'}`}>
-                  {new Date(selectedEvent.date) > new Date() ? 'Upcoming' : 'Completed'}
-                </span>
-              </div>
+            <div className="org-modal-footer">
+              <button className="org-btn-close" onClick={handleCloseModal}>
+                Close
+              </button>
             </div>
           </div>
         </div>
-      )} */}
-
-      {showModal && selectedEvent && (
-  <div className="org-modal-overlay" onClick={handleCloseModal} role="dialog" aria-modal="true">
-    <div className="org-modal-content" onClick={(e) => e.stopPropagation()}>
-      <button
-        className="org-modal-close"
-        onClick={handleCloseModal}
-        aria-label="Close modal"
-      >
-        ×
-      </button>
-
-      <div className="org-modal-header">
-        <img
-          src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]}
-          alt={`${selectedEvent.title} event`}
-          className="org-modal-image"
-        />
-        <h2>{selectedEvent.title}</h2>
-        <span className="org-category-badge">{selectedEvent.category}</span>
-      </div>
-
-      <div className="org-modal-body">
-        <div className="org-event-info">
-          <p><strong>Description:</strong> {selectedEvent.description}</p>
-          <p><strong>Date:</strong> {formatDateDDMMYYYY(selectedEvent.date)} at {formatTimeHHMM(selectedEvent.date)}</p>
-          <p><strong>Location:</strong> {selectedEvent.location || "Not specified"}</p>
-          <p>
-            <strong>Type:</strong>
-            <span className={`org-type-badge org-type-${selectedEvent.eventType?.toLowerCase()}`}>
-              {selectedEvent.eventType || "PUBLIC"}
-            </span>
-          </p>
-
-          {selectedEvent.eventType === "PRIVATE" && selectedEvent.privateCode && (
-            <p>
-              <strong>Private Code:</strong>
-              <span className="org-private-code">{selectedEvent.privateCode}</span>
-            </p>
-          )}
-
-          <p>
-            <strong>Attendees:</strong> {selectedEvent.currentAttendees || 0} /{" "}
-            {selectedEvent.maxAttendees || "Unlimited"}
-          </p>
-
-          <p>
-            <strong>Status:</strong>
-            <span
-              className={`org-status-badge org-status-${
-                new Date(selectedEvent.date) > new Date() ? "upcoming" : "completed"
-              }`}
-            >
-              {new Date(selectedEvent.date) > new Date() ? "Upcoming" : "Completed"}
-            </span>
-          </p>
-        </div>
-      </div>
-
-      <div className="org-modal-footer">
-        <button className="org-btn-close" onClick={handleCloseModal}>
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+      )}
     </div>
   );
 }
@@ -552,8 +854,10 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   const [formData, setFormData] = useState({
     title: "",
     description: "",
-    date: "",
-    time: "",
+    startDate: "",
+    endDate: "",
+    startTime: "",
+    endTime: "",
     state: "",
     city: "",
     address: "",
@@ -605,27 +909,16 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
 
   useEffect(() => {
     if (editingEvent) {
-      const eventDate = new Date(editingEvent.date);
-      const dateStr = eventDate.toISOString().slice(0, 10);
-      const timeStr = eventDate.toTimeString().slice(0, 5);
-
-      const locationParts = editingEvent.location?.split(", ") || [];
-      let state = "", city = "", address = editingEvent.location || "";
-      
-      if (locationParts.length >= 3) {
-        state = locationParts[locationParts.length - 1];
-        city = locationParts[locationParts.length - 2];
-        address = locationParts.slice(0, -2).join(", ");
-      } else if (locationParts.length === 2) {
-        city = locationParts[locationParts.length - 1];
-        address = locationParts[0];
-      }
+      // 🆕 Parse location
+      const { address, city, state } = parseLocation(editingEvent.location);
 
       setFormData({
         title: editingEvent.title || "",
         description: editingEvent.description || "",
-        date: dateStr,
-        time: timeStr,
+        startDate: editingEvent.startDate || "",
+        endDate: editingEvent.endDate || editingEvent.startDate || "",
+        startTime: editingEvent.startTime || "",
+        endTime: editingEvent.endTime || "",
         state: state,
         city: city,
         address: address,
@@ -723,12 +1016,20 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       errors.description = "Description is required";
     }
     
-    if (!formData.date) {
-      errors.date = "Date is required";
+    if (!formData.startDate) {
+      errors.startDate = "Start date is required";
     }
     
-    if (!formData.time) {
-      errors.time = "Time is required";
+    if (!formData.endDate) {
+      errors.endDate = "End date is required";
+    }
+    
+    if (!formData.startTime) {
+      errors.startTime = "Start time is required";
+    }
+    
+    if (!formData.endTime) {
+      errors.endTime = "End time is required";
     }
     
     if (!formData.address.trim()) {
@@ -739,11 +1040,16 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       errors.category = "Category is required";
     }
     
-    if (formData.date && formData.time) {
-      const eventDateTime = new Date(`${formData.date}T${formData.time}`);
-      if (eventDateTime <= new Date()) {
-        errors.date = "Event date and time must be in the future";
-      }
+    // 🆕 Validate DateTime using utility
+    const dateTimeValidation = validateDateTime(
+      formData.startDate,
+      formData.endDate,
+      formData.startTime,
+      formData.endTime
+    );
+    
+    if (!dateTimeValidation.isValid) {
+      Object.assign(errors, dateTimeValidation.errors);
     }
     
     if (formData.maxAttendees && (isNaN(formData.maxAttendees) || parseInt(formData.maxAttendees) <= 0)) {
@@ -774,14 +1080,23 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       setError("");
       setFieldErrors({});
 
+      // 🆕 Build location from state, city, address
+      let location = formData.address.trim();
+      if (formData.city) {
+        location += `, ${formData.city}`;
+      }
+      if (formData.state) {
+        location += `, ${formData.state}`;
+      }
+
       const requestData = {
         title: formData.title,
         description: formData.description,
-        date: formData.date,
-        time: formData.time,
-        state: formData.state,
-        city: formData.city,
-        address: formData.address,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
+        startTime: formData.startTime,
+        endTime: formData.endTime,
+        location: location,
         category: formData.category,
         imageUrl: formData.imageUrl || defaultImages[formData.category] || defaultImages["Other"],
         maxAttendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : null,
@@ -811,12 +1126,6 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
     }
   };
 
-  const getTomorrowDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().slice(0, 10);
-  };
-
   return (
     <div className="org-create-event-wrapper">
       <div className="org-form-header">
@@ -840,7 +1149,8 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
               aria-label="Upload event image"
             />
             <label htmlFor="org-image-upload" className="org-upload-label">
-              <ImagePlus size={20}/>{uploading ? "Uploading..." : (imagePreview ? "Change Image" : "Upload Image")}
+              <ImagePlus size={20}/>
+              {uploading ? "Uploading..." : (imagePreview ? "Change Image" : "Upload Image")}
             </label>
             {imagePreview && (
               <div className="org-image-preview">
@@ -968,40 +1278,91 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
           </div>
         </div>
 
+        {/* 🆕 Date & Time Inputs */}
         <div className="org-form-grid-2">
           <div className="org-form-group">
-            <label className="org-form-label">Date *</label>
+            <label className="org-form-label">Start Date *</label>
             <input 
               type="date" 
-              name="date"
-              value={formData.date}
+              name="startDate"
+              value={formData.startDate}
               onChange={handleChange}
               min={getTomorrowDate()}
-              className={`org-form-input ${fieldErrors.date ? 'org-error-field' : ''}`}
+              className={`org-form-input ${fieldErrors.startDate ? 'org-error-field' : ''}`}
               aria-required="true"
-              aria-invalid={!!fieldErrors.date}
+              aria-invalid={!!fieldErrors.startDate}
             />
-            {fieldErrors.date && (
-              <span className="org-error-message" role="alert">{fieldErrors.date}</span>
+            {fieldErrors.startDate && (
+              <span className="org-error-message" role="alert">{fieldErrors.startDate}</span>
             )}
           </div>
           
           <div className="org-form-group">
-            <label className="org-form-label">Time *</label>
+            <label className="org-form-label">End Date *</label>
             <input 
-              type="time" 
-              name="time"
-              value={formData.time}
+              type="date" 
+              name="endDate"
+              value={formData.endDate}
               onChange={handleChange}
-              className={`org-form-input ${fieldErrors.time ? 'org-error-field' : ''}`}
+              min={formData.startDate || getTomorrowDate()}
+              className={`org-form-input ${fieldErrors.endDate ? 'org-error-field' : ''}`}
               aria-required="true"
-              aria-invalid={!!fieldErrors.time}
+              aria-invalid={!!fieldErrors.endDate}
             />
-            {fieldErrors.time && (
-              <span className="org-error-message" role="alert">{fieldErrors.time}</span>
+            {fieldErrors.endDate && (
+              <span className="org-error-message" role="alert">{fieldErrors.endDate}</span>
             )}
           </div>
         </div>
+
+        <div className="org-form-grid-2">
+          <div className="org-form-group">
+            <label className="org-form-label">Start Time *</label>
+            <input 
+              type="time" 
+              name="startTime"
+              value={formData.startTime}
+              onChange={handleChange}
+              className={`org-form-input ${fieldErrors.startTime ? 'org-error-field' : ''}`}
+              aria-required="true"
+              aria-invalid={!!fieldErrors.startTime}
+            />
+            {fieldErrors.startTime && (
+              <span className="org-error-message" role="alert">{fieldErrors.startTime}</span>
+            )}
+          </div>
+          
+          <div className="org-form-group">
+            <label className="org-form-label">End Time *</label>
+            <input 
+              type="time" 
+              name="endTime"
+              value={formData.endTime}
+              onChange={handleChange}
+              className={`org-form-input ${fieldErrors.endTime ? 'org-error-field' : ''}`}
+              aria-required="true"
+              aria-invalid={!!fieldErrors.endTime}
+            />
+            {fieldErrors.endTime && (
+              <span className="org-error-message" role="alert">{fieldErrors.endTime}</span>
+            )}
+          </div>
+        </div>
+
+        {/* 🆕 Date/Time Preview Section */}
+        {formData.startDate && formData.startTime && formData.endDate && formData.endTime && (
+          <div className="org-datetime-preview">
+            <strong>📅 Event Schedule Preview:</strong>
+            <p>
+              <CalendarDays size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+              <strong>Starts:</strong> {formatDateDDMMYYYY(formData.startDate)} at {formatTimeAMPM(formData.startTime)}
+            </p>
+            <p>
+              <CalendarDays size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+              <strong>Ends:</strong> {formatDateDDMMYYYY(formData.endDate)} at {formatTimeAMPM(formData.endTime)}
+            </p>
+          </div>
+        )}
 
         <div className="org-form-grid-2">
           <div className="org-form-group">
@@ -1060,6 +1421,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
 
         <div className="org-form-actions">
           <button type="submit" className="org-btn-primary" disabled={loading || uploading}>
+            <Save size={16} />
             {loading ? "Saving..." : (editingEvent ? "Update Event" : "Create Event")}
           </button>
           <button 
@@ -1067,6 +1429,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
             className="org-btn-secondary"
             onClick={onCancel}
           >
+            <X size={16} />
             Cancel
           </button>
         </div>
@@ -1075,7 +1438,7 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
   );
 }
 
-// ============ Profile Component - 🆕 UPDATED WITH TWO-COLUMN LAYOUT + PASSWORD CHANGE ============
+// ============ Profile Component ============
 function Profile({ onCancel, onSuccess }) {
   const [profile, setProfile] = useState({
     id: null,
@@ -1092,7 +1455,7 @@ function Profile({ onCancel, onSuccess }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [uploading, setUploading] = useState(false);
 
-  // 🆕 NEW: Password change state (matching Visitor Dashboard)
+  // 🆕 Password change state
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
     newPassword: ""
@@ -1169,7 +1532,6 @@ function Profile({ onCancel, onSuccess }) {
     setProfile(prev => ({ ...prev, [name]: value }));
   };
 
-  // 🆕 UPDATED: Handle profile update (without password) + separate password update
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -1190,7 +1552,7 @@ function Profile({ onCancel, onSuccess }) {
         setImagePreview(response.data.imageUrl);
       }
       
-      // 🆕 NEW: If password fields are filled, update password separately
+      // 🆕 If password fields are filled, update password separately
       if (passwordForm.currentPassword && passwordForm.newPassword) {
         try {
           await API.put("/users/password", {
@@ -1248,18 +1610,13 @@ function Profile({ onCancel, onSuccess }) {
             </div>
           </div>
           <button className="org-btn-primary" onClick={() => setIsEditing(true)}>
+            <Edit size={16} />
             Edit Profile
           </button>
         </div>
       ) : (
         <form className="org-profile-edit-form" onSubmit={handleSubmit}>
-          {/* 🆕 UPDATED: Form header matching Visitor Dashboard */}
-          {/* <div className="org-form-header">
-            <h2>Edit Profile</h2>
-            <p className="org-form-subtitle">Update your profile information and password</p>
-          </div> */}
-
-          {/* 🆕 UPDATED: Profile Image Upload - Full Width */}
+          {/* Profile Image Upload - Full Width */}
           <div className="org-form-group org-full-width">
             <label className="org-form-label">Profile Image</label>
             <div className="org-image-upload-area org-image-upload-area2">
@@ -1283,7 +1640,7 @@ function Profile({ onCancel, onSuccess }) {
             </div>
           </div>
 
-          {/* 🆕 UPDATED: Two-Column Layout for Form Fields */}
+          {/* Two-Column Layout for Form Fields */}
           <div className="org-form-row">
             <div className="org-form-col">
               <label className="org-form-label">Name *</label>
@@ -1336,9 +1693,8 @@ function Profile({ onCancel, onSuccess }) {
             </div>
           </div>
 
-          {/* 🆕 NEW: Password Change Section (matching Visitor Dashboard) */}
+          {/* Password Change Section */}
           <div className="org-password-section">
-            {/* <h3 className="org-section-title">Change Password (Optional)</h3> */}
             <p className="org-section-subtitle">Leave empty to keep your current password</p>
             
             <div className="org-form-row">
@@ -1372,6 +1728,7 @@ function Profile({ onCancel, onSuccess }) {
           
           <div className="org-form-actions">  
             <button type="submit" className="org-btn-primary" disabled={loading || uploading}>
+              <Save size={16} />
               {loading ? "Saving..." : "Save Changes"}
             </button>
             <button
@@ -1385,6 +1742,7 @@ function Profile({ onCancel, onSuccess }) {
                 onCancel();
               }}
             >
+              <X size={16} />
               Cancel
             </button>
           </div>
@@ -1401,6 +1759,21 @@ export default function OrganizerDashboard() {
   const [activePage, setActivePage] = useState("myEvents");
   const [toast, setToast] = useState(null);
   const [editingEvent, setEditingEvent] = useState(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // 🆕 Mobile menu state
+  const [organizerId, setOrganizerId] = useState(null); // 🆕 For analytics
+
+  // 🆕 Get organizer ID from localStorage or API
+  useEffect(() => {
+    const fetchOrganizerId = async () => {
+      try {
+        const response = await API.get("/users/profile");
+        setOrganizerId(response.data.id);
+      } catch (err) {
+        console.error("Error fetching organizer ID:", err);
+      }
+    };
+    fetchOrganizerId();
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -1412,6 +1785,7 @@ export default function OrganizerDashboard() {
   const handleEditEvent = (event) => {
     setEditingEvent(event);
     setActivePage("createEvent");
+    setMobileMenuOpen(false); // Close mobile menu
   };
 
   const handleCreateEventSuccess = (message) => {
@@ -1433,9 +1807,34 @@ export default function OrganizerDashboard() {
     setActivePage("myEvents");
   };
 
+  // 🆕 Handle navigation with mobile menu close
+  const handleNavigation = (page) => {
+    setActivePage(page);
+    setEditingEvent(null);
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="org-dashboard">
-      <nav className="org-top-navbar">
+      {/* 🆕 Mobile Menu Toggle Button */}
+      <button 
+        className="org-mobile-menu-toggle"
+        onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+        aria-label="Toggle mobile menu"
+      >
+        {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* 🆕 Mobile Menu Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="org-mobile-menu-overlay" 
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Sidebar Navigation */}
+      <nav className={`org-top-navbar ${mobileMenuOpen ? 'org-mobile-menu-open' : ''}`}>
         <div className="org-navbar-brand">
           <span className="org-brand-icon">
             <img src="/src/assets/EZ-logo1.png" alt="EventZen logo" className="org-logo-img" />
@@ -1444,49 +1843,43 @@ export default function OrganizerDashboard() {
         </div>
         <ul className="org-nav-menu" role="menubar">
           <li 
-            onClick={() => {
-              setActivePage("myEvents");
-              setEditingEvent(null);
-            }}
+            onClick={() => handleNavigation("myEvents")}
             className={activePage === "myEvents" ? "org-nav-item org-active" : "org-nav-item"}
             role="menuitem"
             tabIndex={0}
-            onKeyPress={(e) => e.key === 'Enter' && setActivePage("myEvents")}
+            onKeyPress={(e) => e.key === 'Enter' && handleNavigation("myEvents")}
           >
-            <span className="org-nav-icon" aria-hidden="true">📅</span>
+            <Calendar size={18} className="org-nav-icon" />
             <span>My Events</span>
           </li>
           <li 
-            onClick={() => {
-              setActivePage("createEvent");
-              setEditingEvent(null);
-            }}
+            onClick={() => handleNavigation("createEvent")}
             className={activePage === "createEvent" ? "org-nav-item org-active" : "org-nav-item"}
             role="menuitem"
             tabIndex={0}
-            onKeyPress={(e) => e.key === 'Enter' && setActivePage("createEvent")}
+            onKeyPress={(e) => e.key === 'Enter' && handleNavigation("createEvent")}
           >
-            <span className="org-nav-icon" aria-hidden="true">🎟️</span>
+            <ImagePlus size={18} className="org-nav-icon" />
             <span>Create Event</span>
           </li>
           <li 
-            onClick={() => setActivePage("analytics")}
+            onClick={() => handleNavigation("analytics")}
             className={activePage === "analytics" ? "org-nav-item org-active" : "org-nav-item"}
             role="menuitem"
             tabIndex={0}
-            onKeyPress={(e) => e.key === 'Enter' && setActivePage("analytics")}
+            onKeyPress={(e) => e.key === 'Enter' && handleNavigation("analytics")}
           >
-            <span className="org-nav-icon" aria-hidden="true">📊</span>
+            <ChartBarStacked size={18} className="org-nav-icon" />
             <span>Analytics</span>
           </li>
           <li 
-            onClick={() => setActivePage("profile")}
+            onClick={() => handleNavigation("profile")}
             className={activePage === "profile" ? "org-nav-item org-active" : "org-nav-item"}
             role="menuitem"
             tabIndex={0}
-            onKeyPress={(e) => e.key === 'Enter' && setActivePage("profile")}
+            onKeyPress={(e) => e.key === 'Enter' && handleNavigation("profile")}
           >
-            <span className="org-nav-icon" aria-hidden="true">👤</span>
+            <User size={18} className="org-nav-icon" />
             <span>Profile</span>
           </li>
           <li 
@@ -1496,7 +1889,7 @@ export default function OrganizerDashboard() {
             tabIndex={0}
             onKeyPress={(e) => e.key === 'Enter' && handleLogout()}
           >
-            <span className="org-nav-icon" aria-hidden="true">🚪</span>
+            <LogOut size={18} className="org-nav-icon" />
             <span>Logout</span>
           </li>
         </ul>
@@ -1524,7 +1917,7 @@ export default function OrganizerDashboard() {
         )}
 
         {activePage === "analytics" && (
-          <OrganizerAnalyticsPage />
+          <AnalyticsDashboard organizerId={organizerId} />
         )}
         
         {activePage === "profile" && (

@@ -98,7 +98,7 @@
                     
                     if (eventCount > 0) {
                         List<Long> eventIds = eventRepository.findByOrganizerId(userId)
-                                .stream()
+                                .stream() 
                                 .map(event -> event.getId())
                                 .collect(Collectors.toList());
                         

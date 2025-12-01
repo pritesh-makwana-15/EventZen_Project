@@ -1,6 +1,13 @@
+// ================================================================
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/controller/EventController.java
+// 🆕 UPDATED: Added validation for separate start/end date/time fields
+// Changes: Enhanced validation to ensure end datetime is after start datetime
+// ================================================================
+
 package com.eventzen.controller;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -72,7 +79,7 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
 
-    // ===== NEW ORGANIZER DASHBOARD ENDPOINTS =====
+    // ===== ORGANIZER DASHBOARD ENDPOINTS =====
 
     @GetMapping("/organizer/{organizerId}/upcoming")
     @PreAuthorize("hasAuthority('ORGANIZER')")
@@ -115,19 +122,39 @@ public class EventController {
 
     // ===== ORGANIZER CRUD ENDPOINTS =====
 
+    /**
+     * 🆕 UPDATED: Create event with separate date/time validation
+     */
     @PostMapping
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<?> createEvent(@Valid @RequestBody EventRequest request, BindingResult bindingResult) {
         try {
+            // Basic validation errors
             if (bindingResult.hasErrors()) {
                 Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            if (request.getDate().isBefore(LocalDate.now())) {
-                return ResponseEntity.badRequest().body(Map.of("date", "Date must be today or later"));
+            // 🆕 NEW: Validate start date is not in the past
+            if (request.getStartDate().isBefore(LocalDate.now())) {
+                return ResponseEntity.badRequest().body(Map.of("startDate", "Start date must be today or later"));
             }
 
+            // 🆕 NEW: Validate end is after start
+            LocalDateTime start = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+            LocalDateTime end = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+
+            if (!end.isAfter(start)) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("endDate", "End date/time must be after start date/time"));
+            }
+
+            // 🆕 NEW: Validate start is in the future
+            if (!start.isAfter(LocalDateTime.now())) {
+                return ResponseEntity.badRequest().body(Map.of("startDate", "Event must start in the future"));
+            }
+
+            // Private event validation
             if ("PRIVATE".equalsIgnoreCase(request.getEventType()) &&
                     (request.getPrivateCode() == null || request.getPrivateCode().trim().isEmpty())) {
                 return ResponseEntity.badRequest()
@@ -143,20 +170,40 @@ public class EventController {
         }
     }
 
+    /**
+     * 🆕 UPDATED: Update event with separate date/time validation
+     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<?> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request,
             BindingResult bindingResult) {
         try {
+            // Basic validation errors
             if (bindingResult.hasErrors()) {
                 Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            if (request.getDate().isBefore(LocalDate.now())) {
-                return ResponseEntity.badRequest().body(Map.of("date", "Date must be today or later"));
+            // 🆕 NEW: Validate start date is not in the past
+            if (request.getStartDate().isBefore(LocalDate.now())) {
+                return ResponseEntity.badRequest().body(Map.of("startDate", "Start date must be today or later"));
             }
 
+            // 🆕 NEW: Validate end is after start
+            LocalDateTime start = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+            LocalDateTime end = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+
+            if (!end.isAfter(start)) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("endDate", "End date/time must be after start date/time"));
+            }
+
+            // 🆕 NEW: Validate start is in the future
+            if (!start.isAfter(LocalDateTime.now())) {
+                return ResponseEntity.badRequest().body(Map.of("startDate", "Event must start in the future"));
+            }
+
+            // Private event validation
             if ("PRIVATE".equalsIgnoreCase(request.getEventType()) &&
                     (request.getPrivateCode() == null || request.getPrivateCode().trim().isEmpty())) {
                 return ResponseEntity.badRequest()
@@ -211,10 +258,10 @@ public class EventController {
         }
     }
 
-    // ===== NEW VISITOR REGISTRATION ENDPOINT =====
+    // ===== VISITOR REGISTRATION ENDPOINT =====
 
     /**
-     * New: Visitor registering for an event using full form data
+     * Visitor registering for an event using full form data
      */
     @PostMapping("/{eventId}/register")
     public ResponseEntity<?> registerVisitorForEvent(

@@ -1,8 +1,14 @@
+// ================================================================
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/entity/Event.java
+// 🆕 UPDATED: Added separate startDate, endDate, startTime, endTime fields
+// Changes: Replaced single 'date' field with 4 new fields for better granularity
+// ================================================================
+
 package com.eventzen.entity;
 
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -27,12 +33,21 @@ public class Event {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(nullable = false)
-    private LocalDate date;
+    // 🆕 NEW: Separate date/time fields for start
+    @Column(name = "start_date", nullable = false)
+    private LocalDate startDate;
 
-    @Column(nullable = false)
-    private LocalTime time;
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime;
 
+    // 🆕 NEW: Separate date/time fields for end
+    @Column(name = "end_date", nullable = false)
+    private LocalDate endDate;
+
+    @Column(name = "end_time", nullable = false)
+    private LocalTime endTime;
+
+    // Location fields
     private String state;
     private String city;
     private String address;
@@ -85,12 +100,14 @@ public class Event {
     // Constructors
     public Event() {}
 
-    public Event(String title, String description, LocalDate date, LocalTime time,
-                 String address, String category, Long organizerId) {
+    public Event(String title, String description, LocalDate startDate, LocalTime startTime,
+                 LocalDate endDate, LocalTime endTime, String address, String category, Long organizerId) {
         this.title = title;
         this.description = description;
-        this.date = date;
-        this.time = time;
+        this.startDate = startDate;
+        this.startTime = startTime;
+        this.endDate = endDate;
+        this.endTime = endTime;
         this.address = address;
         this.category = category;
         this.organizerId = organizerId;
@@ -106,11 +123,19 @@ public class Event {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    public LocalDate getDate() { return date; }
-    public void setDate(LocalDate date) { this.date = date; }
+    // 🆕 NEW: Start date/time getters/setters
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
 
-    public LocalTime getTime() { return time; }
-    public void setTime(LocalTime time) { this.time = time; }
+    public LocalTime getStartTime() { return startTime; }
+    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+
+    // 🆕 NEW: End date/time getters/setters
+    public LocalDate getEndDate() { return endDate; }
+    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+
+    public LocalTime getEndTime() { return endTime; }
+    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
 
     public String getState() { return state; }
     public void setState(String state) { this.state = state; }
@@ -170,7 +195,7 @@ public class Event {
         return Math.max(0, maxAttendees - (currentAttendees != null ? currentAttendees : 0));
     }
 
-    // For backward compatibility with your existing location field
+    // 🆕 NEW: Get combined location string (backward compatibility)
     public String getLocation() {
         StringBuilder location = new StringBuilder();
         if (address != null && !address.trim().isEmpty()) {
@@ -187,8 +212,8 @@ public class Event {
         return location.toString();
     }
 
+    // 🆕 NEW: Parse combined location (backward compatibility)
     public void setLocation(String location) {
-        // Parse combined location back into components if needed
         if (location != null) {
             String[] parts = location.split(", ");
             if (parts.length >= 3) {
@@ -202,5 +227,27 @@ public class Event {
                 this.address = location;
             }
         }
+    }
+
+    // 🆕 NEW: Check if event is currently happening
+    public boolean isOngoing() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = LocalDateTime.of(startDate, startTime);
+        LocalDateTime end = LocalDateTime.of(endDate, endTime);
+        return now.isAfter(start) && now.isBefore(end);
+    }
+
+    // 🆕 NEW: Check if event is upcoming
+    public boolean isUpcoming() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = LocalDateTime.of(startDate, startTime);
+        return start.isAfter(now);
+    }
+
+    // 🆕 NEW: Check if event has ended
+    public boolean hasEnded() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime end = LocalDateTime.of(endDate, endTime);
+        return end.isBefore(now);
     }
 }

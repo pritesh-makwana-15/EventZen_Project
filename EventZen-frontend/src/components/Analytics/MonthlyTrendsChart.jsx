@@ -3,7 +3,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 
 /**
  * Monthly Registration Trends Line Chart
- * 
+ *  
  * Props:
  * - data: Array of {month, year, monthName, count}
  */

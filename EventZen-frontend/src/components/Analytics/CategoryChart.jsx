@@ -5,7 +5,7 @@ import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer } from "recha
  * Category Distribution Pie Chart
  * 
  * Props:
- * - data: Array of {category, count}
+ * - data: Array of {category, count} 
  */
 export default function CategoryChart({ data }) {
   // Color palette for pie chart

@@ -1,3 +1,9 @@
+// ================================================================
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/dto/request/EventRequest.java
+// 🆕 UPDATED: Added separate startDate, endDate, startTime, endTime fields
+// Changes: Frontend now sends 4 separate fields instead of 1 combined datetime
+// ================================================================
+
 package com.eventzen.dto.request;
 
 import java.time.LocalDate;
@@ -17,13 +23,23 @@ public class EventRequest {
     @NotBlank(message = "Description is required")
     private String description;
 
-    @NotNull(message = "Date is required")
+    // 🆕 NEW: Separate start date/time fields
+    @NotNull(message = "Start date is required")
     @JsonFormat(pattern = "yyyy-MM-dd")
-    private LocalDate date;
+    private LocalDate startDate;
 
-    @NotNull(message = "Time is required")
+    @NotNull(message = "Start time is required")
     @JsonFormat(pattern = "HH:mm")
-    private LocalTime time;
+    private LocalTime startTime;
+
+    // 🆕 NEW: Separate end date/time fields
+    @NotNull(message = "End date is required")
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    private LocalDate endDate;
+
+    @NotNull(message = "End time is required")
+    @JsonFormat(pattern = "HH:mm")
+    private LocalTime endTime;
 
     private String state;
     private String city;
@@ -45,13 +61,17 @@ public class EventRequest {
     public EventRequest() {
     }
 
-    public EventRequest(String title, String description, LocalDate date, LocalTime time,
+    public EventRequest(String title, String description,
+            LocalDate startDate, LocalTime startTime,
+            LocalDate endDate, LocalTime endTime,
             String address, String category, String imageUrl,
             Integer maxAttendees, String eventType, String privateCode) {
         this.title = title;
         this.description = description;
-        this.date = date;
-        this.time = time;
+        this.startDate = startDate;
+        this.startTime = startTime;
+        this.endDate = endDate;
+        this.endTime = endTime;
         this.address = address;
         this.category = category;
         this.imageUrl = imageUrl;
@@ -77,20 +97,38 @@ public class EventRequest {
         this.description = description;
     }
 
-    public LocalDate getDate() {
-        return date;
+    // 🆕 NEW: Start date/time getters/setters
+    public LocalDate getStartDate() {
+        return startDate;
     }
 
-    public void setDate(LocalDate date) {
-        this.date = date;
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
     }
 
-    public LocalTime getTime() {
-        return time;
+    public LocalTime getStartTime() {
+        return startTime;
     }
 
-    public void setTime(LocalTime time) {
-        this.time = time;
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    // 🆕 NEW: End date/time getters/setters
+    public LocalDate getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
     }
 
     public String getState() {
@@ -157,23 +195,29 @@ public class EventRequest {
         this.privateCode = privateCode;
     }
 
-    // Validation method
+    // 🆕 NEW: Enhanced validation method
     public boolean isValid() {
         if (title == null || title.trim().isEmpty())
             return false;
         if (description == null || description.trim().isEmpty())
             return false;
-        if (date == null)
+        if (startDate == null || startTime == null)
             return false;
-        if (time == null)
+        if (endDate == null || endTime == null)
             return false;
         if (address == null || address.trim().isEmpty())
             return false;
         if (category == null || category.trim().isEmpty())
             return false;
 
-        // Date must be today or future
-        if (date.isBefore(LocalDate.now()))
+        // Start date must be today or future
+        if (startDate.isBefore(LocalDate.now()))
+            return false;
+
+        // End must be after start
+        if (endDate.isBefore(startDate))
+            return false;
+        if (endDate.equals(startDate) && !endTime.isAfter(startTime))
             return false;
 
         // If private event, must have private code
@@ -193,8 +237,10 @@ public class EventRequest {
     public String toString() {
         return "EventRequest{" +
                 "title='" + title + '\'' +
-                ", date=" + date +
-                ", time=" + time +
+                ", startDate=" + startDate +
+                ", startTime=" + startTime +
+                ", endDate=" + endDate +
+                ", endTime=" + endTime +
                 ", address='" + address + '\'' +
                 ", city='" + city + '\'' +
                 ", state='" + state + '\'' +

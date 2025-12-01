@@ -86,14 +86,7 @@ export default function AnalyticsDashboard({ userRole, organizerId }) {
 
   return (
     <div className="analytics-container">
-      {/* Header */}
-      <div className="analytics-header">
-        <h1>
-          {userRole === "ADMIN" ? "📊 Analytics Dashboard" : "🎯 Performance Dashboard"}
-        </h1>
-        <p>{userRole === "ADMIN" ? "Platform Overview & Insights" : "Your Performance Metrics"}</p>
-      </div>
-
+      
       {/* ========== ADMIN VIEW ========== */}
       {userRole === "ADMIN" && (
         <div className="analytics-admin-view">
@@ -174,6 +167,15 @@ export default function AnalyticsDashboard({ userRole, organizerId }) {
       {/* ========== ORGANIZER VIEW ========== */}
       {userRole === "ORGANIZER" && organizerPerformance && (
         <div className="analytics-organizer-view">
+
+          {/* Header */}
+          {/* <div className="analytics-header">
+            <h3>
+              {userRole === "ADMIN" ? "📊 Analytics Dashboard" : "Performance Dashboard"}
+            </h3>
+            <p>{userRole === "ADMIN" ? "Platform Overview & Insights" : "Your Performance Metrics"}</p>
+          </div> */}
+
           {/* Performance Cards */}
           <SummaryCards
             totalEvents={organizerPerformance.totalEvents}

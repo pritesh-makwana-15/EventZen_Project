@@ -1,7 +1,8 @@
-// =====================================================================
+// ================================================================
 // FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/service/impl/EventServiceImpl.java
-// MERGED VERSION: Old + New Visitor Registration Endpoint
-// =====================================================================
+// 🆕 UPDATED: Handle separate start/end date/time fields in all operations
+// Changes: Updated entity mapping to use 4 date/time fields instead of 1
+// ================================================================
 
 package com.eventzen.service.impl;
 
@@ -48,7 +49,7 @@ public class EventServiceImpl implements EventService {
     private RegistrationRepository registrationRepository;
 
     // ================================================================
-    // CREATE EVENT
+    // CREATE EVENT - 🆕 UPDATED: Use separate date/time fields
     // ================================================================
     @Override
     public EventResponse createEvent(EventRequest request) throws Exception {
@@ -62,15 +63,28 @@ public class EventServiceImpl implements EventService {
             throw new Exception("Only organizers can create events");
         }
 
-        if (request.getDate().isBefore(LocalDate.now())) {
-            throw new Exception("Event date cannot be in the past");
+        // 🆕 NEW: Validate start datetime is in the future
+        LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+        if (!startDateTime.isAfter(LocalDateTime.now())) {
+            throw new Exception("Event start date/time must be in the future");
+        }
+
+        // 🆕 NEW: Validate end is after start
+        LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+        if (!endDateTime.isAfter(startDateTime)) {
+            throw new Exception("Event end date/time must be after start date/time");
         }
 
         Event event = new Event();
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
-        event.setDate(request.getDate());
-        event.setTime(request.getTime());
+
+        // 🆕 NEW: Set separate date/time fields
+        event.setStartDate(request.getStartDate());
+        event.setStartTime(request.getStartTime());
+        event.setEndDate(request.getEndDate());
+        event.setEndTime(request.getEndTime());
+
         event.setState(request.getState());
         event.setCity(request.getCity());
         event.setAddress(request.getAddress());
@@ -88,7 +102,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // UPDATE EVENT
+    // UPDATE EVENT - 🆕 UPDATED: Use separate date/time fields
     // ================================================================
     @Override
     public EventResponse updateEvent(Long eventId, EventRequest request) throws Exception {
@@ -103,14 +117,27 @@ public class EventServiceImpl implements EventService {
             throw new Exception("You can only update your own events");
         }
 
-        if (request.getDate().isBefore(LocalDate.now())) {
-            throw new Exception("Event date cannot be in the past");
+        // 🆕 NEW: Validate start datetime is in the future
+        LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+        if (!startDateTime.isAfter(LocalDateTime.now())) {
+            throw new Exception("Event start date/time must be in the future");
+        }
+
+        // 🆕 NEW: Validate end is after start
+        LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+        if (!endDateTime.isAfter(startDateTime)) {
+            throw new Exception("Event end date/time must be after start date/time");
         }
 
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
-        event.setDate(request.getDate());
-        event.setTime(request.getTime());
+
+        // 🆕 NEW: Update separate date/time fields
+        event.setStartDate(request.getStartDate());
+        event.setStartTime(request.getStartTime());
+        event.setEndDate(request.getEndDate());
+        event.setEndTime(request.getEndTime());
+
         event.setState(request.getState());
         event.setCity(request.getCity());
         event.setAddress(request.getAddress());
@@ -160,26 +187,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // DELETE EVENT (ADMIN)
-    // ================================================================
-    @Transactional
-    public void deleteEventAdmin(Long eventId) throws Exception {
-        System.out.println("Admin deleting event ID: " + eventId);
-
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new Exception("Event not found"));
-
-        long registrationCount = registrationRepository.countByEventId(eventId);
-
-        if (registrationCount > 0) {
-            registrationRepository.deleteByEventId(eventId);
-        }
-
-        eventRepository.delete(event);
-    }
-
-    // ================================================================
-    // GET EVENT BY ID
+    // GET EVENT BY ID - 🆕 UPDATED: Return separate date/time fields
     // ================================================================
     @Override
     public EventResponse getEventById(Long eventId) throws Exception {
@@ -193,7 +201,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // GET ALL EVENTS
+    // GET ALL EVENTS - 🆕 UPDATED: Return separate date/time fields
     // ================================================================
     @Override
     public List<EventResponse> getAllEvents() {
@@ -212,7 +220,7 @@ public class EventServiceImpl implements EventService {
     // ================================================================
     @Override
     public List<EventResponse> getEventsByOrganizer(Long organizerId) {
-        List<Event> events = eventRepository.findByOrganizerIdOrderByDateDesc(organizerId);
+        List<Event> events = eventRepository.findByOrganizerIdOrderByStartDateDesc(organizerId);
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
@@ -226,10 +234,11 @@ public class EventServiceImpl implements EventService {
         return getEventsByOrganizer(currentUserId);
     }
 
+    // 🆕 UPDATED: Use startDate for filtering
     public List<EventResponse> getUpcomingEventsByOrganizer(Long organizerId) throws Exception {
         LocalDate today = LocalDate.now();
-        List<Event> events = eventRepository.findByOrganizerIdAndDateGreaterThanEqualOrderByDateDesc(organizerId,
-                today);
+        List<Event> events = eventRepository.findByOrganizerIdAndStartDateGreaterThanEqualOrderByStartDateDesc(
+                organizerId, today);
 
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
@@ -239,9 +248,11 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
+    // 🆕 UPDATED: Use endDate for filtering
     public List<EventResponse> getPastEventsByOrganizer(Long organizerId) throws Exception {
         LocalDate today = LocalDate.now();
-        List<Event> events = eventRepository.findByOrganizerIdAndDateLessThanOrderByDateDesc(organizerId, today);
+        List<Event> events = eventRepository.findByOrganizerIdAndEndDateLessThanOrderByEndDateDesc(
+                organizerId, today);
 
         User organizer = userRepository.findById(organizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
@@ -252,7 +263,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // NEW: VISITOR REGISTRATION (MERGED)
+    // VISITOR REGISTRATION
     // ================================================================
     @Transactional
     public RegistrationResponse registerVisitorForEvent(Long eventId, VisitorRegistrationRequest request)
@@ -304,14 +315,12 @@ public class EventServiceImpl implements EventService {
             throw new Exception("Registration closed - maximum attendees reached");
         }
 
-        // Save registration
-        // Step 7: Create registration
+        // Create registration
         Registration registration = new Registration();
         registration.setVisitor(visitor);
         registration.setEvent(event);
         registration.setStatus(RegistrationStatus.CONFIRMED);
         registration.setRegisteredAt(LocalDateTime.now());
-        // 🆕 Store phone and notes from form
         registration.setPhone(request.getPhone());
         registration.setNotes(request.getNotes());
 
@@ -321,7 +330,6 @@ public class EventServiceImpl implements EventService {
         event.setCurrentAttendees(current + 1);
         eventRepository.save(event);
 
-        // Return DTO
         return new RegistrationResponse(
                 saved.getId(),
                 event.getId(),
@@ -358,7 +366,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // EVENT → DTO
+    // EVENT → DTO - 🆕 UPDATED: Map separate date/time fields
     // ================================================================
     private EventResponse convertToResponse(Event event, String organizerName) {
         EventResponse response = new EventResponse();
@@ -366,8 +374,11 @@ public class EventServiceImpl implements EventService {
         response.setTitle(event.getTitle());
         response.setDescription(event.getDescription());
 
-        LocalDateTime dateTime = LocalDateTime.of(event.getDate(), event.getTime());
-        response.setDate(dateTime);
+        // 🆕 NEW: Set separate date/time fields
+        response.setStartDate(event.getStartDate());
+        response.setStartTime(event.getStartTime());
+        response.setEndDate(event.getEndDate());
+        response.setEndTime(event.getEndTime());
 
         response.setLocation(event.getLocation());
         response.setCategory(event.getCategory());
