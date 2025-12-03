@@ -80,6 +80,8 @@ public class SecurityConfig {
                             // ✅ Admin endpoints
                             .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
 
+                            .requestMatchers("/api/events/admin/**").hasAuthority("ADMIN")
+
                             // ✅ Everything else needs auth
                             .anyRequest().authenticated();
                 });

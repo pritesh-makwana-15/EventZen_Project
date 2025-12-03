@@ -1,16 +1,19 @@
 // ================================================================
 // FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/service/impl/EventServiceImpl.java
-// 🆕 UPDATED: Handle separate start/end date/time fields in all operations
-// Changes: Updated entity mapping to use 4 date/time fields instead of 1
+// MERGED: Old + New (calendar methods, category/city extraction, admin update)
 // ================================================================
 
 package com.eventzen.service.impl;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -395,4 +398,169 @@ public class EventServiceImpl implements EventService {
 
         return response;
     }
+
+    // ================================================================
+    // 🆕 NEW: Get events for calendar with date range and filters
+    // Admin can see ALL events regardless of status
+    // ================================================================
+    public List<EventResponse> getEventsForCalendar(
+            LocalDate startDate,
+            LocalDate endDate,
+            String category,
+            String city,
+            Long organizerId,
+            String eventType) {
+
+        System.out.println("📅 Fetching calendar events: " + startDate + " to " + endDate);
+
+        List<Event> events;
+
+        // If date range is provided, use it
+        if (startDate != null && endDate != null) {
+            events = eventRepository.findByStartDateBetween(startDate, endDate);
+        } else {
+            // Otherwise get all events
+            events = eventRepository.findAll();
+        }
+
+        // Apply filters
+        if (category != null && !category.isEmpty()) {
+            events = events.stream()
+                    .filter(e -> category.equalsIgnoreCase(e.getCategory()))
+                    .collect(Collectors.toList());
+        }
+
+        if (city != null && !city.isEmpty()) {
+            events = events.stream()
+                    .filter(e -> city.equalsIgnoreCase(e.getCity()))
+                    .collect(Collectors.toList());
+        }
+
+        if (organizerId != null) {
+            events = events.stream()
+                    .filter(e -> organizerId.equals(e.getOrganizerId()))
+                    .collect(Collectors.toList());
+        }
+
+        if (eventType != null && !eventType.isEmpty()) {
+            events = events.stream()
+                    .filter(e -> eventType.equalsIgnoreCase(e.getEventType()))
+                    .collect(Collectors.toList());
+        }
+
+        // Convert to responses
+        return events.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+                    return convertToResponse(event, organizerName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    // ================================================================
+    // 🆕 NEW: Get all unique categories from events
+    // ================================================================
+    public List<String> getAllCategories() {
+        try {
+            List<Event> events = eventRepository.findAll();
+            Set<String> categories = new HashSet<>();
+
+            for (Event event : events) {
+                if (event.getCategory() != null && !event.getCategory().isEmpty()) {
+                    categories.add(event.getCategory());
+                }
+            }
+
+            // Add default categories if none exist
+            if (categories.isEmpty()) {
+                categories.add("Technology");
+                categories.add("Business");
+                categories.add("Music");
+                categories.add("Health");
+                categories.add("Food");
+                categories.add("Art");
+                categories.add("Community");
+                categories.add("Entertainment");
+                categories.add("Education");
+                categories.add("Sports");
+                categories.add("Other");
+            }
+
+            List<String> sortedCategories = new ArrayList<>(categories);
+            Collections.sort(sortedCategories);
+            return sortedCategories;
+        } catch (Exception e) {
+            System.err.println("Error fetching categories: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    // ================================================================
+    // 🆕 NEW: Get all unique cities from events
+    // ================================================================
+    public List<String> getAllCities() {
+        try {
+            List<Event> events = eventRepository.findAll();
+            Set<String> cities = new HashSet<>();
+
+            for (Event event : events) {
+                if (event.getCity() != null && !event.getCity().isEmpty()) {
+                    cities.add(event.getCity());
+                }
+            }
+
+            List<String> sortedCities = new ArrayList<>(cities);
+            Collections.sort(sortedCities);
+            return sortedCities;
+        } catch (Exception e) {
+            System.err.println("Error fetching cities: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    // ================================================================
+    // 🆕 NEW: Admin can update any event (no ownership check)
+    // ================================================================
+    public EventResponse adminUpdateEvent(Long eventId, EventRequest request) throws Exception {
+        System.out.println("Admin updating event ID: " + eventId);
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        // Validate dates
+        LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+        LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+
+        if (!endDateTime.isAfter(startDateTime)) {
+            throw new Exception("Event end date/time must be after start date/time");
+        }
+
+        // Update event fields
+        event.setTitle(request.getTitle());
+        event.setDescription(request.getDescription());
+        event.setStartDate(request.getStartDate());
+        event.setStartTime(request.getStartTime());
+        event.setEndDate(request.getEndDate());
+        event.setEndTime(request.getEndTime());
+        event.setState(request.getState());
+        event.setCity(request.getCity());
+        event.setAddress(request.getAddress());
+        event.setCategory(request.getCategory());
+        event.setImageUrl(request.getImageUrl());
+        event.setMaxAttendees(request.getMaxAttendees());
+        event.setEventType(request.getEventType());
+        event.setPrivateCode(request.getPrivateCode());
+
+        Event updatedEvent = eventRepository.save(event);
+
+        User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        return convertToResponse(updatedEvent, organizerName);
+    }
+
+    // ================================================================
+    // END OF CLASS
+    // ================================================================
 }

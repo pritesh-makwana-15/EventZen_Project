@@ -1,4 +1,10 @@
-import React, { useState, useEffect } from "react";
+// ================================================================
+// FILE: src/pages/VisitorDashboard.jsx - PART 1/5
+// CHANGES: Added mobile menu state, Lucide icons, registered filter state
+// Added dateTime utility imports for AM/PM formatting
+// ================================================================
+
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Visitor page styling/VisitorDashboard.css";
 import API from "../services/api";
@@ -7,25 +13,40 @@ import {
   Calendar,
   Users,
   User,
-  UserPlus,
   LogOut,
-  Trash2,
-  Edit,
   X,
-  Save,
-  Loader,
   Eye,
   Filter,
   RotateCcw,
-  Upload,
-  CircleX,
-  ChartBarStacked,
-  ImagePlus
+  ImagePlus,
+  Menu,
+  Clock,
+  MapPin,
+  Tag,
+  UserCheck,
+  Lock,
+  Globe,
+  CheckCircle,
+  XCircle,
+  Trash2
 } from "lucide-react";
+
+// Import date/time utilities for AM/PM formatting
+import {
+  formatDateDDMMYYYY,
+  formatTimeAMPM,
+  formatDateTimeAMPM,
+  isUpcomingEvent
+} from "../utils/dateTime";
 
 export default function VisitorDashboard() {
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState("events");
+  
+  // Mobile menu state (NEW)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const mobileMenuRef = useRef(null);
+  const menuButtonRef = useRef(null);
   
   const [userId, setUserId] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
@@ -39,7 +60,7 @@ export default function VisitorDashboard() {
   const [success, setSuccess] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
   
-  // 🆕 NEW: Registration Modal State
+  // Registration Modal State
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [regEvent, setRegEvent] = useState(null);
   const [regLoading, setRegLoading] = useState(false);
@@ -52,13 +73,16 @@ export default function VisitorDashboard() {
     privateCode: ""
   });
   
+  // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [locationFilter, setLocationFilter] = useState("");
   const [organizerFilter, setOrganizerFilter] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [registeredFilter, setRegisteredFilter] = useState("all"); // NEW: all/registered/not-registered
 
+  // My Registrations filters
   const [registrationFilter, setRegistrationFilter] = useState("all");
   const [regEventNameFilter, setRegEventNameFilter] = useState("");
   const [regCategoryFilter, setRegCategoryFilter] = useState("");
@@ -66,6 +90,7 @@ export default function VisitorDashboard() {
   const [regOrganizerFilter, setRegOrganizerFilter] = useState("");
   const [regTypeFilter, setRegTypeFilter] = useState("");
 
+  // Profile editing state
   const [editing, setEditing] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "",
@@ -78,6 +103,75 @@ export default function VisitorDashboard() {
     currentPassword: "",
     newPassword: ""
   });
+
+  // Mobile menu toggle handler (NEW)
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(prev => !prev);
+  };
+
+  // Close mobile menu when clicking outside (NEW)
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (
+        isMobileMenuOpen &&
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target) &&
+        menuButtonRef.current &&
+        !menuButtonRef.current.contains(event.target)
+      ) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    const handleEscape = (event) => {
+      if (event.key === 'Escape' && isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+        menuButtonRef.current?.focus();
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [isMobileMenuOpen]);
+
+  // Trap focus inside mobile menu when open (NEW)
+  useEffect(() => {
+    if (isMobileMenuOpen && mobileMenuRef.current) {
+      const focusableElements = mobileMenuRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      const handleTabKey = (e) => {
+        if (e.key === 'Tab') {
+          if (e.shiftKey) {
+            if (document.activeElement === firstElement) {
+              lastElement.focus();
+              e.preventDefault();
+            }
+          } else {
+            if (document.activeElement === lastElement) {
+              firstElement.focus();
+              e.preventDefault();
+            }
+          }
+        }
+      };
+
+      document.addEventListener('keydown', handleTabKey);
+      firstElement?.focus();
+
+      return () => {
+        document.removeEventListener('keydown', handleTabKey);
+      };
+    }
+  }, [isMobileMenuOpen]);
 
   useEffect(() => {
     loadUserData();
@@ -105,7 +199,7 @@ export default function VisitorDashboard() {
         imageUrl: response.data.imageUrl || ""
       });
       
-      // 🆕 Pre-fill registration form with user data
+      // Pre-fill registration form with user data
       setRegistrationForm(prev => ({
         ...prev,
         name: response.data.name,
@@ -118,13 +212,21 @@ export default function VisitorDashboard() {
     }
   };
 
+  // ================================================================
+// FILE: src/pages/VisitorDashboard.jsx - PART 2/5
+// Data loading functions and event handlers
+// ================================================================
+
   const loadAllEvents = async () => {
     try {
       setLoading(true);
       const response = await API.get("/events");
       
       const upcomingEvents = response.data.filter(event => {
-        const eventDate = new Date(event.date);
+        // Use startDate if available, fallback to date field
+        const eventDateStr = event.startDate || event.date;
+        const eventTimeStr = event.startTime || '00:00';
+        const eventDate = new Date(`${eventDateStr}T${eventTimeStr}`);
         return event.isActive && eventDate >= new Date();
       });
       
@@ -195,7 +297,7 @@ export default function VisitorDashboard() {
     }
   };
 
-  // 🆕 NEW: Open Registration Modal
+  // Registration Modal Handlers
   const handleOpenRegisterModal = (event) => {
     setRegEvent(event);
     setRegError("");
@@ -212,7 +314,6 @@ export default function VisitorDashboard() {
     setShowRegisterModal(true);
   };
 
-  // 🆕 NEW: Close Registration Modal
   const handleCloseRegisterModal = () => {
     setShowRegisterModal(false);
     setRegEvent(null);
@@ -226,17 +327,15 @@ export default function VisitorDashboard() {
     });
   };
 
-  // 🆕 NEW: Handle Registration Form Change
   const handleRegistrationFormChange = (e) => {
     const { name, value } = e.target;
     setRegistrationForm(prev => ({
       ...prev,
       [name]: value
     }));
-    setRegError(""); // Clear error on input change
+    setRegError("");
   };
 
-  // 🆕 NEW: Submit Registration
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     
@@ -250,14 +349,12 @@ export default function VisitorDashboard() {
       return;
     }
     
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(registrationForm.email)) {
       setRegError("Please enter a valid email address");
       return;
     }
     
-    // Private event validation
     if (regEvent.eventType === "PRIVATE" && !registrationForm.privateCode.trim()) {
       setRegError("Private code is required for this event");
       return;
@@ -269,12 +366,10 @@ export default function VisitorDashboard() {
 
       await registerForEvent(regEvent.id, registrationForm);
       
-      // Update UI
       setRegisteredEventIds(prev => new Set([...prev, regEvent.id]));
       setSuccess("Successfully registered for the event!");
       setTimeout(() => setSuccess(""), 3000);
       
-      // Close modal and reload
       handleCloseRegisterModal();
       loadAllEvents();
       
@@ -398,6 +493,7 @@ export default function VisitorDashboard() {
     setOrganizerFilter("");
     setTypeFilter("");
     setStatusFilter("");
+    setRegisteredFilter("all"); // Reset registered filter
   };
 
   const handleRegistrationReset = () => {
@@ -409,6 +505,12 @@ export default function VisitorDashboard() {
     setRegTypeFilter("");
   };
 
+  // ================================================================
+// FILE: src/pages/VisitorDashboard.jsx - PART 3/5
+// Filter logic and helper functions
+// ================================================================
+
+  // Filter events based on all criteria including registered status (NEW)
   const getFilteredEvents = () => {
     const now = new Date();
     
@@ -426,7 +528,10 @@ export default function VisitorDashboard() {
       
       const matchesType = !typeFilter || event.eventType === typeFilter;
       
-      const eventDate = new Date(event.date);
+      // Status filter based on startDate/startTime or fallback to date
+      const eventDateStr = event.startDate || event.date;
+      const eventTimeStr = event.startTime || '00:00';
+      const eventDate = new Date(`${eventDateStr}T${eventTimeStr}`);
       let matchesStatus = true;
       if (statusFilter === "Upcoming") {
         matchesStatus = eventDate >= now;
@@ -434,8 +539,16 @@ export default function VisitorDashboard() {
         matchesStatus = eventDate < now;
       }
       
+      // NEW: Registered filter
+      let matchesRegistered = true;
+      if (registeredFilter === "registered") {
+        matchesRegistered = registeredEventIds.has(event.id);
+      } else if (registeredFilter === "not-registered") {
+        matchesRegistered = !registeredEventIds.has(event.id);
+      }
+      
       return matchesSearch && matchesCategory && matchesLocation && 
-             matchesOrganizer && matchesType && matchesStatus;
+             matchesOrganizer && matchesType && matchesStatus && matchesRegistered;
     });
   };
 
@@ -445,7 +558,10 @@ export default function VisitorDashboard() {
     return myRegistrations.filter(reg => {
       if (!reg.event) return false;
       
-      const eventDate = new Date(reg.event.date);
+      // Use startDate/startTime if available, fallback to date
+      const eventDateStr = reg.event.startDate || reg.event.date;
+      const eventTimeStr = reg.event.startTime || '00:00';
+      const eventDate = new Date(`${eventDateStr}T${eventTimeStr}`);
       
       let matchesStatusFilter = true;
       if (registrationFilter === "upcoming") {
@@ -472,21 +588,39 @@ export default function VisitorDashboard() {
     });
   };
 
-  const formatDateTime = (dateTimeString) => {
-    const date = new Date(dateTimeString);
-    return date.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+  // Helper: Format date and time for display using utilities (UPDATED)
+  const formatEventDateTime = (event) => {
+    const dateStr = event.startDate || event.date;
+    const timeStr = event.startTime || event.startTime;
+    
+    if (!dateStr) return 'N/A';
+    
+    // If time is available, show both
+    if (timeStr) {
+      return `${formatDateDDMMYYYY(dateStr)} at ${formatTimeAMPM(timeStr)}`;
+    }
+    
+    // Otherwise just date
+    return formatDateDDMMYYYY(dateStr);
   };
 
+  // Calculate registration stats
   const today = new Date();
-  const upcomingRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) >= today);
-  const pastRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) < today);
+  const upcomingRegistrations = myRegistrations.filter(r => {
+    if (!r.event) return false;
+    const eventDateStr = r.event.startDate || r.event.date;
+    const eventTimeStr = r.event.startTime || '00:00';
+    return new Date(`${eventDateStr}T${eventTimeStr}`) >= today;
+  });
+  
+  const pastRegistrations = myRegistrations.filter(r => {
+    if (!r.event) return false;
+    const eventDateStr = r.event.startDate || r.event.date;
+    const eventTimeStr = r.event.startTime || '00:00';
+    return new Date(`${eventDateStr}T${eventTimeStr}`) < today;
+  });
 
+  // Default placeholder images
   const defaultImages = {
     Technology: "https://via.placeholder.com/400x200/667eea/ffffff?text=Technology",
     Business: "https://via.placeholder.com/400x200/f59e0b/ffffff?text=Business",
@@ -501,40 +635,86 @@ export default function VisitorDashboard() {
     Other: "https://via.placeholder.com/400x200/6b7280/ffffff?text=Event"
   };
 
+  // Helper: Navigate to page and close mobile menu (NEW)
+  const handleNavigate = (page) => {
+    setActivePage(page);
+    setIsMobileMenuOpen(false);
+  };
+
+  // ================================================================
+// FILE: src/pages/VisitorDashboard.jsx - PART 4/5
+// JSX Render: Layout, Mobile Menu, Events Page
+// ================================================================
+
   return (
     <div className="vis-visitor-dashboard">
-      <aside className="vis-sidebar">
+      {/* Mobile Menu Button (NEW) - Visible on small screens */}
+      <button
+        ref={menuButtonRef}
+        className="vis-mobile-menu-button"
+        onClick={toggleMobileMenu}
+        aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+        aria-expanded={isMobileMenuOpen}
+        aria-controls="vis-mobile-sidebar"
+      >
+        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
+      {/* Mobile Menu Overlay (NEW) */}
+      {isMobileMenuOpen && (
+        <div 
+          className="vis-mobile-overlay" 
+          onClick={() => setIsMobileMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
+      {/* Sidebar - becomes mobile menu on small screens (UPDATED) */}
+      <aside 
+        ref={mobileMenuRef}
+        id="vis-mobile-sidebar"
+        className={`vis-sidebar ${isMobileMenuOpen ? 'vis-sidebar-open' : ''}`}
+        role="navigation"
+        aria-label="Main navigation"
+      >
         <div className="vis-logo">
           <div className="vis-logo-icon">
-            <img src="/src/assets/EZ-logo1.png" alt="logo" className="vis-logo-img" />
+            <img src="/src/assets/EZ-logo1.png" alt="EventZen logo" className="vis-logo-img" />
           </div>
           <span className="vis-logo-text">EventZen</span>
         </div>
 
-        <nav className="vis-nav-menu-visitor">
+        <nav className="vis-nav-menu-visitor" role="menu">
           <button
             className={`vis-nav-item ${activePage === "events" ? "vis-active" : ""}`}
-            onClick={() => setActivePage("events")}
+            onClick={() => handleNavigate("events")}
+            role="menuitem"
           >
-            <span className="vis-nav-icon">📅</span>
+            <Calendar className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>Events</span>
           </button>
           <button
             className={`vis-nav-item ${activePage === "registrations" ? "vis-active" : ""}`}
-            onClick={() => setActivePage("registrations")}
+            onClick={() => handleNavigate("registrations")}
+            role="menuitem"
           >
-            <span className="vis-nav-icon">🎟️</span>
+            <CheckCircle className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>My Registrations</span>
           </button>
           <button
             className={`vis-nav-item ${activePage === "profile" ? "vis-active" : ""}`}
-            onClick={() => setActivePage("profile")}
+            onClick={() => handleNavigate("profile")}
+            role="menuitem"
           >
-            <span className="vis-nav-icon">👤</span>
+            <User className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>Profile</span>
           </button>
-          <button className="vis-nav-item vis-logout" onClick={handleLogout}>
-            <span className="vis-nav-icon">🚪</span>
+          <button 
+            className="vis-nav-item vis-logout" 
+            onClick={handleLogout}
+            role="menuitem"
+          >
+            <LogOut className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>Logout</span>
           </button>
         </nav>
@@ -543,15 +723,19 @@ export default function VisitorDashboard() {
       <main className="vis-main-content">
         <div className="vis-content-wrapper">
           {error && (
-            <div className="vis-alert vis-error">
+            <div className="vis-alert vis-error" role="alert">
               {error}
-              <button onClick={() => setError("")} className="vis-alert-close">×</button>
+              <button onClick={() => setError("")} className="vis-alert-close" aria-label="Close error">
+                <X size={18} />
+              </button>
             </div>
           )}
           {success && (
-            <div className="vis-alert vis-success">
+            <div className="vis-alert vis-success" role="alert">
               {success}
-              <button onClick={() => setSuccess("")} className="vis-alert-close">×</button>
+              <button onClick={() => setSuccess("")} className="vis-alert-close" aria-label="Close success message">
+                <X size={18} />
+              </button>
             </div>
           )}
 
@@ -562,6 +746,7 @@ export default function VisitorDashboard() {
             </div>
           ) : (
             <>
+              {/* EVENTS PAGE (UPDATED with new filters and date/time display) */}
               {activePage === "events" && (
                 <section className="vis-events-page">
                   <div className="vis-page-header">
@@ -573,7 +758,7 @@ export default function VisitorDashboard() {
                     <input
                       type="text"
                       className="vis-search-input"
-                      placeholder="🔍 Search events..."
+                      placeholder="Search events..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       aria-label="Search events by name"
@@ -632,16 +817,30 @@ export default function VisitorDashboard() {
                       <option value="PUBLIC">Public</option>
                       <option value="PRIVATE">Private</option>
                     </select>
+
+                    {/* NEW: Registered Filter */}
+                    <select
+                      className="vis-filter-select"
+                      value={registeredFilter}
+                      onChange={(e) => setRegisteredFilter(e.target.value)}
+                      aria-label="Filter by registration status"
+                    >
+                      <option value="all">All Events</option>
+                      <option value="registered">Registered</option>
+                      <option value="not-registered">Not Registered</option>
+                    </select>
                     
                     <button 
                       className="vis-reset-btn-visitor" 
                       onClick={handleReset}
                       aria-label="Reset all filters"
                     >
-                      Reset Filters
+                      <RotateCcw size={16} aria-hidden="true" />
+                      <span>Reset</span>
                     </button>
                   </div>
 
+                  {/* Events Grid with Card View */}
                   <div className="vis-events-grid">
                     {getFilteredEvents().length > 0 ? (
                       getFilteredEvents().map(event => (
@@ -658,29 +857,59 @@ export default function VisitorDashboard() {
                                   ? 'vis-private' 
                                   : 'vis-public'
                             }`}>
-                              {registeredEventIds.has(event.id) 
-                                ? '✓ Registered' 
-                                : event.eventType === 'PRIVATE' 
-                                  ? '🔒 Private' 
-                                  : '🌐 Public'}
+                              {registeredEventIds.has(event.id) ? (
+                                <>
+                                  <CheckCircle size={14} aria-hidden="true" />
+                                  Registered
+                                </>
+                              ) : event.eventType === 'PRIVATE' ? (
+                                <>
+                                  <Lock size={14} aria-hidden="true" />
+                                  Private
+                                </>
+                              ) : (
+                                <>
+                                  <Globe size={14} aria-hidden="true" />
+                                  Public
+                                </>
+                              )}
                             </span>
                           </div>
                           <div className="vis-event-details-visitor">
                             <h3>{event.title}</h3>
-                            <span className="vis-event-category">{event.category}</span>
+                            <span className="vis-event-category">
+                              <Tag size={12} aria-hidden="true" />
+                              {event.category}
+                            </span>
                             <div className="vis-event-info-grid">
-                              <p className="vis-event-date">📅 {formatDateTime(event.date)}</p>
-                              <p className="vis-event-location">📍 {event.location}</p>
-                              <p className="vis-event-organizer">👤 {event.organizerName}</p>
+                              {/* UPDATED: Show start/end date and time in AM/PM */}
+                              <p className="vis-event-date">
+                                <Calendar size={14} aria-hidden="true" />
+                                {event.startDate ? formatDateDDMMYYYY(event.startDate) : formatDateDDMMYYYY(event.date)}
+                              </p>
+                              <p className="vis-event-time">
+                                <Clock size={14} aria-hidden="true" />
+                                {event.startTime ? formatTimeAMPM(event.startTime) : 'TBD'}
+                              </p>
+                              <p className="vis-event-location">
+                                <MapPin size={14} aria-hidden="true" />
+                                {event.location}
+                              </p>
+                              <p className="vis-event-organizer">
+                                <UserCheck size={14} aria-hidden="true" />
+                                {event.organizerName}
+                              </p>
                               {event.maxAttendees && (
                                 <p className="vis-event-capacity">
-                                  👥 {event.currentAttendees || 0}/{event.maxAttendees}
+                                  <Users size={14} aria-hidden="true" />
+                                  {event.currentAttendees || 0}/{event.maxAttendees}
                                 </p>
                               )}
                             </div>
                             <div className="vis-event-actions">
                               {registeredEventIds.has(event.id) ? (
                                 <button className="vis-btn vis-btn-registered" disabled>
+                                  <CheckCircle size={16} aria-hidden="true" />
                                   Registered
                                 </button>
                               ) : (
@@ -696,6 +925,7 @@ export default function VisitorDashboard() {
                                 className="vis-btn vis-btn-secondary"
                                 onClick={() => setSelectedEvent(event)}
                               >
+                                <Eye size={16} aria-hidden="true" />
                                 Details
                               </button>
                             </div>
@@ -704,6 +934,7 @@ export default function VisitorDashboard() {
                       ))
                     ) : (
                       <div className="vis-no-events">
+                        <Filter size={48} aria-hidden="true" />
                         <p>No events found matching your filters</p>
                         <button className="vis-btn vis-btn-primary-visitor" onClick={handleReset}>
                           Clear All Filters
@@ -714,26 +945,27 @@ export default function VisitorDashboard() {
                 </section>
               )}
 
+              {/* MY REGISTRATIONS PAGE (UPDATED with date/time columns) */}
               {activePage === "registrations" && (
                 <section className="vis-registrations-page">
                   <div className="vis-stats-cards">
                     <div className="vis-stat-card-visitor">
                       <div className="vis-stat-info">
-                        <div className="vis-stat-icon">📊</div>
+                        <CheckCircle className="vis-stat-icon" size={28} aria-hidden="true" />
                         <h3>{myRegistrations.length}</h3>
                       </div>
                       <p>Total Registrations</p>
                     </div>
                     <div className="vis-stat-card-visitor">
                       <div className="vis-stat-info">
-                        <div className="vis-stat-icon">🚀</div>
+                        <Clock className="vis-stat-icon" size={28} aria-hidden="true" />
                         <h3>{upcomingRegistrations.length}</h3>
                       </div>
                       <p>Upcoming Events</p>
                     </div>
                     <div className="vis-stat-card-visitor">
                       <div className="vis-stat-info">
-                        <div className="vis-stat-icon">✓</div>
+                        <CheckCircle className="vis-stat-icon" size={28} aria-hidden="true" />
                         <h3>{pastRegistrations.length}</h3>
                       </div>
                       <p>Completed Events</p>
@@ -821,84 +1053,163 @@ export default function VisitorDashboard() {
                         onClick={handleRegistrationReset}
                         aria-label="Reset all filters"
                       >
-                        Reset Filters
+                        <RotateCcw size={16} aria-hidden="true" />
+                        <span>Reset</span>
                       </button>
                     </div>
                   </div>
 
                   {getFilteredRegistrations().length > 0 ? (
-                    <div className="vis-registrations-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Image</th>
-                            <th>Event</th>
-                            <th>Category</th>
-                            <th>Date</th>
-                            <th>Location</th>
-                            <th>Organizer</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {getFilteredRegistrations().map(reg => {
-                            const isUpcoming = new Date(reg.event.date) >= today;
-                            return (
-                              <tr key={reg.id}>
-                                <td>
-                                  <img 
-                                    src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]} 
-                                    alt={`${reg.event.title} event image`}
-                                    className="vis-event-thumbnail"
-                                  />
+                    <>
+                      {/* Desktop Table View */}
+                      <div className="vis-registrations-table vis-desktop-only">
+                        <table>
+                          <thead>
+                            <tr>
+                              <th>Image</th>
+                              <th>Event</th>
+                              <th>Category</th>
+                              <th>Start Date</th>
+                              <th>Start Time</th>
+                              <th>End Date</th>
+                              <th>End Time</th>
+                              <th>Location</th>
+                              <th>Organizer</th>
+                              <th>Type</th>
+                              <th>Status</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {getFilteredRegistrations().map(reg => {
+                              const eventDateStr = reg.event.startDate || reg.event.date;
+                              const eventTimeStr = reg.event.startTime || '00:00';
+                              const isUpcoming = new Date(`${eventDateStr}T${eventTimeStr}`) >= today;
+                              
+                              return (
+                                <tr key={reg.id}>
+                                  <td>
+                                    <img 
+                                      src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]} 
+                                      alt={`${reg.event.title} event`}
+                                      className="vis-event-thumbnail"
+                                    />
                                   </td>
-                                <td>{reg.event.title}</td>
-                                <td>{reg.event.category}</td>
-                                <td>{formatDateTime(reg.event.date)}</td>
-                                <td>{reg.event.location}</td>
-                                <td>{reg.event.organizerName}</td>
-                                <td>
-                                  <span className={`vis-type-badge-vis ${
-                                    reg.event.eventType === 'PRIVATE' ? 'vis-private' : 'vis-public'
-                                  }`}>
-                                    {reg.event.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}
-                                  </span>
-                                </td>
-                                <td>
-                                  <span className={`vis-status-badge-vis ${isUpcoming ? 'vis-upcoming' : 'vis-past'}`}>
-                                    {isUpcoming ? 'Upcoming' : 'Completed'}
-                                  </span>
-                                </td>
-                                <td>
-                                  <div className="vis-table-actions">
-                                    <button
-                                      className="vis-btn-view"
-                                      onClick={() => setSelectedEvent(reg.event)}
-                                    >
-                                      View
-                                    </button>
-                                    {isUpcoming && (
+                                  <td>{reg.event.title}</td>
+                                  <td>{reg.event.category}</td>
+                                  <td>{reg.event.startDate ? formatDateDDMMYYYY(reg.event.startDate) : formatDateDDMMYYYY(reg.event.date)}</td>
+                                  <td>{reg.event.startTime ? formatTimeAMPM(reg.event.startTime) : 'TBD'}</td>
+                                  <td>{reg.event.endDate ? formatDateDDMMYYYY(reg.event.endDate) : 'N/A'}</td>
+                                  <td>{reg.event.endTime ? formatTimeAMPM(reg.event.endTime) : 'N/A'}</td>
+                                  <td>{reg.event.location}</td>
+                                  <td>{reg.event.organizerName}</td>
+                                  <td>
+                                    <span className={`vis-type-badge-vis ${
+                                      reg.event.eventType === 'PRIVATE' ? 'vis-private' : 'vis-public'
+                                    }`}>
+                                      {reg.event.eventType === 'PRIVATE' ? (
+                                        <>
+                                          <Lock size={12} aria-hidden="true" />
+                                          Private
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Globe size={12} aria-hidden="true" />
+                                          Public
+                                        </>
+                                      )}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <span className={`vis-status-badge-vis ${isUpcoming ? 'vis-upcoming' : 'vis-past'}`}>
+                                      {isUpcoming ? 'Upcoming' : 'Completed'}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <div className="vis-table-actions">
                                       <button
-                                        className="vis-btn-cancel"
-                                        onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
+                                        className="vis-btn-view"
+                                        onClick={() => setSelectedEvent(reg.event)}
+                                        aria-label={`View details for ${reg.event.title}`}
                                       >
-                                        Cancel
+                                        <Eye size={14} aria-hidden="true" />
+                                        View
                                       </button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
+                                      {isUpcoming && (
+                                        <button
+                                          className="vis-btn-cancel"
+                                          onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
+                                          aria-label={`Cancel registration for ${reg.event.title}`}
+                                        >
+                                          <Trash2 size={14} aria-hidden="true" />
+                                          Cancel
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Mobile Card View (NEW) */}
+                      <div className="vis-registrations-cards vis-mobile-only">
+                        {getFilteredRegistrations().map(reg => {
+                          const eventDateStr = reg.event.startDate || reg.event.date;
+                          const eventTimeStr = reg.event.startTime || '00:00';
+                          const isUpcoming = new Date(`${eventDateStr}T${eventTimeStr}`) >= today;
+                          
+                          return (
+                            <div key={reg.id} className="vis-registration-card">
+                              <div className="vis-registration-card-image">
+                                <img 
+                                  src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]} 
+                                  alt={reg.event.title}
+                                />
+                                <span className={`vis-status-badge-vis ${isUpcoming ? 'vis-upcoming' : 'vis-past'}`}>
+                                  {isUpcoming ? 'Upcoming' : 'Completed'}
+                                </span>
+                              </div>
+                              <div className="vis-registration-card-content">
+                                <h3>{reg.event.title}</h3>
+                                <div className="vis-registration-card-details">
+                                  <p><Tag size={14} /> {reg.event.category}</p>
+                                  <p><Calendar size={14} /> {reg.event.startDate ? formatDateDDMMYYYY(reg.event.startDate) : formatDateDDMMYYYY(reg.event.date)}</p>
+                                  <p><Clock size={14} /> {reg.event.startTime ? formatTimeAMPM(reg.event.startTime) : 'TBD'}</p>
+                                  <p><MapPin size={14} /> {reg.event.location}</p>
+                                  <p><UserCheck size={14} /> {reg.event.organizerName}</p>
+                                </div>
+                                <div className="vis-registration-card-actions">
+                                  <button
+                                    className="vis-btn vis-btn-secondary"
+                                    onClick={() => setSelectedEvent(reg.event)}
+                                  >
+                                    <Eye size={16} />
+                                    Details
+                                  </button>
+                                  {isUpcoming && (
+                                    <button
+                                      className="vis-btn vis-btn-cancel"
+                                      onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
+                                    >
+                                      <Trash2 size={16} />
+                                      Cancel
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   ) : (
                     <div className="vis-no-registrations">
+                      <CheckCircle size={48} aria-hidden="true" />
                       <p>You haven't registered for any events yet</p>
-                      <button className="vis-btn vis-btn-primary-visitor" onClick={() => setActivePage("events")}>
+                      <button className="vis-btn vis-btn-primary-visitor" onClick={() => handleNavigate("events")}>
                         Browse Events
                       </button>
                     </div>
@@ -906,6 +1217,7 @@ export default function VisitorDashboard() {
                 </section>
               )}
 
+              {/* PROFILE PAGE (unchanged) */}
               {activePage === "profile" && userProfile && (
                 <section className="vis-profile-page">
                   <div className="vis-profile-container">
@@ -949,7 +1261,7 @@ export default function VisitorDashboard() {
                               id="profile-image-upload"
                             />
                             <label htmlFor="profile-image-upload" className="vis-upload-label">
-                              <ImagePlus size={20}/>
+                              <ImagePlus size={20} aria-hidden="true" />
                               {profileForm.imageUrl ? "" : "Upload Image"}
                             </label>
                             {profileForm.imageUrl && (
@@ -1065,27 +1377,36 @@ export default function VisitorDashboard() {
         </div>
       </main>
           
-      {/* Event Details Modal */}
+      {/* Event Details Modal (UPDATED with date/time display) */}
       {selectedEvent && (
         <div className="vis-modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
-          <div className="vis-modal-visitor-content" onClick={(e) => e.stopPropagation()}>
-            <button className="vis-modal-visitor-close" onClick={() => setSelectedEvent(null)}>×</button>
+          <div className="vis-modal-visitor-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="event-details-title" aria-modal="true">
+            <button className="vis-modal-visitor-close" onClick={() => setSelectedEvent(null)} aria-label="Close modal">
+              <X size={24} />
+            </button>
             <div className="vis-modal-visitor-header">
               <img 
-                src={selectedEvent.imageUrl || "https://via.placeholder.com/400x200?text=Event"} 
+                src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]} 
                 alt={selectedEvent.title} 
                 className="vis-modal-visitor-image" 
               />
-              <h2>{selectedEvent.title}</h2>
+              <h2 id="event-details-title">{selectedEvent.title}</h2>
             </div>
             <div className="vis-modal-visitor-body">
               <div className="vis-modal-visitor-info">
-                <p><strong>Category:</strong> {selectedEvent.category}</p>
-                <p><strong>Date:</strong> {formatDateTime(selectedEvent.date)}</p>
-                <p><strong>Location:</strong> {selectedEvent.location}</p>
-                <p><strong>Organizer:</strong> {selectedEvent.organizerName}</p>
+                <p><strong><Tag size={16} /> Category:</strong> {selectedEvent.category}</p>
+                <p><strong><Calendar size={16} /> Start Date:</strong> {selectedEvent.startDate ? formatDateDDMMYYYY(selectedEvent.startDate) : formatDateDDMMYYYY(selectedEvent.date)}</p>
+                <p><strong><Clock size={16} /> Start Time:</strong> {selectedEvent.startTime ? formatTimeAMPM(selectedEvent.startTime) : 'TBD'}</p>
+                {selectedEvent.endDate && (
+                  <p><strong><Calendar size={16} /> End Date:</strong> {formatDateDDMMYYYY(selectedEvent.endDate)}</p>
+                )}
+                {selectedEvent.endTime && (
+                  <p><strong><Clock size={16} /> End Time:</strong> {formatTimeAMPM(selectedEvent.endTime)}</p>
+                )}
+                <p><strong><MapPin size={16} /> Location:</strong> {selectedEvent.location}</p>
+                <p><strong><UserCheck size={16} /> Organizer:</strong> {selectedEvent.organizerName}</p>
                 {selectedEvent.maxAttendees && (
-                  <p><strong>Capacity:</strong> {selectedEvent.currentAttendees || 0} / {selectedEvent.maxAttendees}</p>
+                  <p><strong><Users size={16} /> Capacity:</strong> {selectedEvent.currentAttendees || 0} / {selectedEvent.maxAttendees}</p>
                 )}
                 <p><strong>Type:</strong> {selectedEvent.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}</p>
               </div>
@@ -1115,25 +1436,18 @@ export default function VisitorDashboard() {
         </div>
       )}
 
-      {/* 🆕 NEW: Registration Modal */}
+      {/* Registration Modal */}
       {showRegisterModal && regEvent && (
         <div className="vis-modal-visitor-overlay" onClick={handleCloseRegisterModal}>
-          <div className="vis-modal-visitor-content vis-registration-modal" onClick={(e) => e.stopPropagation()}>
-            {/* <button className="vis-modal-visitor-registration-close" onClick={handleCloseRegisterModal}>×</button> */}
-            
+          <div className="vis-modal-visitor-content vis-registration-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="register-modal-title" aria-modal="true">
             <div className="vis-modal-visitor-header">
-              {/* <img 
-                src={regEvent.imageUrl || defaultImages[regEvent.category] || defaultImages["Other"]} 
-                alt={regEvent.title} 
-                className="vis-modal-visitor-image" 
-              /> */}
-              <h2>Register for {regEvent.title}</h2>
+              <h2 id="register-modal-title">Register for {regEvent.title}</h2>
             </div>
             
             <form onSubmit={handleRegisterSubmit}>
               <div className="vis-modal-visitor-body">
                 {regError && (
-                  <div className="vis-reg-error-message">
+                  <div className="vis-reg-error-message" role="alert">
                     {regError}
                   </div>
                 )}
@@ -1200,7 +1514,6 @@ export default function VisitorDashboard() {
                       placeholder="Enter the private event code"
                       required
                     />
-                    {/* <p className="vis-form-hint">🔒 This event requires a private code to register</p> */}
                   </div>
                 )}
               </div>

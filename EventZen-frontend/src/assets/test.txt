@@ -1,4 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import "../styles/Visitor page styling/VisitorDashboard.css";
+import API from "../services/api";
+import { registerForEvent, getMyRegistrations, cancelRegistration } from "../services/registrations";
 import {
   Calendar,
   Users,
@@ -15,477 +19,474 @@ import {
   RotateCcw,
   Upload,
   CircleX,
-  ChartBarStacked
+  ChartBarStacked,
+  ImagePlus
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import "../styles/Admin Dashborad/AdminDashboard.css";
-import {
-  getAllOrganizers,
-  getAllVisitors,
-  getAllEventsAdmin,
-  deleteUser,
-  deleteEventAdmin,
-  createOrganizer,
-  updateUser,
-  getAdminProfile,
-  updateAdminProfile,
-} from "../services/adminService";
-import { logout } from "../services/api";
-import AdminAnalyticsPage from "../pages/AdminAnalyticsPage";
 
-const AdminDashboard = () => {
+export default function VisitorDashboard() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState("events");
-  const [loading, setLoading] = useState(false);
+  const [activePage, setActivePage] = useState("events");
+  
+  const [userId, setUserId] = useState(null);
+  const [userProfile, setUserProfile] = useState(null);
+  
+  const [allEvents, setAllEvents] = useState([]);
+  const [myRegistrations, setMyRegistrations] = useState([]);
+  const [registeredEventIds, setRegisteredEventIds] = useState(new Set());
+  
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  // Data states
-  const [visitors, setVisitors] = useState([]);
-  const [organizers, setOrganizers] = useState([]);
-  const [events, setEvents] = useState([]);
-  const [filteredEvents, setFilteredEvents] = useState([]);
-  const [filteredOrganizers, setFilteredOrganizers] = useState([]);
-  const [filteredVisitors, setFilteredVisitors] = useState([]);
-  const [adminProfile, setAdminProfile] = useState(null);
-
-  // Filter states for Events
-  const [filters, setFilters] = useState({
-    organizer: "",
-    category: "",
-    type: "",
-    status: "",
-    eventName: "",
-  });
-
-  // Filter states for Organizers
-  const [organizerFilters, setOrganizerFilters] = useState({
-    id: "",
-    name: "",
-  });
-
-  // Filter states for Visitors
-  const [visitorFilters, setVisitorFilters] = useState({
-    id: "",
-    name: "",
-  });
-
-  // Modal states (for events, organizers, visitors - NOT profile)
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [showEventDetailModal, setShowEventDetailModal] = useState(false);
-  const [currentItem, setCurrentItem] = useState(null);
-  const [editType, setEditType] = useState("");
-
-  // 🆕 NEW: Profile editing state (for full-page profile)
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-
-  // Form states
-  const [newOrganizer, setNewOrganizer] = useState({
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  
+  // 🆕 NEW: Registration Modal State
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [regEvent, setRegEvent] = useState(null);
+  const [regLoading, setRegLoading] = useState(false);
+  const [regError, setRegError] = useState("");
+  const [registrationForm, setRegistrationForm] = useState({
     name: "",
     email: "",
-    password: "",
-    confirmPassword: "",
+    phone: "",
+    notes: "",
+    privateCode: ""
   });
+  
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
+  const [organizerFilter, setOrganizerFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
-  const [passwordError, setPasswordError] = useState("");
+  const [registrationFilter, setRegistrationFilter] = useState("all");
+  const [regEventNameFilter, setRegEventNameFilter] = useState("");
+  const [regCategoryFilter, setRegCategoryFilter] = useState("");
+  const [regLocationFilter, setRegLocationFilter] = useState("");
+  const [regOrganizerFilter, setRegOrganizerFilter] = useState("");
+  const [regTypeFilter, setRegTypeFilter] = useState("");
 
-  const [editForm, setEditForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-  });
-
-  // 🆕 NEW: Profile form for full-page profile
+  const [editing, setEditing] = useState(false);
   const [profileForm, setProfileForm] = useState({
     name: "",
     email: "",
     mobileNumber: "",
-    imageUrl: "",
+    imageUrl: ""
   });
 
-  // 🆕 NEW: Separate password change form
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
-    newPassword: "",
+    newPassword: ""
   });
 
   useEffect(() => {
-    loadData();
-  }, [activeSection]);
-
-  useEffect(() => {
-    loadAdminProfile();
+    loadUserData();
   }, []);
 
   useEffect(() => {
-    applyFilters();
-  }, [filters, events]);
+    if (activePage === "events") {
+      loadAllEvents();
+    } else if (activePage === "registrations") {
+      loadMyRegistrations();
+    }
+  }, [activePage]);
 
-  useEffect(() => {
-    applyOrganizerFilters();
-  }, [organizerFilters, organizers]);
-
-  useEffect(() => {
-    applyVisitorFilters();
-  }, [visitorFilters, visitors]);
-
-  const loadAdminProfile = async () => {
+  const loadUserData = async () => {
     try {
-      const profile = await getAdminProfile();
-      setAdminProfile(profile);
+      const response = await API.get("/users/profile");
+      setUserProfile(response.data);
+      setUserId(response.data.id);
+      localStorage.setItem("userId", response.data.id);
+      
       setProfileForm({
-        name: profile.name,
-        email: profile.email,
-        mobileNumber: profile.mobileNumber || "",
-        imageUrl: profile.imageUrl || "",
+        name: response.data.name,
+        email: response.data.email,
+        mobileNumber: response.data.mobileNumber || "",
+        imageUrl: response.data.imageUrl || ""
       });
+      
+      // 🆕 Pre-fill registration form with user data
+      setRegistrationForm(prev => ({
+        ...prev,
+        name: response.data.name,
+        email: response.data.email,
+        phone: response.data.mobileNumber || ""
+      }));
     } catch (err) {
-      console.error("Error loading admin profile:", err);
+      console.error("Error loading user profile:", err);
+      setError("Failed to load user profile");
     }
   };
 
-  const loadData = async () => {
-    setLoading(true);
-    setError("");
+  const loadAllEvents = async () => {
     try {
-      if (activeSection === "visitors") {
-        const data = await getAllVisitors();
-        setVisitors(data);
-        setFilteredVisitors(data);
-      } else if (activeSection === "organizers") {
-        const data = await getAllOrganizers();
-        setOrganizers(data);
-        setFilteredOrganizers(data);
-      } else if (activeSection === "events") {
-        const data = await getAllEventsAdmin();
-        setEvents(data);
-        setFilteredEvents(data);
+      setLoading(true);
+      const response = await API.get("/events");
+      
+      const upcomingEvents = response.data.filter(event => {
+        const eventDate = new Date(event.date);
+        return event.isActive && eventDate >= new Date();
+      });
+      
+      setAllEvents(upcomingEvents);
+      
+      if (userId || localStorage.getItem("userId")) {
+        await loadRegistrationStatus();
       }
-      // 🆕 No data loading needed for profile page
     } catch (err) {
-      setError("Failed to load data. Please try again.");
-      console.error("Error loading data:", err);
+      console.error("Error loading events:", err);
+      setError("Failed to load events. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const applyFilters = () => {
-    let filtered = [...events];
-
-    if (filters.organizer) {
-      filtered = filtered.filter((e) =>
-        e.organizerName?.toLowerCase().includes(filters.organizer.toLowerCase())
+  const loadRegistrationStatus = async () => {
+    try {
+      const storedUserId = userId || localStorage.getItem("userId");
+      if (!storedUserId) return;
+      
+      const response = await getMyRegistrations(storedUserId);
+      const registeredIds = new Set(
+        response
+          .filter(reg => reg.status !== "CANCELLED")
+          .map(reg => reg.eventId)
       );
+      setRegisteredEventIds(registeredIds);
+    } catch (err) {
+      console.error("Error loading registration status:", err);
     }
+  };
 
-    if (filters.category) {
-      filtered = filtered.filter((e) =>
-        e.category?.toLowerCase() === filters.category.toLowerCase()
+  const loadMyRegistrations = async () => {
+    try {
+      setLoading(true);
+      const storedUserId = userId || localStorage.getItem("userId");
+      if (!storedUserId) {
+        setError("User not logged in");
+        return;
+      }
+
+      const registrations = await getMyRegistrations(storedUserId);
+      
+      const registrationsWithEvents = await Promise.all(
+        registrations
+          .filter(reg => reg.status !== "CANCELLED")
+          .map(async (reg) => {
+            try {
+              const eventResponse = await API.get(`/events/${reg.eventId}`);
+              return {
+                ...reg,
+                event: eventResponse.data
+              };
+            } catch (err) {
+              console.error(`Error loading event ${reg.eventId}:`, err);
+              return null;
+            }
+          })
       );
-    }
 
-    if (filters.type) {
-      filtered = filtered.filter((e) =>
-        e.eventType?.toLowerCase() === filters.type.toLowerCase()
-      );
-    }
-
-    if (filters.status) {
-      filtered = filtered.filter((e) => getEventStatus(e) === filters.status);
-    }
-
-    if (filters.eventName) {
-      filtered = filtered.filter((e) =>
-        e.title?.toLowerCase().includes(filters.eventName.toLowerCase())
-      );
-    }
-
-    setFilteredEvents(filtered);
-  };
-
-  const applyOrganizerFilters = () => {
-    let filtered = [...organizers];
-
-    if (organizerFilters.id) {
-      filtered = filtered.filter((o) =>
-        o.id.toString() === organizerFilters.id.toString()
-      );
-    }
-
-    if (organizerFilters.name) {
-      filtered = filtered.filter((o) =>
-        o.name?.toLowerCase().includes(organizerFilters.name.toLowerCase())
-      );
-    }
-
-    setFilteredOrganizers(filtered);
-  };
-
-  const applyVisitorFilters = () => {
-    let filtered = [...visitors];
-
-    if (visitorFilters.id) {
-      filtered = filtered.filter((v) =>
-        v.id.toString() === visitorFilters.id.toString()
-      );
-    }
-
-    if (visitorFilters.name) {
-      filtered = filtered.filter((v) =>
-        v.name?.toLowerCase().includes(visitorFilters.name.toLowerCase())
-      );
-    }
-
-    setFilteredVisitors(filtered);
-  };
-
-  const resetFilters = () => {
-    setFilters({
-      organizer: "",
-      category: "",
-      type: "",
-      status: "",
-      eventName: "",
-    });
-  };
-
-  const resetOrganizerFilters = () => {
-    setOrganizerFilters({
-      id: "",
-      name: "",
-    });
-  };
-
-  const resetVisitorFilters = () => {
-    setVisitorFilters({
-      id: "",
-      name: "",
-    });
-  };
-
-  const getEventStatus = (event) => {
-    if (!event.date) return "Unknown";
-    const eventDate = new Date(event.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return eventDate >= today ? "Upcoming" : "Completed";
-  };
-
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
-  };
-
-  const getOrganizerEventCount = (organizerId) => {
-    return events.filter((e) => e.organizerId === organizerId).length;
-  };
-
-  const handleCreateOrganizer = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess("");
-    setPasswordError("");
-
-    if (newOrganizer.password !== newOrganizer.confirmPassword) {
-      setPasswordError("Passwords do not match");
+      setMyRegistrations(registrationsWithEvents.filter(r => r !== null));
+    } catch (err) {
+      console.error("Error loading registrations:", err);
+      setError("Failed to load registrations");
+    } finally {
       setLoading(false);
+    }
+  };
+
+  // 🆕 NEW: Open Registration Modal
+  const handleOpenRegisterModal = (event) => {
+    setRegEvent(event);
+    setRegError("");
+    
+    // Pre-fill form with user data
+    setRegistrationForm({
+      name: userProfile?.name || "",
+      email: userProfile?.email || "",
+      phone: userProfile?.mobileNumber || "",
+      notes: "",
+      privateCode: ""
+    });
+    
+    setShowRegisterModal(true);
+  };
+
+  // 🆕 NEW: Close Registration Modal
+  const handleCloseRegisterModal = () => {
+    setShowRegisterModal(false);
+    setRegEvent(null);
+    setRegError("");
+    setRegistrationForm({
+      name: userProfile?.name || "",
+      email: userProfile?.email || "",
+      phone: userProfile?.mobileNumber || "",
+      notes: "",
+      privateCode: ""
+    });
+  };
+
+  // 🆕 NEW: Handle Registration Form Change
+  const handleRegistrationFormChange = (e) => {
+    const { name, value } = e.target;
+    setRegistrationForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setRegError(""); // Clear error on input change
+  };
+
+  // 🆕 NEW: Submit Registration
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!registrationForm.name.trim()) {
+      setRegError("Name is required");
+      return;
+    }
+    if (!registrationForm.email.trim()) {
+      setRegError("Email is required");
+      return;
+    }
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(registrationForm.email)) {
+      setRegError("Please enter a valid email address");
+      return;
+    }
+    
+    // Private event validation
+    if (regEvent.eventType === "PRIVATE" && !registrationForm.privateCode.trim()) {
+      setRegError("Private code is required for this event");
       return;
     }
 
     try {
-      const organizerData = {
-        name: newOrganizer.name,
-        email: newOrganizer.email,
-        password: newOrganizer.password,
-      };
+      setRegLoading(true);
+      setRegError("");
 
-      await createOrganizer(organizerData);
-      setSuccess("Organizer created successfully!");
-      setNewOrganizer({ name: "", email: "", password: "", confirmPassword: "" });
-      setPasswordError("");
+      await registerForEvent(regEvent.id, registrationForm);
+      
+      // Update UI
+      setRegisteredEventIds(prev => new Set([...prev, regEvent.id]));
+      setSuccess("Successfully registered for the event!");
       setTimeout(() => setSuccess(""), 3000);
+      
+      // Close modal and reload
+      handleCloseRegisterModal();
+      loadAllEvents();
+      
     } catch (err) {
-      setError(err.response?.data || "Failed to create organizer");
+      console.error("Error registering for event:", err);
+      const errorMsg = err.response?.data?.message || err.message || "Registration failed";
+      setRegError(errorMsg);
     } finally {
-      setLoading(false);
+      setRegLoading(false);
     }
   };
 
-  const handleDelete = async () => {
-    setLoading(true);
-    setError("");
+  const handleCancelRegistration = async (registrationId, eventId) => {
+    if (!window.confirm("Are you sure you want to cancel this registration?")) {
+      return;
+    }
+
     try {
-      if (editType === "event") {
-        await deleteEventAdmin(currentItem.id);
-        setEvents(events.filter((e) => e.id !== currentItem.id));
-        setSuccess("Event deleted successfully!");
+      await cancelRegistration(registrationId);
+      setRegisteredEventIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(eventId);
+        return newSet;
+      });
+      setSuccess("Registration cancelled successfully");
+      setTimeout(() => setSuccess(""), 3000);
+      
+      if (activePage === "registrations") {
+        loadMyRegistrations();
       } else {
-        await deleteUser(currentItem.id);
-        if (editType === "visitor") {
-          setVisitors(visitors.filter((v) => v.id !== currentItem.id));
-        } else if (editType === "organizer") {
-          setOrganizers(organizers.filter((o) => o.id !== currentItem.id));
-        }
-        setSuccess(`${editType} deleted successfully!`);
+        loadAllEvents();
       }
-      setShowDeleteModal(false);
-      setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
-      setError(`Failed to delete ${editType}`);
-    } finally {
-      setLoading(false);
+      console.error("Error cancelling registration:", err);
+      setError("Failed to cancel registration");
+      setTimeout(() => setError(""), 5000);
     }
   };
 
-  const handleEdit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    try {
-      const updatedUser = await updateUser(currentItem.id, editForm);
-
-      if (editType === "visitor") {
-        setVisitors(visitors.map((v) => (v.id === currentItem.id ? updatedUser : v)));
-      } else if (editType === "organizer") {
-        setOrganizers(organizers.map((o) => (o.id === currentItem.id ? updatedUser : o)));
-      }
-
-      setShowEditModal(false);
-      setSuccess("Updated successfully!");
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      setError("Failed to update. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🆕 NEW: Profile image upload handler
-  const handleProfileImageUpload = async (file) => {
+  const handleImageUpload = async (file) => {
     if (!file) return;
-
-    if (!file.type.startsWith("image/")) {
+    
+    if (!file.type.startsWith('image/')) {
       setError("Please upload a valid image file");
       return;
     }
-
+    
     if (file.size > 5 * 1024 * 1024) {
       setError("Image size must be less than 5MB");
       return;
     }
 
     try {
-      setUploadingImage(true);
       const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch("/api/uploads", {
-        method: "POST",
-        body: formData,
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
+      formData.append('file', file);
+      
+      const response = await API.post('/uploads', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
-
-      const data = await response.json();
-      setProfileForm((prev) => ({ ...prev, imageUrl: data.url }));
+      
+      setProfileForm(prev => ({ ...prev, imageUrl: response.data.url }));
       setError("");
     } catch (err) {
       console.error("Error uploading image:", err);
-      setError("Failed to upload image");
-    } finally {
-      setUploadingImage(false);
+      setError(err.response?.data?.error || "Failed to upload image");
     }
   };
 
-  // 🆕 NEW: Profile update handler with separate password update
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
     try {
-      // Update profile information (without password)
-      const updated = await updateAdminProfile({
+      setLoading(true);
+      
+      const response = await API.put("/users/profile", {
         name: profileForm.name,
         mobileNumber: profileForm.mobileNumber,
-        imageUrl: profileForm.imageUrl,
+        profileImage: profileForm.imageUrl
       });
       
-      setAdminProfile(updated);
-
-      // 🆕 If password fields are filled, update password separately
+      setUserProfile(response.data);
+      
       if (passwordForm.currentPassword && passwordForm.newPassword) {
         try {
-          // You'll need to add this endpoint to your adminService
-          await fetch("/api/users/password", {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${localStorage.getItem("token")}`,
-            },
-            body: JSON.stringify({
-              currentPassword: passwordForm.currentPassword,
-              newPassword: passwordForm.newPassword,
-            }),
+          await API.put("/users/password", {
+            currentPassword: passwordForm.currentPassword,
+            newPassword: passwordForm.newPassword
           });
-
+          
           setSuccess("Profile and password updated successfully!");
           setPasswordForm({ currentPassword: "", newPassword: "" });
         } catch (passErr) {
           console.error("Error updating password:", passErr);
-          setError("Failed to update password. Please check your current password.");
+          setError(passErr.response?.data || "Failed to update password");
           setLoading(false);
           return;
         }
       } else {
         setSuccess("Profile updated successfully!");
       }
-
-      setIsEditingProfile(false);
+      
+      setEditing(false);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
+      console.error("Error updating profile:", err);
       setError("Failed to update profile");
+      setTimeout(() => setError(""), 5000);
     } finally {
       setLoading(false);
     }
   };
 
-  const openEditModal = (item, type) => {
-    setCurrentItem(item);
-    setEditType(type);
-    setEditForm({
-      name: item.name || item.title,
-      email: item.email || "",
-      password: "",
-    });
-    setShowEditModal(true);
-  };
-
-  const openDeleteModal = (item, type) => {
-    setCurrentItem(item);
-    setEditType(type);
-    setShowDeleteModal(true);
-  };
-
-  const openEventDetailModal = (event) => {
-    setCurrentItem(event);
-    setShowEventDetailModal(true);
-  };
-
   const handleLogout = () => {
-    logout();
+    localStorage.clear();
     navigate("/login");
   };
 
-  // Default event images
+  const handleReset = () => {
+    setSearchQuery("");
+    setCategoryFilter("");
+    setLocationFilter("");
+    setOrganizerFilter("");
+    setTypeFilter("");
+    setStatusFilter("");
+  };
+
+  const handleRegistrationReset = () => {
+    setRegistrationFilter("all");
+    setRegEventNameFilter("");
+    setRegCategoryFilter("");
+    setRegLocationFilter("");
+    setRegOrganizerFilter("");
+    setRegTypeFilter("");
+  };
+
+  const getFilteredEvents = () => {
+    const now = new Date();
+    
+    return allEvents.filter(event => {
+      const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          event.description?.toLowerCase().includes(searchQuery.toLowerCase());
+      
+      const matchesCategory = !categoryFilter || event.category === categoryFilter;
+      
+      const matchesLocation = !locationFilter || 
+                            event.location?.toLowerCase().includes(locationFilter.toLowerCase());
+      
+      const matchesOrganizer = !organizerFilter || 
+                              event.organizerName?.toLowerCase().includes(organizerFilter.toLowerCase());
+      
+      const matchesType = !typeFilter || event.eventType === typeFilter;
+      
+      const eventDate = new Date(event.date);
+      let matchesStatus = true;
+      if (statusFilter === "Upcoming") {
+        matchesStatus = eventDate >= now;
+      } else if (statusFilter === "Completed") {
+        matchesStatus = eventDate < now;
+      }
+      
+      return matchesSearch && matchesCategory && matchesLocation && 
+             matchesOrganizer && matchesType && matchesStatus;
+    });
+  };
+
+  const getFilteredRegistrations = () => {
+    const now = new Date();
+    
+    return myRegistrations.filter(reg => {
+      if (!reg.event) return false;
+      
+      const eventDate = new Date(reg.event.date);
+      
+      let matchesStatusFilter = true;
+      if (registrationFilter === "upcoming") {
+        matchesStatusFilter = eventDate >= now;
+      } else if (registrationFilter === "past") {
+        matchesStatusFilter = eventDate < now;
+      }
+      
+      const matchesEventName = !regEventNameFilter || 
+                              reg.event.title?.toLowerCase().includes(regEventNameFilter.toLowerCase());
+      
+      const matchesCategory = !regCategoryFilter || reg.event.category === regCategoryFilter;
+      
+      const matchesLocation = !regLocationFilter || 
+                            reg.event.location?.toLowerCase().includes(regLocationFilter.toLowerCase());
+      
+      const matchesOrganizer = !regOrganizerFilter || 
+                              reg.event.organizerName?.toLowerCase().includes(regOrganizerFilter.toLowerCase());
+      
+      const matchesType = !regTypeFilter || reg.event.eventType === regTypeFilter;
+      
+      return matchesStatusFilter && matchesEventName && matchesCategory && 
+             matchesLocation && matchesOrganizer && matchesType;
+    });
+  };
+
+  const formatDateTime = (dateTimeString) => {
+    const date = new Date(dateTimeString);
+    return date.toLocaleDateString('en-IN', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const today = new Date();
+  const upcomingRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) >= today);
+  const pastRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) < today);
+
   const defaultImages = {
     Technology: "https://via.placeholder.com/400x200/667eea/ffffff?text=Technology",
     Business: "https://via.placeholder.com/400x200/f59e0b/ffffff?text=Business",
@@ -500,1037 +501,731 @@ const AdminDashboard = () => {
     Other: "https://via.placeholder.com/400x200/6b7280/ffffff?text=Event"
   };
 
-  // Sidebar
-  const rendersidebrAdmin = () => (
-    <div className="ad-sidebrAdmin">
-      <div className="ad-logo-section">
-        <div className="ad-logo-box">
-          <img src="/src/assets/EZ-logo1.png" alt="logo" className="ad-logo-img-admin" />
+  return (
+    <div className="vis-visitor-dashboard">
+      <aside className="vis-sidebar">
+        <div className="vis-logo">
+          <div className="vis-logo-icon">
+            <img src="/src/assets/EZ-logo1.png" alt="logo" className="vis-logo-img" />
+          </div>
+          <span className="vis-logo-text">EventZen</span>
         </div>
-        <span className="ad-logo-text">EventZen</span>
-      </div>
 
-      <nav className="ad-nav-links">
-        <button
-          className={`ad-nav-btn ${activeSection === "events" ? "ad-active" : ""}`}
-          onClick={() => setActiveSection("events")}
-          aria-label="View Events"
-          aria-current={activeSection === "events" ? "page" : undefined}
-        >
-          <Calendar size={20} />
-          <div className="ad-nav-btn-content">
+        <nav className="vis-nav-menu-visitor">
+          <button
+            className={`vis-nav-item ${activePage === "events" ? "vis-active" : ""}`}
+            onClick={() => setActivePage("events")}
+          >
+            <span className="vis-nav-icon">📅</span>
             <span>Events</span>
-            <span className="ad-nav-count">{events.length}</span>
-          </div>
-        </button>
-        <button
-          className={`ad-nav-btn ${activeSection === "organizers" ? "ad-active" : ""}`}
-          onClick={() => setActiveSection("organizers")}
-          aria-label="View Organizers"
-          aria-current={activeSection === "organizers" ? "page" : undefined}
-        >
-          <User size={20} />
-          <div className="ad-nav-btn-content">
-            <span>Organizers</span>
-            <span className="ad-nav-count">{organizers.length}</span>
-          </div>
-        </button>
-        <button
-          className={`ad-nav-btn ${activeSection === "visitors" ? "ad-active" : ""}`}
-          onClick={() => setActiveSection("visitors")}
-          aria-label="View Visitors"
-          aria-current={activeSection === "visitors" ? "page" : undefined}
-        >
-          <Users size={20} />
-          <div className="ad-nav-btn-content">
-            <span>Visitors</span>
-            <span className="ad-nav-count">{visitors.length}</span>
-          </div>
-        </button>
-        <button
-          className={`ad-nav-btn ${activeSection === "create-organizer" ? "ad-active" : ""}`}
-          onClick={() => setActiveSection("create-organizer")}
-          aria-label="Create New Organizer"
-          aria-current={activeSection === "create-organizer" ? "page" : undefined}
-        >
-          <UserPlus size={20} /> Create Organizer
-        </button>
-        {/* 🆕 NEW: Profile navigation button */}
-        <button
-          className={`ad-nav-btn ${activeSection === "profile" ? "ad-active" : ""}`}
-          onClick={() => {
-            setActiveSection("profile");
-            setIsEditingProfile(false);
-          }}
-          aria-label="View Profile"
-          aria-current={activeSection === "profile" ? "page" : undefined}
-        >
-          <User size={20} /> Profile
-        </button>
-        <button
-          className={`ad-nav-btn ${activeSection === "analytics" ? "ad-active" : ""}`}
-          onClick={() => setActiveSection("analytics")}
-          aria-label="View Analytics"
-          aria-current={activeSection === "analytics" ? "page" : undefined}
-        >
-          <ChartBarStacked size={20} />
-          <div className="ad-nav-btn-content">
-            <span>Analytics</span>
-          </div>
-        </button>
-      </nav>
-    </div>
-  );
-
-  // Topbar
-  const renderTopbar = () => (
-    <div className="ad-topbar">
-      <h1>Admin Dashboard</h1>
-      <div className="ad-topbar-actions">
-        <button className="ad-btn-primary" onClick={handleLogout} aria-label="Logout">
-          <LogOut size={18} /> Logout
-        </button>
-      </div>
-    </div>
-  );
-
-  // Events Section (unchanged)
-  const renderEvents = () => (
-    <div className="ad-content">
-      {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
-      {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
-
-      <div className="ad-card">
-        <div className="ad-card-header">
-          <h2>Events Overview</h2>
-          <span className="ad-card-count">{filteredEvents.length} Total</span>
-        </div>
-
-        <div className="ad-filters-section" role="search" aria-label="Event Filters">
-          <div className="ad-filter-group">
-            <label htmlFor="filter-event-name">
-              <Filter size={14} /> Event Name
-            </label>
-            <input
-              id="filter-event-name"
-              type="text"
-              placeholder="Search by event name"
-              value={filters.eventName}
-              onChange={(e) => setFilters({ ...filters, eventName: e.target.value })}
-              aria-label="Search events by name"
-            />
-          </div>
-
-          <div className="ad-filter-group">
-            <label htmlFor="filter-organizer">
-              <Filter size={14} /> Organizer
-            </label>
-            <input
-              id="filter-organizer"
-              type="text"
-              placeholder="Search by organizer"
-              value={filters.organizer}
-              onChange={(e) => setFilters({ ...filters, organizer: e.target.value })}
-              aria-label="Search events by organizer name"
-            />
-          </div>
-
-          <div className="ad-filter-group">
-            <label htmlFor="filter-category"> <ChartBarStacked size={14} />Category</label>
-            <select
-              id="filter-category"
-              value={filters.category}
-              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-              aria-label="Filter events by category"
-            >
-              <option value="">All Categories</option>
-              {[...new Set(events.map((e) => e.category))].map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="ad-filter-group">
-            <label htmlFor="filter-type">Type</label>
-            <select
-              id="filter-type"
-              value={filters.type}
-              onChange={(e) => setFilters({ ...filters, type: e.target.value })}
-              aria-label="Filter events by type"
-              className={filters.type ? "ad-filter-selected" : ""}
-            >
-              <option value="">All Types</option>
-              <option value="public">Public</option>
-              <option value="private">Private</option>
-            </select>
-          </div>
-
-          <div className="ad-filter-group">
-            <label htmlFor="filter-status">Status</label>
-            <select
-              id="filter-status"
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              aria-label="Filter events by status"
-            >
-              <option value="">All Status</option>
-              <option value="Upcoming">Upcoming</option>
-              <option value="Completed">Completed</option>
-            </select>
-          </div>
-
+          </button>
           <button
-            className="ad-btn-reset"
-            onClick={resetFilters}
-            aria-label="Reset all filters"
+            className={`vis-nav-item ${activePage === "registrations" ? "vis-active" : ""}`}
+            onClick={() => setActivePage("registrations")}
           >
-            <RotateCcw size={16} /> Reset
+            <span className="vis-nav-icon">🎟️</span>
+            <span>My Registrations</span>
           </button>
-        </div>
-
-        {loading ? (
-          <div className="ad-loading-container">
-            <Loader className="ad-spinner" size={40} />
-            <p>Loading events...</p>
-          </div>
-        ) : filteredEvents.length === 0 ? (
-          <div className="ad-no-data">
-            <Calendar size={48} />
-            <p>No events found matching your filters.</p>
-            {(filters.eventName || filters.organizer || filters.category || filters.type || filters.status) && (
-              <button className="ad-btn-outline" onClick={resetFilters}>
-                Clear Filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="ad-table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Image</th>
-                  <th>Title</th>
-                  <th>Organizer</th>
-                  <th>Date</th>
-                  <th>Category</th>
-                  <th>Attendees</th>
-                  <th>Type</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredEvents.map((e) => (
-                  <tr key={e.id}>
-                    <td className="ad-td-id">{e.id}</td>
-                    <td>
-                      <img 
-                        src={e.imageUrl || defaultImages[e.category] || defaultImages["Other"]} 
-                        alt={`${e.title} event image`}
-                        className="ad-org-event-thumbnail"
-                      />
-                    </td>
-                    <td className="ad-td-title">{e.title}</td>
-                    <td>{e.organizerName}</td>
-                    <td>{formatDate(e.date)}</td>
-                    <td>{e.category || "N/A"}</td>
-                    <td>
-                      {e.currentAttendees || 0}/{e.maxAttendees || "∞"}
-                    </td>
-                    <td>
-                      <span className={`ad-type-badge ${e.eventType?.toLowerCase()}`}>
-                        {e.eventType || "Public"}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`ad-status-badge ${getEventStatus(e).toLowerCase()}`}>
-                        {getEventStatus(e)}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="ad-action-buttons">
-                        <button
-                          className="ad-btn-icon ad-btn-view"
-                          onClick={() => openEventDetailModal(e)}
-                          title="View Details"
-                          aria-label={`View details for ${e.title}`}
-                        >
-                          <Eye size={18} />
-                        </button>
-                        <button
-                          className="ad-btn-icon ad-btn-delete"
-                          onClick={() => openDeleteModal(e, "event")}
-                          title="Delete"
-                          aria-label={`Delete ${e.title}`}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // Organizers Section (unchanged)
-  const renderOrganizers = () => (
-    <div className="ad-content">
-      {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
-      {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
-
-      <div className="ad-card">
-        <div className="ad-card-header">
-          <h2>Organizers</h2>
-          <span className="ad-card-count">{filteredOrganizers.length} Total</span>
-        </div>
-
-        <div className="ad-filters-section" role="search" aria-label="Organizer Filters">
-          <div className="ad-filter-group">
-            <label htmlFor="organizer-filter-id">
-              <Filter size={14} /> Organizer ID
-            </label>
-            <input
-              id="organizer-filter-id"
-              type="text"
-              placeholder="Search by ID (exact)"
-              value={organizerFilters.id}
-              onChange={(e) => setOrganizerFilters({ ...organizerFilters, id: e.target.value })}
-              aria-label="Search organizers by ID"
-            />
-          </div>
-
-          <div className="ad-filter-group">
-            <label htmlFor="organizer-filter-name">
-              <Filter size={14} /> Organizer Name
-            </label>
-            <input
-              id="organizer-filter-name"
-              type="text"
-              placeholder="Search by name"
-              value={organizerFilters.name}
-              onChange={(e) => setOrganizerFilters({ ...organizerFilters, name: e.target.value })}
-              aria-label="Search organizers by name"
-            />
-          </div>
-
           <button
-            className="ad-btn-reset"
-            onClick={resetOrganizerFilters}
-            aria-label="Reset organizer filters"
+            className={`vis-nav-item ${activePage === "profile" ? "vis-active" : ""}`}
+            onClick={() => setActivePage("profile")}
           >
-            <RotateCcw size={16} /> Reset
+            <span className="vis-nav-icon">👤</span>
+            <span>Profile</span>
           </button>
-        </div>
-
-        {loading ? (
-          <div className="ad-loading-container">
-            <Loader className="ad-spinner" size={40} />
-            <p>Loading organizers...</p>
-          </div>
-        ) : filteredOrganizers.length === 0 ? (
-          <div className="ad-no-data">
-            <User size={48} />
-            <p>No organizers found matching your filters.</p>
-            {(organizerFilters.id || organizerFilters.name) && (
-              <button className="ad-btn-outline" onClick={resetOrganizerFilters}>
-                Clear Filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="ad-table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Total Events</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredOrganizers.map((o) => (
-                  <tr key={o.id}>
-                    <td className="ad-td-id">{o.id}</td>
-                    <td className="ad-td-name">{o.name}</td>
-                    <td>{o.email}</td>
-                    <td>
-                      <span className="ad-event-count-badge">
-                        {getOrganizerEventCount(o.id)}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="ad-action-buttons">
-                        <button
-                          className="ad-btn-icon ad-btn-edit"
-                          onClick={() => openEditModal(o, "organizer")}
-                          title="Edit"
-                          aria-label={`Edit ${o.name}`}
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          className="ad-btn-icon ad-btn-delete"
-                          onClick={() => openDeleteModal(o, "organizer")}
-                          title="Delete"
-                          aria-label={`Delete ${o.name}`}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-
-  // Visitors Section (unchanged)
-  const renderVisitors = () => (
-    <div className="ad-content">
-      {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
-      {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
-
-      <div className="ad-card">
-        <div className="ad-card-header">
-          <h2>Visitors</h2>
-          <span className="ad-card-count">{filteredVisitors.length} Total</span>
-        </div>
-
-        <div className="ad-filters-section" role="search" aria-label="Visitor Filters">
-          <div className="ad-filter-group">
-            <label htmlFor="visitor-filter-id">
-              <Filter size={14} /> Visitor ID
-            </label>
-            <input
-              id="visitor-filter-id"
-              type="text"
-              placeholder="Search by ID (exact)"
-              value={visitorFilters.id}
-              onChange={(e) => setVisitorFilters({ ...visitorFilters, id: e.target.value })}
-              aria-label="Search visitors by ID"
-            />
-          </div>
-
-          <div className="ad-filter-group">
-            <label htmlFor="visitor-filter-name">
-              <Filter size={14} /> Visitor Name
-            </label>
-            <input
-              id="visitor-filter-name"
-              type="text"
-              placeholder="Search by name"
-              value={visitorFilters.name}
-              onChange={(e) => setVisitorFilters({ ...visitorFilters, name: e.target.value })}
-              aria-label="Search visitors by name"
-            />
-          </div>
-
-          <button
-            className="ad-btn-reset"
-            onClick={resetVisitorFilters}
-            aria-label="Reset visitor filters"
-          >
-            <RotateCcw size={16} /> Reset
+          <button className="vis-nav-item vis-logout" onClick={handleLogout}>
+            <span className="vis-nav-icon">🚪</span>
+            <span>Logout</span>
           </button>
-        </div>
+        </nav>
+      </aside>
 
-        {loading ? (
-          <div className="ad-loading-container">
-            <Loader className="ad-spinner" size={40} />
-            <p>Loading visitors...</p>
-          </div>
-        ) : filteredVisitors.length === 0 ? (
-          <div className="ad-no-data">
-            <Users size={48} />
-            <p>No visitors found matching your filters.</p>
-            {(visitorFilters.id || visitorFilters.name) && (
-              <button className="ad-btn-outline" onClick={resetVisitorFilters}>
-                Clear Filters
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="ad-table-wrapper">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Email</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredVisitors.map((v) => (
-                  <tr key={v.id}>
-                    <td className="ad-td-id">{v.id}</td>
-                    <td className="ad-td-name">{v.name}</td>
-                    <td>{v.email}</td>
-                    <td>
-                      <div className="ad-action-buttons">
-                        <button
-                          className="ad-btn-icon ad-btn-edit"
-                          onClick={() => openEditModal(v, "visitor")}
-                          title="Edit"
-                          aria-label={`Edit ${v.name}`}
-                        >
-                          <Edit size={18} />
-                        </button>
-                        <button
-                          className="ad-btn-icon ad-btn-delete"
-                          onClick={() => openDeleteModal(v, "visitor")}
-                          title="Delete"
-                          aria-label={`Delete ${v.name}`}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+      <main className="vis-main-content">
+        <div className="vis-content-wrapper">
+          {error && (
+            <div className="vis-alert vis-error">
+              {error}
+              <button onClick={() => setError("")} className="vis-alert-close">×</button>
+            </div>
+          )}
+          {success && (
+            <div className="vis-alert vis-success">
+              {success}
+              <button onClick={() => setSuccess("")} className="vis-alert-close">×</button>
+            </div>
+          )}
 
-  // Create Organizer Form (unchanged)
-  const renderCreateOrganizer = () => (
-    <section className="ad-create-organizer">
-      {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
-      {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
-      {passwordError && <div className="ad-alert ad-alert-error" role="alert">{passwordError}</div>}
-
-      <div className="ad-form-header">
-        <div className="ad-form-header-icon">
-          <UserPlus size={28} />
-        </div>
-        <h2>Create New Organizer</h2>
-      </div>
-
-      <form className="ad-organizer-form" onSubmit={handleCreateOrganizer}>
-        <div className="ad-form-row">
-          <div className="ad-form-group">
-            <label htmlFor="organizer-name">Full Name *</label>
-            <input
-              id="organizer-name"
-              type="text"
-              value={newOrganizer.name}
-              onChange={(e) =>
-                setNewOrganizer({ ...newOrganizer, name: e.target.value })
-              }
-              placeholder="Enter full name"
-              required
-              aria-required="true"
-            />
-          </div>
-          <div className="ad-form-group">
-            <label htmlFor="organizer-email">Email *</label>
-            <input
-              id="organizer-email"
-              type="email"
-              value={newOrganizer.email}
-              onChange={(e) =>
-                setNewOrganizer({ ...newOrganizer, email: e.target.value })
-              }
-              placeholder="Enter email"
-              required
-              aria-required="true"
-            />
-          </div>
-        </div>
-
-        <div className="ad-form-row">
-          <div className="ad-form-group">
-            <label htmlFor="organizer-password">Password *</label>
-            <input
-              id="organizer-password"
-              type="password"
-              value={newOrganizer.password}
-              onChange={(e) => {
-                setNewOrganizer({ ...newOrganizer, password: e.target.value });
-                setPasswordError("");
-              }}
-              placeholder="Enter password (min 6 characters)"
-              required
-              minLength={6}
-              aria-required="true"
-              aria-describedby={passwordError ? "password-error" : undefined}
-            />
-          </div>
-          <div className="ad-form-group">
-            <label htmlFor="organizer-confirm-password">Confirm Password *</label>
-            <input
-              id="organizer-confirm-password"
-              type="password"
-              value={newOrganizer.confirmPassword}
-              onChange={(e) => {
-                setNewOrganizer({ ...newOrganizer, confirmPassword: e.target.value });
-                setPasswordError("");
-              }}
-              placeholder="Re-enter password"
-              required
-              minLength={6}
-              aria-required="true"
-              aria-describedby={passwordError ? "password-error" : undefined}
-            />
-          </div>
-        </div>
-
-        {passwordError && (
-          <div id="password-error" className="ad-inline-error" role="alert">
-            {passwordError}
-          </div>
-        )}
-
-        <div className="ad-form-actions">
-          <button
-            type="button"
-            className="ad-btn-outline"
-            onClick={() => {
-              setNewOrganizer({ name: "", email: "", password: "", confirmPassword: "" });
-              setPasswordError("");
-            }}
-          >
-            Clear Form
-          </button>
-          <button type="submit" className="ad-btn-primary" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader className="ad-spinner-small" size={18} /> Creating...
-              </>
-            ) : (
-              <>
-                <UserPlus size={18} /> Create Organizer
-              </>
-            )}
-          </button>
-        </div>
-      </form>
-    </section>
-  );
-
-  // 🆕 NEW: Full-page Profile Section (matching Visitor Dashboard layout)
-  const renderProfile = () => (
-    <section className="ad-profile-page">
-      <div className="ad-content">
-        {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
-        {success && <div className="ad-alert ad-alert-success" role="alert">{success}</div>}
-
-        <div className="ad-profile-container">
-          {!isEditingProfile ? (
-            // View Mode
-            <div className="ad-profile-view-card">
-              <div className="ad-profile-avatar-wrapper">
-                <img 
-                  src={adminProfile?.imageUrl || "/src/assets/EZ-logo1.png"} 
-                  alt="Admin Profile" 
-                  className="ad-profile-avatar"
-                />
-              </div>
-              <div className="ad-profile-details">
-                <h3 className="ad-profile-name">{adminProfile?.name || "Admin"}</h3>
-                <p className="ad-profile-email">{adminProfile?.email || ""}</p>
-                <span className="ad-role-badge">Admin</span>
-                <div className="ad-profile-meta">
-                  <div className="ad-meta-item">
-                    <span className="ad-meta-label">Mobile:</span>
-                    <span className="ad-meta-value">
-                      {adminProfile?.mobileNumber || "Not provided"}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <button 
-                className="ad-btn ad-btn-primary-visitor" 
-                onClick={() => setIsEditingProfile(true)}
-              >
-                <Edit size={18} /> Edit Profile
-              </button>
+          {loading ? (
+            <div className="vis-loading-state">
+              <div className="vis-spinner"></div>
+              <p>Loading...</p>
             </div>
           ) : (
-            // Edit Mode - Two Column Layout
-            <form className="ad-profile-edit-form" onSubmit={handleProfileUpdate}>
-              {/* <div className="ad-form-header-profile">
-                <h2>Edit Profile</h2>
-                <p className="ad-form-subtitle">Update your profile information and password</p>
-              </div> */}
+            <>
+              {activePage === "events" && (
+                <section className="vis-events-page">
+                  <div className="vis-page-header">
+                    <h1>Discover Events</h1>
+                    <p className="vis-subtitle">Find and register for exciting events</p>
+                  </div>
 
-              {/* Profile Image Upload - Full Width */}
-              <div className="ad-form-group ad-full-width">
-                <label className="ad-form-label">Profile Image</label>
-                <div className="ad-image-upload-area">
-                  <input 
-                    type="file" 
-                    accept="image/*"
-                    onChange={(e) => {
-                      const file = e.target.files[0];
-                      handleProfileImageUpload(file);
-                    }}
-                    className="ad-file-input"
-                    id="admin-profile-image-upload"
-                    disabled={uploadingImage}
-                  />
-                  <label htmlFor="admin-profile-image-upload" className="ad-upload-label">
-                    <Upload size={18} />
-                    {uploadingImage
-                      ? "Uploading..."
-                      : profileForm.imageUrl
-                      ? "Change Image"
-                      : "Upload Image"}
-                  </label>
-                  {profileForm.imageUrl && (
-                    <div className="ad-image-preview ad-profile-preview">
-                      <img src={profileForm.imageUrl} alt="Profile preview" />
+                  <div className="vis-filters-bar">
+                    <input
+                      type="text"
+                      className="vis-search-input"
+                      placeholder="🔍 Search events..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      aria-label="Search events by name"
+                    />
+                    
+                    <select
+                      className="vis-filter-select"
+                      value={categoryFilter}
+                      onChange={(e) => setCategoryFilter(e.target.value)}
+                      aria-label="Filter by category"
+                    >
+                      <option value="">All Categories</option>
+                      <option value="Technology">Technology</option>
+                      <option value="Business">Business</option>
+                      <option value="Music">Music</option>
+                      <option value="Health">Health</option>
+                      <option value="Food">Food</option>
+                      <option value="Art">Art</option>
+                      <option value="Community">Community</option>
+                      <option value="Entertainment">Entertainment</option>
+                      <option value="Education">Education</option>
+                      <option value="Sports">Sports</option>
+                      <option value="Finance">Finance</option>
+                      <option value="Media">Media</option>
+                      <option value="Design">Design</option>
+                      <option value="Crafts">Crafts</option>
+                      <option value="Travel">Travel</option>
+                      <option value="Environment">Environment</option>
+                    </select>
+                    
+                    <input
+                      type="text"
+                      className="vis-search-input"
+                      placeholder="Filter by location..."
+                      value={locationFilter}
+                      onChange={(e) => setLocationFilter(e.target.value)}
+                      aria-label="Filter by location"
+                    />
+                    
+                    <input
+                      type="text"
+                      className="vis-search-input"
+                      placeholder="Filter by organizer..."
+                      value={organizerFilter}
+                      onChange={(e) => setOrganizerFilter(e.target.value)}
+                      aria-label="Filter by organizer name"
+                    />
+                    
+                    <select
+                      className="vis-filter-select"
+                      value={typeFilter}
+                      onChange={(e) => setTypeFilter(e.target.value)}
+                      aria-label="Filter by event type"
+                    >
+                      <option value="">All Types</option>
+                      <option value="PUBLIC">Public</option>
+                      <option value="PRIVATE">Private</option>
+                    </select>
+                    
+                    <button 
+                      className="vis-reset-btn-visitor" 
+                      onClick={handleReset}
+                      aria-label="Reset all filters"
+                    >
+                      Reset Filters
+                    </button>
+                  </div>
+
+                  <div className="vis-events-grid">
+                    {getFilteredEvents().length > 0 ? (
+                      getFilteredEvents().map(event => (
+                        <div key={event.id} className="vis-event-card-visitor">
+                          <div className="vis-event-image">
+                            <img 
+                              src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
+                              alt={event.title} 
+                            />
+                            <span className={`vis-event-badge ${
+                              registeredEventIds.has(event.id) 
+                                ? 'vis-registered' 
+                                : event.eventType === 'PRIVATE' 
+                                  ? 'vis-private' 
+                                  : 'vis-public'
+                            }`}>
+                              {registeredEventIds.has(event.id) 
+                                ? '✓ Registered' 
+                                : event.eventType === 'PRIVATE' 
+                                  ? '🔒 Private' 
+                                  : '🌐 Public'}
+                            </span>
+                          </div>
+                          <div className="vis-event-details-visitor">
+                            <h3>{event.title}</h3>
+                            <span className="vis-event-category">{event.category}</span>
+                            <div className="vis-event-info-grid">
+                              <p className="vis-event-date">📅 {formatDateTime(event.date)}</p>
+                              <p className="vis-event-location">📍 {event.location}</p>
+                              <p className="vis-event-organizer">👤 {event.organizerName}</p>
+                              {event.maxAttendees && (
+                                <p className="vis-event-capacity">
+                                  👥 {event.currentAttendees || 0}/{event.maxAttendees}
+                                </p>
+                              )}
+                            </div>
+                            <div className="vis-event-actions">
+                              {registeredEventIds.has(event.id) ? (
+                                <button className="vis-btn vis-btn-registered" disabled>
+                                  Registered
+                                </button>
+                              ) : (
+                                <button
+                                  className="vis-btn vis-btn-primary-visitor"
+                                  onClick={() => handleOpenRegisterModal(event)}
+                                  disabled={event.maxAttendees && event.currentAttendees >= event.maxAttendees}
+                                >
+                                  {event.maxAttendees && event.currentAttendees >= event.maxAttendees ? "Full" : "Register Now"}
+                                </button>
+                              )}
+                              <button
+                                className="vis-btn vis-btn-secondary"
+                                onClick={() => setSelectedEvent(event)}
+                              >
+                                Details
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="vis-no-events">
+                        <p>No events found matching your filters</p>
+                        <button className="vis-btn vis-btn-primary-visitor" onClick={handleReset}>
+                          Clear All Filters
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
+
+              {activePage === "registrations" && (
+                <section className="vis-registrations-page">
+                  <div className="vis-stats-cards">
+                    <div className="vis-stat-card-visitor">
+                      <div className="vis-stat-info">
+                        <div className="vis-stat-icon">📊</div>
+                        <h3>{myRegistrations.length}</h3>
+                      </div>
+                      <p>Total Registrations</p>
+                    </div>
+                    <div className="vis-stat-card-visitor">
+                      <div className="vis-stat-info">
+                        <div className="vis-stat-icon">🚀</div>
+                        <h3>{upcomingRegistrations.length}</h3>
+                      </div>
+                      <p>Upcoming Events</p>
+                    </div>
+                    <div className="vis-stat-card-visitor">
+                      <div className="vis-stat-info">
+                        <div className="vis-stat-icon">✓</div>
+                        <h3>{pastRegistrations.length}</h3>
+                      </div>
+                      <p>Completed Events</p>
+                    </div>
+                  </div>
+
+                  <div className="vis-registrations-filters-section">
+                    <div className="vis-filters-bar">
+                      <input
+                        type="text"
+                        className="vis-search-input"
+                        placeholder="Search by event name..."
+                        value={regEventNameFilter}
+                        onChange={(e) => setRegEventNameFilter(e.target.value)}
+                        aria-label="Filter by event name"
+                      />
+
+                      <input
+                        type="text"
+                        className="vis-search-input"
+                        placeholder="Filter by organizer..."
+                        value={regOrganizerFilter}
+                        onChange={(e) => setRegOrganizerFilter(e.target.value)}
+                        aria-label="Filter by organizer"
+                      />
+
+                      <select
+                        className="vis-filter-select"
+                        value={regCategoryFilter}
+                        onChange={(e) => setRegCategoryFilter(e.target.value)}
+                        aria-label="Filter by category"
+                      >
+                        <option value="">All Categories</option>
+                        <option value="Technology">Technology</option>
+                        <option value="Business">Business</option>
+                        <option value="Music">Music</option>
+                        <option value="Health">Health</option>
+                        <option value="Food">Food</option>
+                        <option value="Art">Art</option>
+                        <option value="Community">Community</option>
+                        <option value="Entertainment">Entertainment</option>
+                        <option value="Education">Education</option>
+                        <option value="Sports">Sports</option>
+                        <option value="Finance">Finance</option>  
+                        <option value="Media">Media</option>
+                        <option value="Design">Design</option>
+                        <option value="Crafts">Crafts</option>
+                        <option value="Travel">Travel</option>
+                        <option value="Environment">Environment</option>
+                      </select>
+
+                      <input
+                        type="text"
+                        className="vis-search-input"
+                        placeholder="Filter by location..."
+                        value={regLocationFilter}
+                        onChange={(e) => setRegLocationFilter(e.target.value)}
+                        aria-label="Filter by location"
+                      />
+
+                      <select
+                        className="vis-filter-select"
+                        value={regTypeFilter}
+                        onChange={(e) => setRegTypeFilter(e.target.value)}
+                        aria-label="Filter by type"
+                      >
+                        <option value="">All Types</option>
+                        <option value="PUBLIC">Public</option>
+                        <option value="PRIVATE">Private</option>
+                      </select>
+
+                      <select
+                        className="vis-filter-select"
+                        value={registrationFilter}
+                        onChange={(e) => setRegistrationFilter(e.target.value)}
+                        aria-label="Filter by status"
+                      >
+                        <option value="all">All Events</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="past">Past</option>
+                      </select>
+      
+                      <button 
+                        className="vis-reset-btn-visitor" 
+                        onClick={handleRegistrationReset}
+                        aria-label="Reset all filters"
+                      >
+                        Reset Filters
+                      </button>
+                    </div>
+                  </div>
+
+                  {getFilteredRegistrations().length > 0 ? (
+                    <div className="vis-registrations-table">
+                      <table>
+                        <thead>
+                          <tr>
+                            <th>Image</th>
+                            <th>Event</th>
+                            <th>Category</th>
+                            <th>Date</th>
+                            <th>Location</th>
+                            <th>Organizer</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {getFilteredRegistrations().map(reg => {
+                            const isUpcoming = new Date(reg.event.date) >= today;
+                            return (
+                              <tr key={reg.id}>
+                                <td>
+                                  <img 
+                                    src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]} 
+                                    alt={`${reg.event.title} event image`}
+                                    className="vis-event-thumbnail"
+                                  />
+                                  </td>
+                                <td>{reg.event.title}</td>
+                                <td>{reg.event.category}</td>
+                                <td>{formatDateTime(reg.event.date)}</td>
+                                <td>{reg.event.location}</td>
+                                <td>{reg.event.organizerName}</td>
+                                <td>
+                                  <span className={`vis-type-badge-vis ${
+                                    reg.event.eventType === 'PRIVATE' ? 'vis-private' : 'vis-public'
+                                  }`}>
+                                    {reg.event.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <span className={`vis-status-badge-vis ${isUpcoming ? 'vis-upcoming' : 'vis-past'}`}>
+                                    {isUpcoming ? 'Upcoming' : 'Completed'}
+                                  </span>
+                                </td>
+                                <td>
+                                  <div className="vis-table-actions">
+                                    <button
+                                      className="vis-btn-view"
+                                      onClick={() => setSelectedEvent(reg.event)}
+                                    >
+                                      View
+                                    </button>
+                                    {isUpcoming && (
+                                      <button
+                                        className="vis-btn-cancel"
+                                        onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
+                                      >
+                                        Cancel
+                                      </button>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <div className="vis-no-registrations">
+                      <p>You haven't registered for any events yet</p>
+                      <button className="vis-btn vis-btn-primary-visitor" onClick={() => setActivePage("events")}>
+                        Browse Events
+                      </button>
                     </div>
                   )}
-                </div>
-              </div>
+                </section>
+              )}
 
-              {/* Two Column Layout for Form Fields */}
-              <div className="ad-form-row-profile">
-                <div className="ad-form-col">
-                  <label className="ad-form-label">Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={profileForm.name}
-                    onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
-                    className="ad-form-input"
-                    required
-                  />
-                </div>
-                
-                <div className="ad-form-col">
-                  <label className="ad-form-label">Email (Cannot be changed)</label>
-                  <input
-                    type="email"
-                    value={profileForm.email}
-                    disabled
-                    className="ad-form-input ad-disabled"
-                  />
-                </div>
-              </div>
+              {activePage === "profile" && userProfile && (
+                <section className="vis-profile-page">
+                  <div className="vis-profile-container">
+                    {!editing ? (
+                      <div className="vis-profile-view-card">
+                        <div className="vis-profile-avatar-wrapper">
+                          <img 
+                            src={profileForm.imageUrl || userProfile.imageUrl || "/src/assets/EZ-logo1.png"} 
+                            alt="Profile" 
+                            className="vis-profile-avatar"
+                          />
+                        </div>
+                        <div className="vis-profile-details">
+                          <h3 className="vis-profile-name">{userProfile.name}</h3>
+                          <p className="vis-profile-email">{userProfile.email}</p>
+                          <span className="vis-role-badge">{userProfile.role}</span>
+                          <div className="vis-profile-meta">
+                            <div className="vis-meta-item">
+                              <span className="vis-meta-label">Mobile:</span>
+                              <span className="vis-meta-value">{userProfile.mobileNumber || "Not provided"}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <button className="vis-btn vis-btn-primary-visitor" onClick={() => setEditing(true)}>
+                          Edit Profile
+                        </button>
+                      </div>
+                    ) : (
+                      <form className="vis-profile-edit-form" onSubmit={handleProfileUpdate}>
+                        <div className="vis-form-group vis-full-width">
+                          <label className="vis-form-label">Profile Image</label>
+                          <div className="vis-image-upload-area">
+                            <input 
+                              type="file" 
+                              accept="image/*"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                handleImageUpload(file);
+                              }}
+                              className="vis-file-input"
+                              id="profile-image-upload"
+                            />
+                            <label htmlFor="profile-image-upload" className="vis-upload-label">
+                              <ImagePlus size={20}/>
+                              {profileForm.imageUrl ? "" : "Upload Image"}
+                            </label>
+                            {profileForm.imageUrl && (
+                              <div className="vis-image-preview vis-profile-preview">
+                                <img src={profileForm.imageUrl} alt="Profile preview" />
+                              </div>
+                            )}
+                          </div>
+                        </div>
 
-              <div className="ad-form-row-profile">
-                <div className="ad-form-col">
-                  <label className="ad-form-label">Mobile Number</label>
-                  <input
-                    type="tel"
-                    name="mobileNumber"
-                    value={profileForm.mobileNumber || ""}
-                    onChange={(e) => setProfileForm({...profileForm, mobileNumber: e.target.value})}
-                    placeholder="+91 9876543210"
-                    className="ad-form-input"
-                  />
-                </div>
-                
-                <div className="ad-form-col">
-                  <label className="ad-form-label">Role</label>
-                  <input
-                    type="text"
-                    value="ADMIN"
-                    disabled
-                    className="ad-form-input ad-disabled"
-                  />
-                </div>
-              </div>
+                        <div className="vis-form-row">
+                          <div className="vis-form-col">
+                            <label className="vis-form-label">Name *</label>
+                            <input
+                              type="text"
+                              name="name"
+                              value={profileForm.name}
+                              onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                              className="vis-form-input"
+                              required
+                            />
+                          </div>
+                          
+                          <div className="vis-form-col">
+                            <label className="vis-form-label">Email (Cannot be changed)</label>
+                            <input
+                              type="email"
+                              value={profileForm.email}
+                              disabled
+                              className="vis-form-input vis-disabled"
+                            />
+                          </div>
+                        </div>
 
-              {/* Password Change Section */}
-              <div className="ad-password-section">
-                {/* <h3 className="ad-section-title">Change Password (Optional)</h3> */}
-                <p className="ad-section-subtitle">Leave empty to keep your current password</p>
-                
-                <div className="ad-form-row-profile">
-                  <div className="ad-form-col">
-                    <label className="ad-form-label">Current Password</label>
-                    <input
-                      type="password"
-                      name="currentPassword"
-                      value={passwordForm.currentPassword}
-                      onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                      placeholder="Enter current password"
-                      className="ad-form-input"
-                    />
+                        <div className="vis-form-row">
+                          <div className="vis-form-col">
+                            <label className="vis-form-label">Mobile Number</label>
+                            <input
+                              type="tel"
+                              name="mobileNumber"
+                              value={profileForm.mobileNumber || ""}
+                              onChange={(e) => setProfileForm({...profileForm, mobileNumber: e.target.value})}
+                              placeholder="+91 9876543210"
+                              className="vis-form-input"
+                            />
+                          </div>
+                          
+                          <div className="vis-form-col">
+                            <label className="vis-form-label">Role</label>
+                            <input
+                              type="text"
+                              value={userProfile.role}
+                              disabled
+                              className="vis-form-input vis-disabled"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="vis-password-section">
+                          <p className="vis-section-subtitle">Leave empty to keep your current password</p>
+                          
+                          <div className="vis-form-row">
+                            <div className="vis-form-col">
+                              <label className="vis-form-label">Current Password</label>
+                              <input
+                                type="password"
+                                name="currentPassword"
+                                value={passwordForm.currentPassword}
+                                onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                                placeholder="Enter current password"
+                                className="vis-form-input"
+                              />
+                            </div>
+                            
+                            <div className="vis-form-col">
+                              <label className="vis-form-label">New Password</label>
+                              <input
+                                type="password"
+                                name="newPassword"
+                                value={passwordForm.newPassword}
+                                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                                placeholder="Enter new password (min 6 characters)"
+                                className="vis-form-input"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="vis-form-actions">
+                          <button type="submit" className="vis-btn vis-btn-primary-visitor" disabled={loading}>
+                            {loading ? "Saving..." : "Save Changes"}
+                          </button>
+                          <button
+                            type="button"
+                            className="vis-btn vis-btn-secondary"
+                            onClick={() => {
+                              setEditing(false);
+                              setError("");
+                              setPasswordForm({ currentPassword: "", newPassword: "" });
+                              loadUserData();
+                            }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </form>
+                    )}
                   </div>
-                  
-                  <div className="ad-form-col">
-                    <label className="ad-form-label">New Password (leave empty to keep current)</label>
-                    <input
-                      type="password"
-                      name="newPassword"
-                      value={passwordForm.newPassword}
-                      onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                      placeholder="Enter new password (min 6 characters)"
-                      className="ad-form-input"
-                      minLength={6}
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="ad-form-actions-profile">
-                <button type="submit" className="ad-btn ad-btn-primary-visitor" disabled={loading}>
-                  {loading ? (
-                    <>
-                      <Loader className="ad-spinner-small" size={18} /> Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={18} /> Save Changes
-                    </>
-                  )}
-                </button>
-                <button
-                  type="button"
-                  className="ad-btn ad-btn-secondary"
-                  onClick={() => {
-                    setIsEditingProfile(false);
-                    setError("");
-                    setPasswordForm({ currentPassword: "", newPassword: "" });
-                    loadAdminProfile();
-                  }}
-                >
-                  <CircleX size={18}/>
-                  Cancel
-                </button>
-              </div>
-            </form>
+                </section>
+              )}
+            </>
           )}
         </div>
-      </div>
-    </section>
-  );
-
-  const renderAdminAnalyticsPage = () => (
-    <AdminAnalyticsPage />
-  );
-
-  const renderEventDetailModal = () => (
-  <div className="ad-modal-overlay" onClick={() => setShowEventDetailModal(false)}>
-    <div
-      className="ad-modal-content"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <button
-        className="ad-modal-close"
-        onClick={() => setShowEventDetailModal(false)}
-        aria-label="Close modal"
-      >
-        ×
-      </button>
-
-      {currentItem && (
-        <div className="ad-modal-body">
-          <div className="ad-modal-header">
-            <img
-              src={currentItem.imageUrl || "https://via.placeholder.com/400x200?text=Event"}
-              alt={currentItem.title}
-              className="ad-event-detail-image"
-            />
-            <h2>{currentItem.title}</h2>
-          </div>
-
-          <div className="ad-event-info">
-            <p><strong>Category:</strong> {currentItem.category || "N/A"}</p>
-            <p><strong>Date:</strong> {formatDate(currentItem.date)}</p>
-            <p><strong>Location:</strong> {currentItem.location || "N/A"}</p>
-            <p><strong>Organizer:</strong> {currentItem.organizerName}</p>
-            {currentItem.maxAttendees && (
-              <p><strong>Capacity:</strong> {currentItem.currentAttendees || 0} / {currentItem.maxAttendees}</p>
-            )}
-            <p><strong>Type:</strong> {currentItem.eventType === "PRIVATE" ? "🔒 Private" : "🌐 Public"}</p>
-            {currentItem.eventType === "PRIVATE" && currentItem.privateCode && (
-              <p><strong>Private Code:</strong> <span className="ad-private-code">{currentItem.privateCode}</span></p>
-            )}
-            <p><strong>Status:</strong>
-              <span className={`ad-status-badge ${getEventStatus(currentItem).toLowerCase()}`}>
-                {getEventStatus(currentItem)}
-              </span>
-            </p>
-          </div>
-
-          <div className="ad-modal-description">
-            <h3>About this Event</h3>
-            <p>{currentItem.description || "No description available."}</p>
+      </main>
+          
+      {/* Event Details Modal */}
+      {selectedEvent && (
+        <div className="vis-modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
+          <div className="vis-modal-visitor-content" onClick={(e) => e.stopPropagation()}>
+            <button className="vis-modal-visitor-close" onClick={() => setSelectedEvent(null)}>×</button>
+            <div className="vis-modal-visitor-header">
+              <img 
+                src={selectedEvent.imageUrl || "https://via.placeholder.com/400x200?text=Event"} 
+                alt={selectedEvent.title} 
+                className="vis-modal-visitor-image" 
+              />
+              <h2>{selectedEvent.title}</h2>
+            </div>
+            <div className="vis-modal-visitor-body">
+              <div className="vis-modal-visitor-info">
+                <p><strong>Category:</strong> {selectedEvent.category}</p>
+                <p><strong>Date:</strong> {formatDateTime(selectedEvent.date)}</p>
+                <p><strong>Location:</strong> {selectedEvent.location}</p>
+                <p><strong>Organizer:</strong> {selectedEvent.organizerName}</p>
+                {selectedEvent.maxAttendees && (
+                  <p><strong>Capacity:</strong> {selectedEvent.currentAttendees || 0} / {selectedEvent.maxAttendees}</p>
+                )}
+                <p><strong>Type:</strong> {selectedEvent.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}</p>
+              </div>
+              <div className="vis-modal-visitor-description">
+                <h3>About this event</h3>
+                <p>{selectedEvent.description}</p>
+              </div>
+            </div>
+            <div className="vis-modal-visitor-footer">
+              {!registeredEventIds.has(selectedEvent.id) && (
+                <button
+                  className="vis-btn vis-btn-primary-visitor"
+                  onClick={() => {
+                    setSelectedEvent(null);
+                    handleOpenRegisterModal(selectedEvent);
+                  }}
+                  disabled={selectedEvent.maxAttendees && selectedEvent.currentAttendees >= selectedEvent.maxAttendees}
+                >
+                  Register Now
+                </button>
+              )}
+              <button className="vis-btn vis-event-close" onClick={() => setSelectedEvent(null)}>
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
 
-      <div className="ad-modal-footer">
-        <button
-          className="ad-btn-close"
-          onClick={() => setShowEventDetailModal(false)}
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  </div>
-);
+      {/* 🆕 NEW: Registration Modal */}
+      {showRegisterModal && regEvent && (
+        <div className="vis-modal-visitor-overlay" onClick={handleCloseRegisterModal}>
+          <div className="vis-modal-visitor-content vis-registration-modal" onClick={(e) => e.stopPropagation()}>
+            {/* <button className="vis-modal-visitor-registration-close" onClick={handleCloseRegisterModal}>×</button> */}
+            
+            <div className="vis-modal-visitor-header">
+              {/* <img 
+                src={regEvent.imageUrl || defaultImages[regEvent.category] || defaultImages["Other"]} 
+                alt={regEvent.title} 
+                className="vis-modal-visitor-image" 
+              /> */}
+              <h2>Register for {regEvent.title}</h2>
+            </div>
+            
+            <form onSubmit={handleRegisterSubmit}>
+              <div className="vis-modal-visitor-body">
+                {regError && (
+                  <div className="vis-reg-error-message">
+                    {regError}
+                  </div>
+                )}
+                
+                <div className="vis-form-group">
+                  <label className="vis-form-label">Name *</label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={registrationForm.name}
+                    onChange={handleRegistrationFormChange}
+                    className="vis-form-input"
+                    placeholder="Enter your full name"
+                    required
+                  />
+                </div>
 
+                <div className="vis-form-group">
+                  <label className="vis-form-label">Email *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={registrationForm.email}
+                    onChange={handleRegistrationFormChange}
+                    className="vis-form-input"
+                    placeholder="Enter your email address"
+                    required
+                  />
+                </div>
 
-  // Edit Modal (unchanged)
-  const renderEditModal = () => (
-    <div className="ad-modal-overlay" onClick={() => setShowEditModal(false)}>
-      <div className="ad-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="ad-modal-header">
-          <h3>Edit {editType}</h3>
-          {/* <button
-            className="ad-modal-close"
-            onClick={() => setShowEditModal(false)}
-            aria-label="Close modal"
-          >
-            <X size={22} />
-          </button> */}
-        </div>
+                <div className="vis-form-group">
+                  <label className="vis-form-label">Phone (Optional)</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={registrationForm.phone}
+                    onChange={handleRegistrationFormChange}
+                    className="vis-form-input"
+                    placeholder="Enter your phone number"
+                  />
+                </div>
 
-        <form onSubmit={handleEdit}>
-          <div className="ad-form-group">
-            <label htmlFor="edit-name">Name *</label>
-            <input
-              id="edit-name"
-              type="text"
-              value={editForm.name}
-              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              required
-            />
+                <div className="vis-form-group">
+                  <label className="vis-form-label">Notes (Optional)</label>
+                  <textarea
+                    name="notes"
+                    value={registrationForm.notes}
+                    onChange={handleRegistrationFormChange}
+                    className="vis-form-textarea"
+                    placeholder="Any special requirements or notes..."
+                    rows="3"
+                  />
+                </div>
+
+                {regEvent.eventType === "PRIVATE" && (
+                  <div className="vis-form-group">
+                    <label className="vis-form-label">Private Code *</label>
+                    <input
+                      type="text"
+                      name="privateCode"
+                      value={registrationForm.privateCode}
+                      onChange={handleRegistrationFormChange}
+                      className="vis-form-input"
+                      placeholder="Enter the private event code"
+                      required
+                    />
+                    {/* <p className="vis-form-hint">🔒 This event requires a private code to register</p> */}
+                  </div>
+                )}
+              </div>
+
+              <div className="vis-modal-visitor-footer">
+                <button
+                  type="button"
+                  className="vis-btn vis-btn-secondary"
+                  onClick={handleCloseRegisterModal}
+                  disabled={regLoading}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="vis-btn vis-btn-primary-visitor"
+                  disabled={regLoading}
+                >
+                  {regLoading ? "Registering..." : "Submit Registration"}
+                </button>
+              </div>
+            </form>
           </div>
-
-          <div className="ad-form-group">
-            <label htmlFor="edit-email">Email *</label>
-            <input
-              id="edit-email"
-              type="email"
-              value={editForm.email}
-              onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-              required
-            />
-          </div>
-
-          <div className="ad-form-group">
-            <label htmlFor="edit-password">New Password (leave empty to keep current)</label>
-            <input
-              id="edit-password"
-              type="password"
-              value={editForm.password}
-              onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-              placeholder="Enter new password"
-              minLength={6}
-            />
-          </div>
-
-          {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
-
-          <div className="ad-modal-actions">
-            <button
-              type="button"
-              className="ad-btn-outline"
-              onClick={() => setShowEditModal(false)}
-            >
-              Cancel
-            </button>
-            <button type="submit" className="ad-btn-primary" disabled={loading}>
-              {loading ? <Loader className="ad-spinner-small" size={18} /> : <Save size={18} />}
-              Save
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-
-  // Delete Modal (unchanged)
-  const renderDeleteModal = () => (
-    <div className="ad-modal-overlay" onClick={() => setShowDeleteModal(false)}>
-      <div className="ad-modal-content ad-modal-danger" onClick={(e) => e.stopPropagation()}>
-        <div className="ad-modal-header">
-          <h3>Confirm Delete</h3>
-          {/* <button
-            className="ad-modal-close"
-            onClick={() => setShowDeleteModal(false)}
-            aria-label="Close modal"
-          >
-            <X size={22} />
-          </button>    */}
         </div>
-
-        <div className="ad-modal-body">
-          <p>
-            Are you sure you want to delete this {editType}:{" "}
-            <strong>{currentItem?.name || currentItem?.title}</strong>?
-          </p>
-          <p className="ad-warning-text">This action cannot be undone.</p>
-        </div>
-
-        {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
-
-        <div className="ad-modal-actions">
-          <button
-            className="ad-btn-outline"
-            onClick={() => setShowDeleteModal(false)}
-          >
-            Cancel
-          </button>
-          <button className="ad-btn-danger" onClick={handleDelete} disabled={loading}>
-            {loading ? <Loader className="ad-spinner-small" size={18} /> : <Trash2 size={18} />}
-            Delete
-          </button>
-        </div>
-      </div>
+      )}
     </div>
   );
-
-  // Content Switcher
-  const renderContent = () => {
-    switch (activeSection) {
-      case "visitors":
-        return renderVisitors();
-      case "organizers":
-        return renderOrganizers();
-      case "events":
-        return renderEvents();
-      case "create-organizer":
-        return renderCreateOrganizer();
-      case "profile": // 🆕 NEW: Profile page route
-        return renderProfile();
-      case "analytics":
-        return renderAdminAnalyticsPage();
-      default:
-        return renderEvents();
-    }
-  };
-
-  return (
-    <div className="ad-dashboard">
-      {rendersidebrAdmin()}
-      <div className="ad-main">
-        {renderTopbar()}
-        {renderContent()}
-      </div>
-
-      {/* Modals (only for events, organizers, visitors - NOT profile) */}
-      {showEditModal && renderEditModal()}
-      {showDeleteModal && renderDeleteModal()}
-      {showEventDetailModal && renderEventDetailModal()}
-    </div>
-  );
-};
-
-export default AdminDashboard;
+}

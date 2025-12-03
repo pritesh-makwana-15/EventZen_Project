@@ -1,7 +1,6 @@
 // ================================================================
-// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/controller/EventController.java
-// 🆕 UPDATED: Added validation for separate start/end date/time fields
-// Changes: Enhanced validation to ensure end datetime is after start datetime
+// FILE: D:\EventZen-backend\eventzen\src\main\java\com\eventzen\controller\EventController.java
+// 🆕 UPDATED: Added Admin Calendar endpoints for date-range filtering
 // ================================================================
 
 package com.eventzen.controller;
@@ -12,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eventzen.dto.request.EventRequest;
@@ -45,9 +46,6 @@ public class EventController {
 
     // ===== PUBLIC ENDPOINTS =====
 
-    /**
-     * Get all public events (for visitors)
-     */
     @GetMapping
     public ResponseEntity<List<EventResponse>> getAllEvents() {
         System.out.println("Fetching all public events");
@@ -55,9 +53,6 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
 
-    /**
-     * Get single event by ID (public)
-     */
     @GetMapping("/{id}")
     public ResponseEntity<EventResponse> getEvent(@PathVariable Long id) {
         try {
@@ -69,9 +64,6 @@ public class EventController {
         }
     }
 
-    /**
-     * Get events by specific organizer (public)
-     */
     @GetMapping("/organizer/{organizerId}")
     public ResponseEntity<List<EventResponse>> getEventsByOrganizer(@PathVariable Long organizerId) {
         System.out.println("Fetching events for organizer ID: " + organizerId);
@@ -122,25 +114,19 @@ public class EventController {
 
     // ===== ORGANIZER CRUD ENDPOINTS =====
 
-    /**
-     * 🆕 UPDATED: Create event with separate date/time validation
-     */
     @PostMapping
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<?> createEvent(@Valid @RequestBody EventRequest request, BindingResult bindingResult) {
         try {
-            // Basic validation errors
             if (bindingResult.hasErrors()) {
                 Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            // 🆕 NEW: Validate start date is not in the past
             if (request.getStartDate().isBefore(LocalDate.now())) {
                 return ResponseEntity.badRequest().body(Map.of("startDate", "Start date must be today or later"));
             }
 
-            // 🆕 NEW: Validate end is after start
             LocalDateTime start = LocalDateTime.of(request.getStartDate(), request.getStartTime());
             LocalDateTime end = LocalDateTime.of(request.getEndDate(), request.getEndTime());
 
@@ -149,12 +135,10 @@ public class EventController {
                         .body(Map.of("endDate", "End date/time must be after start date/time"));
             }
 
-            // 🆕 NEW: Validate start is in the future
             if (!start.isAfter(LocalDateTime.now())) {
                 return ResponseEntity.badRequest().body(Map.of("startDate", "Event must start in the future"));
             }
 
-            // Private event validation
             if ("PRIVATE".equalsIgnoreCase(request.getEventType()) &&
                     (request.getPrivateCode() == null || request.getPrivateCode().trim().isEmpty())) {
                 return ResponseEntity.badRequest()
@@ -170,26 +154,20 @@ public class EventController {
         }
     }
 
-    /**
-     * 🆕 UPDATED: Update event with separate date/time validation
-     */
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('ORGANIZER')")
     public ResponseEntity<?> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request,
             BindingResult bindingResult) {
         try {
-            // Basic validation errors
             if (bindingResult.hasErrors()) {
                 Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            // 🆕 NEW: Validate start date is not in the past
             if (request.getStartDate().isBefore(LocalDate.now())) {
                 return ResponseEntity.badRequest().body(Map.of("startDate", "Start date must be today or later"));
             }
 
-            // 🆕 NEW: Validate end is after start
             LocalDateTime start = LocalDateTime.of(request.getStartDate(), request.getStartTime());
             LocalDateTime end = LocalDateTime.of(request.getEndDate(), request.getEndTime());
 
@@ -198,12 +176,10 @@ public class EventController {
                         .body(Map.of("endDate", "End date/time must be after start date/time"));
             }
 
-            // 🆕 NEW: Validate start is in the future
             if (!start.isAfter(LocalDateTime.now())) {
                 return ResponseEntity.badRequest().body(Map.of("startDate", "Event must start in the future"));
             }
 
-            // Private event validation
             if ("PRIVATE".equalsIgnoreCase(request.getEventType()) &&
                     (request.getPrivateCode() == null || request.getPrivateCode().trim().isEmpty())) {
                 return ResponseEntity.badRequest()
@@ -258,11 +234,73 @@ public class EventController {
         }
     }
 
+    // 🆕 NEW: Admin Update Event
+    @PutMapping("/admin/{id}")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<?> adminUpdateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request,
+            BindingResult bindingResult) {
+        try {
+            if (bindingResult.hasErrors()) {
+                Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
+                return ResponseEntity.badRequest().body(errors);
+            }
+
+            System.out.println("Admin updating event ID: " + id);
+            EventResponse response = eventServiceImpl.adminUpdateEvent(id, request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.out.println("Admin update error: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // 🆕 NEW: Calendar endpoint - Get events by date range with filters
+    @GetMapping("/admin/calendar")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<EventResponse>> getEventsForCalendar(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Long organizerId,
+            @RequestParam(required = false) String eventType) {
+        try {
+            System.out.println("📅 Calendar request: " + startDate + " to " + endDate);
+            List<EventResponse> events = eventServiceImpl.getEventsForCalendar(
+                    startDate, endDate, category, city, organizerId, eventType);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.out.println("Error fetching calendar events: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // 🆕 NEW: Get all unique categories
+    @GetMapping("/admin/categories")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<String>> getAllCategories() {
+        try {
+            List<String> categories = eventServiceImpl.getAllCategories();
+            return ResponseEntity.ok(categories);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // 🆕 NEW: Get all unique cities
+    @GetMapping("/admin/cities")
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public ResponseEntity<List<String>> getAllCities() {
+        try {
+            List<String> cities = eventServiceImpl.getAllCities();
+            return ResponseEntity.ok(cities);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // ===== VISITOR REGISTRATION ENDPOINT =====
 
-    /**
-     * Visitor registering for an event using full form data
-     */
     @PostMapping("/{eventId}/register")
     public ResponseEntity<?> registerVisitorForEvent(
             @PathVariable Long eventId,
@@ -271,7 +309,6 @@ public class EventController {
         try {
             System.out.println("=== VISITOR REGISTRATION REQUEST ===");
             System.out.println("Event ID: " + eventId);
-            System.out.println("Request: " + request);
 
             if (bindingResult.hasErrors()) {
                 Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
@@ -279,7 +316,6 @@ public class EventController {
             }
 
             RegistrationResponse response = eventServiceImpl.registerVisitorForEvent(eventId, request);
-
             System.out.println("Registration successful!");
             return ResponseEntity.status(201).body(response);
 

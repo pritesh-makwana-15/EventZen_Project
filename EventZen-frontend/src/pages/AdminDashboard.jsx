@@ -632,6 +632,19 @@ const AdminDashboard = () => {
             <span>Analytics</span>
           </div>
         </button>
+        <button
+          className={`ad-nav-btn ${activeSection === "calendar" ? "ad-active" : ""}`}
+          onClick={() => {
+            navigate("/admin/calendar"); // Navigate to calendar route
+            setSidebarOpen(false);
+          }}
+          aria-label="Calendar View"
+        >
+          <Calendar size={20} />
+          <div className="ad-nav-btn-content">
+            <span>Calendar</span>
+          </div>
+        </button>
       </nav>
     </div>
   );

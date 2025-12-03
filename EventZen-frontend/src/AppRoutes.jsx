@@ -1,3 +1,9 @@
+// ================================================================
+// FILE: src/AppRoutes.jsx
+// 🆕 UPDATED: Added Admin Calendar route (FIXED PATH)
+// ================================================================
+
+import React from "react";
 import { Routes, Route } from "react-router-dom";
 
 // Import your pages
@@ -10,6 +16,9 @@ import OrganizerDashboard from "./pages/OrganizerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ForgotPasswordPage from "./pages/ForgotPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
+
+// 🆕 NEW: Import AdminCalendarPage from pages folder
+import AdminCalendarPage from "./pages/AdminCalendarPage";
 
 export default function AppRoutes() {
   return (
@@ -45,6 +54,16 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute role="ADMIN">
             <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 🆕 NEW: Admin Calendar Route */}
+      <Route
+        path="/admin/calendar"
+        element={
+          <ProtectedRoute role="ADMIN">
+            <AdminCalendarPage />
           </ProtectedRoute>
         }
       />

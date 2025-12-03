@@ -1,11 +1,12 @@
-// src/services/adminService.js
-// ✅ UPDATED: Added getTopOrganizers function
+// ================================================================
+// FILE: src/services/adminService.js
+// 🆕 UPDATED: Added calendar-specific API functions
+// ================================================================
 
 import API from "./api";
 
 // ==================== USER MANAGEMENT ====================
 
-// Get all users
 export const getAllUsers = async () => {
   try {
     const { data } = await API.get("/admin/users");
@@ -16,7 +17,6 @@ export const getAllUsers = async () => {
   }
 };
 
-// Get all organizers
 export const getAllOrganizers = async () => {
   try {
     const { data } = await API.get("/admin/organizers");
@@ -27,7 +27,6 @@ export const getAllOrganizers = async () => {
   }
 };
 
-// Get all visitors
 export const getAllVisitors = async () => {
   try {
     const { data } = await API.get("/admin/visitors");
@@ -38,7 +37,6 @@ export const getAllVisitors = async () => {
   }
 };
 
-// Get user by ID
 export const getUserById = async (userId) => {
   try {
     const { data } = await API.get(`/admin/users/${userId}`);
@@ -49,7 +47,6 @@ export const getUserById = async (userId) => {
   }
 };
 
-// Update user
 export const updateUser = async (userId, userData) => {
   try {
     const { data } = await API.put(`/admin/users/${userId}`, userData);
@@ -60,7 +57,6 @@ export const updateUser = async (userId, userData) => {
   }
 };
 
-// Delete user
 export const deleteUser = async (userId) => {
   try {
     await API.delete(`/admin/users/${userId}`);
@@ -72,7 +68,6 @@ export const deleteUser = async (userId) => {
 
 // ==================== ORGANIZER CREATION ====================
 
-// Create new organizer
 export const createOrganizer = async (organizerData) => {
   try {
     const { data } = await API.post("/admin/organizers/create", organizerData);
@@ -85,7 +80,6 @@ export const createOrganizer = async (organizerData) => {
 
 // ==================== EVENT MANAGEMENT ====================
 
-// Get all events (admin view)
 export const getAllEventsAdmin = async () => {
   try {
     const { data } = await API.get("/admin/events");
@@ -96,7 +90,6 @@ export const getAllEventsAdmin = async () => {
   }
 };
 
-// Get event by ID
 export const getEventByIdAdmin = async (eventId) => {
   try {
     const { data } = await API.get(`/admin/events/${eventId}`);
@@ -107,7 +100,6 @@ export const getEventByIdAdmin = async (eventId) => {
   }
 };
 
-// Delete event
 export const deleteEventAdmin = async (eventId) => {
   try {
     await API.delete(`/admin/events/${eventId}`);
@@ -117,9 +109,64 @@ export const deleteEventAdmin = async (eventId) => {
   }
 };
 
+// 🆕 NEW: Update event (admin)
+export const updateEventAdmin = async (eventId, eventData) => {
+  try {
+    const { data } = await API.put(`/admin/events/${eventId}`, eventData);
+    return data;
+  } catch (error) {
+    console.error(`Error updating event ${eventId}:`, error);
+    throw error;
+  }
+};
+
+// ==================== CALENDAR-SPECIFIC APIs ====================
+
+// 🆕 NEW: Get events by date range for calendar
+export const getEventsByDateRange = async (startDate, endDate, filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+    if (filters.category) params.append('category', filters.category);
+    if (filters.city) params.append('city', filters.city);
+    if (filters.organizerId) params.append('organizerId', filters.organizerId);
+    if (filters.eventType) params.append('eventType', filters.eventType);
+    
+    const { data } = await API.get(`/events/admin/calendar?${params.toString()}`);
+    return data;
+  } catch (error) {
+    console.error("Error fetching events by date range:", error);
+    throw error;
+  }
+};
+
+// 🆕 NEW: Get all unique categories
+export const getAllCategories = async () => {
+  try {
+    const { data } = await API.get("/events/admin/categories");
+    return data;
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    // Fallback: return default categories
+    return ["Technology", "Business", "Music", "Health", "Food", "Art", "Community", "Entertainment", "Education", "Sports", "Other"];
+  }
+};
+
+// 🆕 NEW: Get all unique cities
+export const getAllCities = async () => {
+  try {
+    const { data } = await API.get("/events/admin/cities");
+    return data;
+  } catch (error) {
+    console.error("Error fetching cities:", error);
+    return [];
+  }
+};
+
 // ==================== ADMIN PROFILE ====================
 
-// Get admin profile
 export const getAdminProfile = async () => {
   try {
     const { data } = await API.get("/admin/profile");
@@ -129,7 +176,6 @@ export const getAdminProfile = async () => {
   }
 };
 
-// Update admin profile (WITHOUT password)
 export const updateAdminProfile = async (profileData) => {
   try {
     console.log("🔄 Updating admin profile...", profileData);
@@ -146,7 +192,6 @@ export const updateAdminProfile = async (profileData) => {
   }
 };
 
-// Update admin password separately
 export const updateAdminPassword = async (currentPassword, newPassword) => {
   try {
     console.log("🔐 Updating admin password...");
@@ -164,7 +209,6 @@ export const updateAdminPassword = async (currentPassword, newPassword) => {
 
 // ==================== STATISTICS ====================
 
-// Get dashboard statistics
 export const getDashboardStats = async () => {
   try {
     const { data } = await API.get("/admin/stats");
@@ -175,9 +219,6 @@ export const getDashboardStats = async () => {
   }
 };
 
-/**
- * 🆕 NEW: Get top organizers by registrations
- */
 export const getTopOrganizers = async () => {
   try {
     const { data } = await API.get("/analytics/admin/top-organizers");
@@ -206,6 +247,12 @@ export default {
   getAllEventsAdmin,
   getEventByIdAdmin,
   deleteEventAdmin,
+  updateEventAdmin, // 🆕 NEW
+  
+  // Calendar APIs
+  getEventsByDateRange, // 🆕 NEW
+  getAllCategories, // 🆕 NEW
+  getAllCities, // 🆕 NEW
   
   // Admin Profile
   getAdminProfile,
@@ -214,5 +261,5 @@ export default {
   
   // Statistics
   getDashboardStats,
-  getTopOrganizers, // 🆕 NEW
+  getTopOrganizers,
 };

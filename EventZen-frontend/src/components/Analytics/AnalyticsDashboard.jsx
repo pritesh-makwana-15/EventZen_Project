@@ -168,14 +168,7 @@ export default function AnalyticsDashboard({ userRole, organizerId }) {
       {userRole === "ORGANIZER" && organizerPerformance && (
         <div className="analytics-organizer-view">
 
-          {/* Header */}
-          {/* <div className="analytics-header">
-            <h3>
-              {userRole === "ADMIN" ? "📊 Analytics Dashboard" : "Performance Dashboard"}
-            </h3>
-            <p>{userRole === "ADMIN" ? "Platform Overview & Insights" : "Your Performance Metrics"}</p>
-          </div> */}
-
+      
           {/* Performance Cards */}
           <SummaryCards
             totalEvents={organizerPerformance.totalEvents}
