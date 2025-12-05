@@ -1,6 +1,7 @@
 // ================================================================
 // FILE: D:\EventZen-frontend\src\components\calendar\CalendarToolbar.jsx
 // Calendar Toolbar - View switcher, navigation, and filters
+// 🆕 UPDATED: Removed City filter, Added Status filter
 // ================================================================
 
 import React from "react";
@@ -11,7 +12,6 @@ const CalendarToolbar = ({
   currentDate,
   filters,
   categories,
-  cities,
   organizers,
   onViewChange,
   onNavigate,
@@ -48,9 +48,9 @@ const CalendarToolbar = ({
   const resetFilters = () => {
     onFilterChange({
       category: "",
-      city: "",
       organizerId: "",
       eventType: "",
+      status: "", // 🆕 NEW: Reset status filter
     });
   };
 
@@ -125,16 +125,16 @@ const CalendarToolbar = ({
           </select>
         </div>
 
+        {/* 🆕 NEW: Status Filter (replaces City filter) */}
         <div className="cal-filter-group">
           <select
-            value={filters.city}
-            onChange={(e) => handleFilterChange('city', e.target.value)}
+            value={filters.status}
+            onChange={(e) => handleFilterChange('status', e.target.value)}
             className="cal-filter-select"
           >
-            <option value="">All Cities</option>
-            {cities.map((city) => (
-              <option key={city} value={city}>{city}</option>
-            ))}
+            <option value="">All Status</option>
+            <option value="upcoming">Upcoming</option>
+            <option value="completed">Completed</option>
           </select>
         </div>
 

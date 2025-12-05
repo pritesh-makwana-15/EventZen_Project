@@ -1,6 +1,7 @@
 // ================================================================
 // FILE: D:\EventZen-frontend\src\components\calendar\CalendarView.jsx
-// PART 1/2 - Main Calendar Component with FullCalendar Integration
+// Main Calendar Component with FullCalendar Integration
+// 🆕 UPDATED: Status filtering, Month view styling, Time format "11 p.m."
 // ================================================================
 
 import React, { useState, useEffect, useRef } from "react";
@@ -13,8 +14,7 @@ import EventModal from "./EventModal";
 import { 
   getEventsByDateRange, 
   getAllOrganizers, 
-  getAllCategories, 
-  getAllCities 
+  getAllCategories 
 } from "../../services/adminService";
 import { Loader } from "lucide-react";
 
@@ -27,14 +27,13 @@ const CalendarView = () => {
   // Filter states
   const [filters, setFilters] = useState({
     category: "",
-    city: "",
     organizerId: "",
     eventType: "",
+    status: "", // 🆕 NEW: Status filter
   });
   
   // Filter options
   const [categories, setCategories] = useState([]);
-  const [cities, setCities] = useState([]);
   const [organizers, setOrganizers] = useState([]);
   
   // Modal state
@@ -57,18 +56,23 @@ const CalendarView = () => {
 
   const loadFilterOptions = async () => {
     try {
-      const [categoriesData, organizersData, citiesData] = await Promise.all([
+      const [categoriesData, organizersData] = await Promise.all([
         getAllCategories(),
         getAllOrganizers(),
-        getAllCities(),
       ]);
       
       setCategories(categoriesData || []);
       setOrganizers(organizersData || []);
-      setCities(citiesData || []);
     } catch (err) {
       console.error("Error loading filter options:", err);
     }
+  };
+
+  // 🆕 NEW: Helper to determine event status
+  const getEventStatus = (event) => {
+    const now = new Date();
+    const eventEnd = new Date(`${event.endDate}T${event.endTime}`);
+    return eventEnd > now ? "upcoming" : "completed";
   };
 
   const loadEvents = async () => {
@@ -87,25 +91,44 @@ const CalendarView = () => {
       const startDate = view.activeStart.toISOString().split('T')[0];
       const endDate = view.activeEnd.toISOString().split('T')[0];
 
-      // Fetch events with filters
-      const eventsData = await getEventsByDateRange(startDate, endDate, filters);
+      // Fetch events with filters (excluding status - we filter client-side)
+      const apiFilters = {
+        category: filters.category,
+        organizerId: filters.organizerId,
+        eventType: filters.eventType,
+      };
       
+      const eventsData = await getEventsByDateRange(startDate, endDate, apiFilters);
+      
+      // 🆕 NEW: Apply status filter client-side
+      let filteredData = eventsData;
+      if (filters.status) {
+        filteredData = eventsData.filter(event => {
+          const status = getEventStatus(event);
+          return status === filters.status;
+        });
+      }
+
       // Transform events for FullCalendar
-      const transformedEvents = eventsData.map(event => ({
-        id: event.id,
-        title: event.title,
-        start: `${event.startDate}T${event.startTime}`,
-        end: `${event.endDate}T${event.endTime}`,
-        backgroundColor: getCategoryColor(event.category),
-        borderColor: getCategoryColor(event.category),
-        extendedProps: {
-          ...event,
-          organizerName: event.organizerName,
-          category: event.category,
-          city: event.city,
-          eventType: event.eventType,
-        },
-      }));
+      const transformedEvents = filteredData.map(event => {
+        const status = getEventStatus(event);
+        return {
+          id: event.id,
+          title: event.title,
+          start: `${event.startDate}T${event.startTime}`,
+          end: `${event.endDate}T${event.endTime}`,
+          backgroundColor: getCategoryColor(event.category),
+          borderColor: getCategoryColor(event.category),
+          classNames: [`cal-event-${status}`], // 🆕 NEW: Add status class
+          extendedProps: {
+            ...event,
+            organizerName: event.organizerName,
+            category: event.category,
+            eventType: event.eventType,
+            status: status, // 🆕 NEW: Include status
+          },
+        };
+      });
 
       setEvents(transformedEvents);
     } catch (err) {
@@ -171,56 +194,64 @@ const CalendarView = () => {
     }
   };
 
-  // Render event content with tooltip
+  // 🆕 UPDATED: Format time as "11 p.m." with space and dot
+  const formatTime = (date) => {
+    if (!date) return "";
+    const d = new Date(date);
+    let hours = d.getHours();
+    const minutes = d.getMinutes();
+    const ampm = hours >= 12 ? 'p.m.' : 'a.m.';
+    hours = hours % 12 || 12;
+    
+    if (minutes === 0) {
+      return `${hours} ${ampm}`;
+    }
+    return `${hours}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+  };
+
+  // 🆕 UPDATED: Render event content with status badge for Month view
   const renderEventContent = (eventInfo) => {
+    const { event } = eventInfo;
+    const isMonthView = currentView === 'dayGridMonth';
+    const status = event.extendedProps.status;
+
     return (
-      <div className="cal-event-wrapper" title={getTooltipText(eventInfo.event)}>
+      <div className="cal-event-wrapper" title={getTooltipText(event)}>
         <div className="cal-event-time">
-          {eventInfo.timeText}
+          {formatTime(event.start)}
         </div>
         <div className="cal-event-title">
-          {eventInfo.event.title}
+          {event.title}
         </div>
+        {/* 🆕 NEW: Status badge in Month view */}
+        {isMonthView && (
+          <span className={`cal-status-badge cal-status-${status}`}>
+            {status === 'upcoming' ? '●' : '✓'}
+          </span>
+        )}
       </div>
     );
   };
 
-  // Generate tooltip text
+  // 🆕 UPDATED: Tooltip with new time format
   const getTooltipText = (event) => {
     const props = event.extendedProps;
     return `${event.title}\n` +
            `Date: ${formatDate(event.start)}\n` +
            `Time: ${formatTime(event.start)} - ${formatTime(event.end)}\n` +
            `Category: ${props.category || 'N/A'}\n` +
-           `Organizer: ${props.organizerName || 'N/A'}\n` +
-           `City: ${props.city || 'N/A'}`;
+           `Organizer: ${props.organizerName || 'N/A'}`;
   };
 
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-GB');
   };
 
-  const formatTime = (date) => {
-    return new Date(date).toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-  };
-
-  // Handle event update from modal
+  // Handle event update from modal (removed edit functionality)
   const handleEventUpdate = () => {
     setShowEventModal(false);
-    loadEvents(); // Reload events after update
+    loadEvents(); // Reload events
   };
-
-  // CONTINUED IN PART 2...
-  // ================================================================
-// FILE: D:\EventZen-frontend\src\components\calendar\CalendarView.jsx
-// PART 2/2 - Render Function and Component Export
-// ================================================================
-
-// ... CONTINUED FROM PART 1
 
   return (
     <div className="calendar-container">
@@ -230,7 +261,6 @@ const CalendarView = () => {
         currentDate={currentDate}
         filters={filters}
         categories={categories}
-        cities={cities}
         organizers={organizers}
         onViewChange={handleViewChange}
         onNavigate={handleNavigate}
