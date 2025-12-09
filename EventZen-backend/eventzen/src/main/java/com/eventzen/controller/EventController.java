@@ -31,6 +31,7 @@ import com.eventzen.dto.response.EventResponse;
 import com.eventzen.dto.response.RegistrationResponse;
 import com.eventzen.service.EventService;
 import com.eventzen.service.impl.EventServiceImpl;
+import com.eventzen.dto.response.EventCalendarResponse;
 
 import jakarta.validation.Valid;
 
@@ -248,6 +249,38 @@ public class EventController {
             return ResponseEntity.ok(events);
         } catch (Exception e) {
             System.out.println("Error fetching organizer calendar events: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // ===== 🆕 NEW: VISITOR CALENDAR ENDPOINT =====
+
+    /**
+     * Get events for visitor calendar view
+     * Returns only events that the authenticated visitor is registered for
+     * 
+     * @param from - Calendar view start date (YYYY-MM-DD)
+     * @param to   - Calendar view end date (YYYY-MM-DD)
+     * @return List of visitor's registered events in the date range
+     */
+    @GetMapping("/visitor/calendar/events")
+    @PreAuthorize("hasAuthority('VISITOR')")
+    public ResponseEntity<List<EventCalendarResponse>> getEventsForVisitorCalendar(
+            @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String from,
+            @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String to) {
+        try {
+            System.out.println("📅 Visitor Calendar request: " + from + " to " + to);
+
+            LocalDate startDate = LocalDate.parse(from);
+            LocalDate endDate = LocalDate.parse(to);
+
+            // Get events filtered by visitor's registrations
+            List<EventCalendarResponse> events = eventServiceImpl.getEventsForVisitorCalendar(
+                    startDate, endDate);
+
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.out.println("Error fetching visitor calendar events: " + e.getMessage());
             return ResponseEntity.badRequest().build();
         }
     }

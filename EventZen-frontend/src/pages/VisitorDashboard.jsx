@@ -670,7 +670,7 @@ export default function VisitorDashboard() {
       )}
 
       {/* Sidebar - becomes mobile menu on small screens (UPDATED) */}
-      <aside 
+     <aside 
         ref={mobileMenuRef}
         id="vis-mobile-sidebar"
         className={`vis-sidebar ${isMobileMenuOpen ? 'vis-sidebar-open' : ''}`}
@@ -693,6 +693,7 @@ export default function VisitorDashboard() {
             <Calendar className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>Events</span>
           </button>
+          
           <button
             className={`vis-nav-item ${activePage === "registrations" ? "vis-active" : ""}`}
             onClick={() => handleNavigate("registrations")}
@@ -701,6 +702,20 @@ export default function VisitorDashboard() {
             <CheckCircle className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>My Registrations</span>
           </button>
+
+          {/* 🆕 NEW: Calendar Link */}
+          <button
+            className="vis-nav-item"
+            onClick={() => {
+              setIsMobileMenuOpen(false);
+              navigate("/visitor/calendar");
+            }}
+            role="menuitem"
+          >
+            <Calendar className="vis-nav-icon" size={18} aria-hidden="true" />
+            <span>Calendar</span>
+          </button>
+          
           <button
             className={`vis-nav-item ${activePage === "profile" ? "vis-active" : ""}`}
             onClick={() => handleNavigate("profile")}
@@ -709,6 +724,7 @@ export default function VisitorDashboard() {
             <User className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>Profile</span>
           </button>
+          
           <button 
             className="vis-nav-item vis-logout" 
             onClick={handleLogout}
@@ -719,6 +735,7 @@ export default function VisitorDashboard() {
           </button>
         </nav>
       </aside>
+
 
       <main className="vis-main-content">
         <div className="vis-content-wrapper">

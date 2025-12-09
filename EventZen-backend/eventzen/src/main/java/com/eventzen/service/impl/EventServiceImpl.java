@@ -38,6 +38,7 @@ import com.eventzen.repository.EventRepository;
 import com.eventzen.repository.RegistrationRepository;
 import com.eventzen.repository.UserRepository;
 import com.eventzen.service.EventService;
+import com.eventzen.dto.response.EventCalendarResponse;
 
 @Service
 public class EventServiceImpl implements EventService {
@@ -607,6 +608,135 @@ public class EventServiceImpl implements EventService {
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
         return convertToResponse(updatedEvent, organizerName);
+    }
+
+    /**
+     * 🆕 NEW: Get events for VISITOR calendar
+     * Returns only events where the visitor has an active registration
+     * Events are filtered by date range and registration status
+     */
+    public List<EventCalendarResponse> getEventsForVisitorCalendar(
+            LocalDate startDate,
+            LocalDate endDate) throws Exception {
+
+        System.out.println("📅 Fetching visitor calendar events: " + startDate + " to " + endDate);
+
+        // Get current visitor ID from JWT
+        Long currentVisitorId = getCurrentUserId();
+
+        // Get visitor's user object
+        User visitor = userRepository.findById(currentVisitorId)
+                .orElseThrow(() -> new Exception("Visitor not found"));
+
+        // Security check: ensure user is a VISITOR
+        if (visitor.getRole() != Role.VISITOR) {
+            throw new Exception("Only visitors can access this endpoint");
+        }
+
+        // Get all registrations for this visitor (non-cancelled)
+        List<Registration> registrations = registrationRepository.findByVisitor(visitor)
+                .stream()
+                .filter(reg -> reg.getStatus() != RegistrationStatus.CANCELLED)
+                .collect(Collectors.toList());
+
+        if (registrations.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Extract event IDs from registrations
+        Set<Long> registeredEventIds = registrations.stream()
+                .map(reg -> reg.getEvent().getId())
+                .collect(Collectors.toSet());
+
+        // Fetch events that:
+        // 1. User is registered for
+        // 2. Fall within the date range
+        List<Event> events = eventRepository.findAll().stream()
+                .filter(event -> registeredEventIds.contains(event.getId()))
+                .filter(event -> {
+                    // Check if event overlaps with requested date range
+                    boolean startsInRange = !event.getStartDate().isBefore(startDate) &&
+                            !event.getStartDate().isAfter(endDate);
+                    boolean endsInRange = !event.getEndDate().isBefore(startDate) &&
+                            !event.getEndDate().isAfter(endDate);
+                    boolean spansRange = event.getStartDate().isBefore(startDate) &&
+                            event.getEndDate().isAfter(endDate);
+
+                    return startsInRange || endsInRange || spansRange;
+                })
+                .collect(Collectors.toList());
+
+        // Convert to calendar response DTOs
+        return events.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+                    // Find registration for this event
+                    Registration registration = registrations.stream()
+                            .filter(reg -> reg.getEvent().getId().equals(event.getId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    // Determine status (UPCOMING or COMPLETED)
+                    LocalDateTime now = LocalDateTime.now();
+                    LocalDateTime eventEnd = LocalDateTime.of(event.getEndDate(), event.getEndTime());
+                    String status = eventEnd.isAfter(now) ? "UPCOMING" : "COMPLETED";
+
+                    return convertToCalendarResponse(event, organizerName, registration, status);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Helper: Convert Event to EventCalendarResponse for visitor calendar
+     */
+    private EventCalendarResponse convertToCalendarResponse(
+            Event event,
+            String organizerName,
+            Registration registration,
+            String status) {
+
+        EventCalendarResponse response = new EventCalendarResponse();
+        response.setId(event.getId());
+        response.setTitle(event.getTitle());
+        response.setStartDate(event.getStartDate());
+        response.setStartTime(event.getStartTime());
+        response.setEndDate(event.getEndDate());
+        response.setEndTime(event.getEndTime());
+        response.setCategory(event.getCategory());
+        response.setColor(getCategoryColorHex(event.getCategory()));
+        response.setOrganizerName(organizerName);
+        response.setIsPublic(!"PRIVATE".equalsIgnoreCase(event.getEventType()));
+        response.setRegistrationStatus(registration != null ? registration.getStatus().toString() : "NONE");
+        response.setRegistrationCount(event.getCurrentAttendees() != null ? event.getCurrentAttendees() : 0);
+        response.setCapacity(event.getMaxAttendees() != null ? event.getMaxAttendees() : 0);
+        response.setStatus(status);
+        response.setLocation(
+                event.getLocation() != null ? event.getLocation() : event.getCity() + ", " + event.getState());
+        response.setDescription(event.getDescription());
+        response.setImageUrl(event.getImageUrl());
+
+        return response;
+    }
+
+    /**
+     * Helper: Get category color hex code
+     */
+    private String getCategoryColorHex(String category) {
+        Map<String, String> colors = new HashMap<>();
+        colors.put("Technology", "#667eea");
+        colors.put("Business", "#f59e0b");
+        colors.put("Music", "#ec4899");
+        colors.put("Health", "#10b981");
+        colors.put("Food", "#f97316");
+        colors.put("Art", "#8b5cf6");
+        colors.put("Community", "#3b82f6");
+        colors.put("Entertainment", "#ef4444");
+        colors.put("Education", "#06b6d4");
+        colors.put("Sports", "#84cc16");
+
+        return colors.getOrDefault(category, "#6b7280");
     }
 
     // ================================================================

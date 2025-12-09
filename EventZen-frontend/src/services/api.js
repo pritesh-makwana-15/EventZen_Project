@@ -1,4 +1,8 @@
-// src/services/api.js
+// ================================================================
+// FILE: D:\EventZen-frontend\src\services\api.js
+// UPDATED: Added getVisitorCalendarEvents function
+// ================================================================
+
 import axios from "axios";
 
 const API = axios.create({
@@ -47,9 +51,17 @@ export const getPastEvents = async (organizerId) => {
   return data;
 };
 
-// 🆕 NEW: Get events for organizer calendar
+// Get events for organizer calendar
 export const getEventsForOrganizerCalendar = async (params) => {
   const { data } = await API.get("/events/organizer/calendar", { params });
+  return data;
+};
+
+// 🆕 NEW: Get visitor's registered events for calendar
+export const getVisitorCalendarEvents = async (from, to) => {
+  const { data } = await API.get("/visitor/calendar/events", {
+    params: { from, to }
+  });
   return data;
 };
 

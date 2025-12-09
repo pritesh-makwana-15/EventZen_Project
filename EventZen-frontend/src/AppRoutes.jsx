@@ -1,3 +1,8 @@
+// ================================================================
+// FILE: D:\EventZen-frontend\src\AppRoutes.jsx
+// UPDATED: Added /visitor/calendar route
+// ================================================================
+
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 
@@ -14,7 +19,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 // Calendar pages
 import AdminCalendarPage from "./pages/AdminCalendarPage";
-import OrganizerCalendarPage from "./pages/OrganizerCalendarPage"; 
+import OrganizerCalendarPage from "./pages/OrganizerCalendarPage";
+import VisitorCalendarPage from "./pages/VisitorCalendarPage"; // 🆕 NEW
 
 export default function AppRoutes() {
   return (
@@ -54,7 +60,7 @@ export default function AppRoutes() {
         }
       />
 
-      {/* Admin Calendar Route */}
+      {/* Calendar Routes */}
       <Route
         path="/admin/calendar"
         element={
@@ -64,12 +70,21 @@ export default function AppRoutes() {
         }
       />
 
-      {/* 🆕 NEW: Organizer Calendar Route */}
       <Route
         path="/organizer/calendar"
         element={
           <ProtectedRoute role="ORGANIZER">
             <OrganizerCalendarPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* 🆕 NEW: Visitor Calendar Route */}
+      <Route
+        path="/visitor/calendar"
+        element={
+          <ProtectedRoute role="VISITOR">
+            <VisitorCalendarPage />
           </ProtectedRoute>
         }
       />
