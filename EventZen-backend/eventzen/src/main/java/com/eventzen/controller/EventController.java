@@ -220,6 +220,38 @@ public class EventController {
         }
     }
 
+    // ===== 🆕 NEW: ORGANIZER CALENDAR ENDPOINT =====
+
+    /**
+     * Get events for organizer calendar view
+     * Filtered by current organizer's JWT token
+     * 
+     * @param startDate - Calendar view start date
+     * @param endDate   - Calendar view end date
+     * @param category  - Optional category filter
+     * @return List of organizer's events in the date range
+     */
+    @GetMapping("/organizer/calendar")
+    @PreAuthorize("hasAuthority('ORGANIZER')")
+    public ResponseEntity<List<EventResponse>> getEventsForOrganizerCalendar(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long organizerId,
+            @RequestParam(required = false) String category) {
+        try {
+            System.out.println("📅 Organizer Calendar request: " + startDate + " to " + endDate);
+
+            // Get events filtered by JWT organizer
+            List<EventResponse> events = eventServiceImpl.getEventsForOrganizerCalendar(
+                    startDate, endDate, organizerId, category);
+
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.out.println("Error fetching organizer calendar events: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // ===== ADMIN ENDPOINTS =====
 
     @DeleteMapping("/admin/{id}")

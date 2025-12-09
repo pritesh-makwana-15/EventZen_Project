@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../services/api";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
+// import OrganizerCalendarPage from "./organizer/OrganizerCalendarPage";
+import OrganizerCalendarPage from "./OrganizerCalendarPage";
 import {
   Calendar,
   Users,
@@ -1862,6 +1864,19 @@ export default function OrganizerDashboard() {
             <ImagePlus size={18} className="org-nav-icon" />
             <span>Create Event</span>
           </li>
+          
+          {/* 🆕 NEW: Calendar Menu Item */}
+          <li 
+            onClick={() => handleNavigation("calendar")}
+            className={activePage === "calendar" ? "org-nav-item org-active" : "org-nav-item"}
+            role="menuitem"
+            tabIndex={0}
+            onKeyPress={(e) => e.key === 'Enter' && handleNavigation("calendar")}
+          >
+            <Calendar size={18} className="org-nav-icon" />
+            <span>Calendar View</span>
+          </li>
+          
           <li 
             onClick={() => handleNavigation("analytics")}
             className={activePage === "analytics" ? "org-nav-item org-active" : "org-nav-item"}
@@ -1892,7 +1907,7 @@ export default function OrganizerDashboard() {
             <LogOut size={18} className="org-nav-icon" />
             <span>Logout</span>
           </li>
-        </ul>
+      </ul>
       </nav>
 
       {toast && (
@@ -1914,6 +1929,10 @@ export default function OrganizerDashboard() {
             onCancel={handleCancelForm}
             onSuccess={handleCreateEventSuccess}
           />
+        )}
+
+        {activePage === "calendar" && (
+          <OrganizerCalendarPage />
         )}
 
         {activePage === "analytics" && (

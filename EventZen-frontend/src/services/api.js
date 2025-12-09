@@ -47,6 +47,12 @@ export const getPastEvents = async (organizerId) => {
   return data;
 };
 
+// 🆕 NEW: Get events for organizer calendar
+export const getEventsForOrganizerCalendar = async (params) => {
+  const { data } = await API.get("/events/organizer/calendar", { params });
+  return data;
+};
+
 // Create a new event
 export const createEvent = async (eventData) => {
   const { data } = await API.post("/events", eventData);

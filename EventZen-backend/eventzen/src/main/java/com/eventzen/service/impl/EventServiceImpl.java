@@ -458,6 +458,55 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 🆕 NEW: Get events for ORGANIZER calendar
+     * Similar to admin calendar but filtered by organizerId from JWT
+     * Organizers can only see their own events
+     */
+    public List<EventResponse> getEventsForOrganizerCalendar(
+            LocalDate startDate,
+            LocalDate endDate,
+            Long organizerId,
+            String category) throws Exception {
+
+        System.out.println("📅 Fetching organizer calendar events: " + startDate + " to " + endDate);
+
+        // Get current organizer ID from JWT
+        Long currentOrganizerId = getCurrentUserId();
+
+        // Security: Ensure organizer can only see their own events
+        if (organizerId != null && !organizerId.equals(currentOrganizerId)) {
+            throw new Exception("You can only view your own events");
+        }
+
+        List<Event> events;
+
+        // If date range is provided, use it
+        if (startDate != null && endDate != null) {
+            events = eventRepository.findByOrganizerIdAndDateBetween(
+                    currentOrganizerId, startDate, endDate);
+        } else {
+            // Otherwise get all organizer's events
+            events = eventRepository.findByOrganizerId(currentOrganizerId);
+        }
+
+        // Apply category filter
+        if (category != null && !category.isEmpty()) {
+            events = events.stream()
+                    .filter(e -> category.equalsIgnoreCase(e.getCategory()))
+                    .collect(Collectors.toList());
+        }
+
+        // Get organizer name
+        User organizer = userRepository.findById(currentOrganizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        // Convert to responses
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
+    }
+
     // ================================================================
     // 🆕 NEW: Get all unique categories from events
     // ================================================================

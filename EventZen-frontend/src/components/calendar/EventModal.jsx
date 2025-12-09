@@ -1,15 +1,16 @@
 // ================================================================
 // FILE: D:\EventZen-frontend\src\components\calendar\EventModal.jsx
-// Event View Modal Component (Admin - View Only)
-// 🆕 UPDATED: Smaller modal, no location, no edit button, view-only
+// 🔧 FIXED: Added conditional Edit button for Organizer
+// Admin: No Edit button (onEdit undefined)
+// Organizer: Edit button shown (onEdit provided)
 // ================================================================
 
 import React from "react";
-import { X, Calendar, Clock, Users, Tag } from "lucide-react";
+import { X, Calendar, Clock, Users, Tag, Edit } from "lucide-react";
 
-const EventModal = ({ event, onClose }) => {
+const EventModal = ({ event, onClose, onEdit }) => {
   
-  // 🆕 UPDATED: Format time as "11 p.m." with space and dot
+  // Format time as "11 p.m." with space and dot
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
     const [hours24, minutes] = timeString.split(':');
@@ -63,8 +64,6 @@ const EventModal = ({ event, onClose }) => {
               <span><strong>End:</strong> {formatDate(event.endDate)} at {formatTime(event.endTime)}</span>
             </div>
             
-            {/* 🆕 REMOVED: Location field hidden as per requirement */}
-            
             <div className="cal-detail-row">
               <Tag size={18} />
               <span><strong>Category:</strong> {event.category}</span>
@@ -87,6 +86,15 @@ const EventModal = ({ event, onClose }) => {
                 {event.eventType === "PRIVATE" ? "🔒 Private" : "🌐 Public"}
               </span>
             </div>
+
+            {/* 🆕 NEW: Status Badge
+            {event.status && (
+              <div className="cal-detail-row">
+                <span className={`cal-status-badge cal-status-${event.status}`}>
+                  {event.status === 'upcoming' ? '⏳ Upcoming' : '✓ Completed'}
+                </span>
+              </div>
+            )} */}
             
             {event.description && (
               <div className="cal-description">
@@ -97,8 +105,18 @@ const EventModal = ({ event, onClose }) => {
           </div>
         </div>
 
-        {/* 🆕 UPDATED: Only Close button - No Edit button */}
+        {/* 🔧 FIXED: Conditional Edit Button for Organizer */}
         <div className="cal-modal-footer">
+          {/* {onEdit && (
+            <button 
+              className="cal-btn cal-btn-primary" 
+              onClick={onEdit}
+              aria-label="Edit event"
+            >
+              <Edit size={16} />
+              Edit Event
+            </button>
+          )} */}
           <button className="cal-btn cal-btn-secondary" onClick={onClose}>
             Close
           </button>

@@ -224,11 +224,11 @@ const CalendarView = () => {
           {event.title}
         </div>
         {/* 🆕 NEW: Status badge in Month view */}
-        {isMonthView && (
+        {/* {isMonthView && (
           <span className={`cal-status-badge cal-status-${status}`}>
             {status === 'upcoming' ? '●' : '✓'}
           </span>
-        )}
+        )} */}
       </div>
     );
   };

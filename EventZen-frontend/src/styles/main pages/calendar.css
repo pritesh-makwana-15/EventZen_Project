@@ -829,3 +829,67 @@
 .cal-modal-content::-webkit-scrollbar-thumb:hover {
   background: #64748b;
 }
+
+
+/* Registration Count Badge in Calendar */
+.cal-registration-count {
+  position: absolute;
+  bottom: 2px;
+  right: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(102, 126, 234, 0.9);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* Organizer Calendar Container Spacing */
+.org-dashboard-main .calendar-container {
+  margin-top: 0;
+}
+
+/* Ensure calendar renders properly inside organizer dashboard */
+.org-dashboard-main .calendar-wrapper {
+  min-height: 500px;
+}
+
+/* Mobile adjustments for organizer calendar */
+@media (max-width: 768px) {
+  .org-dashboard-main .calendar-container {
+    padding: 12px;
+    border-radius: 8px;
+  }
+  
+  .org-dashboard-main .cal-toolbar {
+    padding: 12px;
+  }
+  
+  .org-dashboard-main .cal-toolbar-title {
+    font-size: 16px;
+  }
+}
+
+/* Organizer-specific event styling */
+.org-dashboard-main .fc-event {
+  cursor: pointer;
+}
+
+.org-dashboard-main .fc-event:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Clickable date cells for organizer */
+.org-dashboard-main .fc-daygrid-day:hover {
+  background: #f0f4ff;
+  cursor: pointer;
+}
+
+.org-dashboard-main .fc-timegrid-slot:hover {
+  background: #f0f4ff;
+  cursor: pointer;
+}

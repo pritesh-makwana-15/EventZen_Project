@@ -58,13 +58,17 @@ public class SecurityConfig {
                             // ✅ Allow register & login
                             .requestMatchers("/api/auth/**").permitAll()
 
-                            // ✅ 🆕 CRITICAL FIX: Allow VISITOR to register for events
+                            // ✅ CRITICAL FIX: Allow VISITOR to register for events
                             // This MUST come BEFORE /api/events/** pattern
                             .requestMatchers(HttpMethod.POST, "/api/events/*/register")
                             .authenticated() // Any authenticated user (VISITOR, ORGANIZER, ADMIN)
 
                             // ✅ Public GET access to events
                             .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
+
+                            // ✅ 🆕 NEW: Organizer Calendar endpoint - ORGANIZER only
+                            .requestMatchers(HttpMethod.GET, "/api/events/organizer/calendar")
+                            .hasAuthority("ORGANIZER")
 
                             // ✅ Event CRUD - ORGANIZER/ADMIN only
                             .requestMatchers(HttpMethod.POST, "/api/events").hasAnyAuthority("ADMIN", "ORGANIZER")
@@ -79,7 +83,6 @@ public class SecurityConfig {
 
                             // ✅ Admin endpoints
                             .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
-
                             .requestMatchers("/api/events/admin/**").hasAuthority("ADMIN")
 
                             // ✅ Everything else needs auth
@@ -90,6 +93,7 @@ public class SecurityConfig {
 
         System.out.println("✅ Security configured");
         System.out.println("✅ /api/events/*/register → AUTHENTICATED (VISITOR allowed)");
+        System.out.println("✅ /api/events/organizer/calendar → ORGANIZER only");
         return http.build();
     }
 
