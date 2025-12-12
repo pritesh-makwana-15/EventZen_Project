@@ -28,7 +28,10 @@ import {
   Globe,
   CheckCircle,
   XCircle,
-  Trash2
+  Trash2,
+  ChevronLeft,  // 🆕 NEW
+  ChevronRight, // 🆕 NEW
+  Loader        // 🆕 NEW  
 } from "lucide-react";
 
 // Import date/time utilities for AM/PM formatting
@@ -38,6 +41,11 @@ import {
   formatDateTimeAMPM,
   isUpcomingEvent
 } from "../utils/dateTime";
+
+import FullCalendar from "@fullcalendar/react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import interactionPlugin from "@fullcalendar/interaction";
 
 export default function VisitorDashboard() {
   const navigate = useNavigate();
@@ -103,6 +111,12 @@ export default function VisitorDashboard() {
     currentPassword: "",
     newPassword: ""
   });
+
+  const calendarRef = useRef(null);
+  const [calendarEvents, setCalendarEvents] = useState([]);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const [currentView, setCurrentView] = useState("dayGridMonth");
+  const [currentDate, setCurrentDate] = useState(new Date());
 
   // Mobile menu toggle handler (NEW)
   const toggleMobileMenu = () => {
@@ -506,6 +520,164 @@ export default function VisitorDashboard() {
   };
 
   // ================================================================
+// 🆕 NEW: Calendar Functions - Add after handleRegistrationReset() around line 220
+// ================================================================
+
+  // 🆕 NEW: Load calendar events when calendar tab is active
+  useEffect(() => {
+    if (activePage === "calendar") {
+      loadCalendarEvents();
+    }
+  }, [activePage, currentDate, currentView]);
+
+  // 🆕 NEW: Load visitor's registered events for calendar
+  const loadCalendarEvents = async () => {
+    setCalendarLoading(true);
+    setError("");
+    
+    try {
+      const calendarApi = calendarRef.current?.getApi();
+      if (!calendarApi) {
+        setCalendarLoading(false);
+        return;
+      }
+
+      // Get visible date range from calendar
+      const view = calendarApi.view;
+      const startDate = view.activeStart.toISOString().split('T')[0];
+      const endDate = view.activeEnd.toISOString().split('T')[0];
+
+      // Fetch visitor's registered events
+      const response = await API.get("/visitor/calendar/events", {
+        params: { from: startDate, to: endDate }
+      });
+
+      // Transform events for FullCalendar
+      const transformedEvents = response.data.map(event => {
+        const status = getEventStatus(event);
+        return {
+          id: event.id,
+          title: event.title,
+          start: `${event.startDate}T${event.startTime}`,
+          end: `${event.endDate}T${event.endTime}`,
+          backgroundColor: getCategoryColor(event.category),
+          borderColor: getCategoryColor(event.category),
+          classNames: [`cal-event-${status}`],
+          extendedProps: {
+            ...event,
+            status: status,
+          },
+        };
+      });
+
+      setCalendarEvents(transformedEvents);
+    } catch (err) {
+      console.error("Error loading calendar events:", err);
+      setError("Failed to load your calendar. Please try again.");
+    } finally {
+      setCalendarLoading(false);
+    }
+  };
+
+  // 🆕 NEW: Determine event status
+  const getEventStatus = (event) => {
+    const now = new Date();
+    const eventEnd = new Date(`${event.endDate}T${event.endTime}`);
+    return eventEnd > now ? "upcoming" : "completed";
+  };
+
+  // 🆕 NEW: Get category color
+  const getCategoryColor = (category) => {
+    const colors = {
+      Technology: "#667eea",
+      Business: "#f59e0b",
+      Music: "#ec4899",
+      Health: "#10b981",
+      Food: "#f97316",
+      Art: "#8b5cf6",
+      Community: "#3b82f6",
+      Entertainment: "#ef4444",
+      Education: "#06b6d4",
+      Sports: "#84cc16",
+      Other: "#6b7280",
+    };
+    return colors[category] || colors.Other;
+  };
+
+  // 🆕 NEW: Handle calendar event click
+  const handleCalendarEventClick = async (clickInfo) => {
+    const eventId = clickInfo.event.id;
+    
+    try {
+      const response = await API.get(`/events/${eventId}`);
+      setSelectedEvent(response.data);
+    } catch (err) {
+      console.error("Error fetching event details:", err);
+      setError("Failed to load event details");
+    }
+  };
+
+  // 🆕 NEW: Navigate calendar
+  const handleCalendarNavigate = (direction) => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      if (direction === "prev") calendarApi.prev();
+      else if (direction === "next") calendarApi.next();
+      else if (direction === "today") calendarApi.today();
+      
+      setCurrentDate(calendarApi.getDate());
+    }
+  };
+
+  // 🆕 NEW: Change calendar view
+  const handleCalendarViewChange = (view) => {
+    const calendarApi = calendarRef.current?.getApi();
+    if (calendarApi) {
+      calendarApi.changeView(view);
+      setCurrentView(view);
+    }
+  };
+
+  // 🆕 NEW: Format calendar toolbar title
+  const formatCalendarTitle = () => {
+    const options = { year: 'numeric', month: 'long' };
+    if (currentView === 'timeGridWeek') {
+      return currentDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'short', 
+        day: 'numeric' 
+      });
+    }
+    if (currentView === 'timeGridDay') {
+      return currentDate.toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        weekday: 'long'
+      });
+    }
+    return currentDate.toLocaleDateString('en-US', options);
+  };
+
+  // 🆕 NEW: Render calendar event content
+  const renderCalendarEventContent = (eventInfo) => {
+    const { event } = eventInfo;
+    const timeStr = event.start.toTimeString().split(' ')[0];
+    const [hours24, minutes] = timeStr.split(':');
+    let hours = parseInt(hours24);
+    const ampm = hours >= 12 ? 'p.m.' : 'a.m.';
+    hours = hours % 12 || 12;
+    const formattedTime = parseInt(minutes) === 0 ? `${hours} ${ampm}` : `${hours}:${minutes} ${ampm}`;
+
+    return (
+      <div className="vis-cal-event-wrapper">
+        <div className="vis-cal-event-time">{formattedTime}</div>
+        <div className="vis-cal-event-title">{event.title}</div>
+      </div>
+    );
+  };
+
+  // ================================================================
 // FILE: src/pages/VisitorDashboard.jsx - PART 3/5
 // Filter logic and helper functions
 // ================================================================
@@ -670,7 +842,11 @@ export default function VisitorDashboard() {
       )}
 
       {/* Sidebar - becomes mobile menu on small screens (UPDATED) */}
-     <aside 
+    {/* // ================================================================
+    // 🆕 UPDATED: Sidebar with Calendar button - Replace around line 102-140
+    // ================================================================ */}
+
+      <aside 
         ref={mobileMenuRef}
         id="vis-mobile-sidebar"
         className={`vis-sidebar ${isMobileMenuOpen ? 'vis-sidebar-open' : ''}`}
@@ -703,13 +879,10 @@ export default function VisitorDashboard() {
             <span>My Registrations</span>
           </button>
 
-          {/* 🆕 NEW: Calendar Link */}
+          {/* 🆕 NEW: Calendar button */}
           <button
-            className="vis-nav-item"
-            onClick={() => {
-              setIsMobileMenuOpen(false);
-              navigate("/visitor/calendar");
-            }}
+            className={`vis-nav-item ${activePage === "calendar" ? "vis-active" : ""}`}
+            onClick={() => handleNavigate("calendar")}
             role="menuitem"
           >
             <Calendar className="vis-nav-icon" size={18} aria-hidden="true" />
@@ -1087,9 +1260,9 @@ export default function VisitorDashboard() {
                               <th>Event</th>
                               <th>Category</th>
                               <th>Start Date</th>
-                              <th>Start Time</th>
+                              {/* <th>Start Time</th> */}
                               <th>End Date</th>
-                              <th>End Time</th>
+                              {/* <th>End Time</th> */}
                               <th>Location</th>
                               <th>Organizer</th>
                               <th>Type</th>
@@ -1114,10 +1287,10 @@ export default function VisitorDashboard() {
                                   </td>
                                   <td>{reg.event.title}</td>
                                   <td>{reg.event.category}</td>
-                                  <td>{reg.event.startDate ? formatDateDDMMYYYY(reg.event.startDate) : formatDateDDMMYYYY(reg.event.date)}</td>
-                                  <td>{reg.event.startTime ? formatTimeAMPM(reg.event.startTime) : 'TBD'}</td>
-                                  <td>{reg.event.endDate ? formatDateDDMMYYYY(reg.event.endDate) : 'N/A'}</td>
-                                  <td>{reg.event.endTime ? formatTimeAMPM(reg.event.endTime) : 'N/A'}</td>
+                                  <td>{reg.event.startDate ? formatDateDDMMYYYY(reg.event.startDate) : formatDateDDMMYYYY(reg.event.date)}{<br></br>}{reg.event.startTime ? formatTimeAMPM(reg.event.startTime) : 'TBD'}</td>
+                                  {/* <td></td> */}
+                                  <td>{reg.event.endDate ? formatDateDDMMYYYY(reg.event.endDate) : 'N/A'}{<br></br>}{reg.event.endTime ? formatTimeAMPM(reg.event.endTime) : 'N/A'}</td>
+                                  {/* <td></td> */}
                                   <td>{reg.event.location}</td>
                                   <td>{reg.event.organizerName}</td>
                                   <td>
@@ -1389,6 +1562,145 @@ export default function VisitorDashboard() {
                   </div>
                 </section>
               )}
+
+              {/* // ================================================================
+// 🆕 NEW: CALENDAR PAGE - Add after Profile section, before closing </>
+// ================================================================ */}
+
+              {/* 🆕 NEW: CALENDAR PAGE */}
+              {activePage === "calendar" && (
+                <section className="vis-calendar-page">
+                  <div className="vis-page-header">
+                    <h1>My Calendar</h1>
+                    <p className="vis-subtitle">View your registered events in calendar format</p>
+                  </div>
+
+                  <div className="vis-calendar-container">
+                    {/* Calendar Toolbar */}
+                    <div className="vis-cal-toolbar">
+                      <div className="vis-cal-toolbar-nav">
+                        <button 
+                          className="vis-cal-btn vis-cal-btn-icon"
+                          onClick={() => handleCalendarNavigate('prev')}
+                          title="Previous"
+                        >
+                          <ChevronLeft size={20} />
+                        </button>
+                        
+                        <button 
+                          className="vis-cal-btn vis-cal-btn-today"
+                          onClick={() => handleCalendarNavigate('today')}
+                        >
+                          <Calendar size={18} />
+                          Today
+                        </button>
+                        
+                        <button 
+                          className="vis-cal-btn vis-cal-btn-icon"
+                          onClick={() => handleCalendarNavigate('next')}
+                          title="Next"
+                        >
+                          <ChevronRight size={20} />
+                        </button>
+                        
+                        <h2 className="vis-cal-toolbar-title">{formatCalendarTitle()}</h2>
+                      </div>
+
+                      {/* View Switcher */}
+                      <div className="vis-cal-toolbar-views">
+                        <button
+                          className={`vis-cal-btn vis-cal-btn-view ${currentView === 'dayGridMonth' ? 'vis-cal-active' : ''}`}
+                          onClick={() => handleCalendarViewChange('dayGridMonth')}
+                        >
+                          Month
+                        </button>
+                        <button
+                          className={`vis-cal-btn vis-cal-btn-view ${currentView === 'timeGridWeek' ? 'vis-cal-active' : ''}`}
+                          onClick={() => handleCalendarViewChange('timeGridWeek')}
+                        >
+                          Week
+                        </button>
+                        <button
+                          className={`vis-cal-btn vis-cal-btn-view ${currentView === 'timeGridDay' ? 'vis-cal-active' : ''}`}
+                          onClick={() => handleCalendarViewChange('timeGridDay')}
+                        >
+                          Day
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Loading state */}
+                    {calendarLoading && (
+                      <div className="vis-cal-loading">
+                        <Loader className="vis-spinner" size={40} />
+                        <p>Loading your calendar...</p>
+                      </div>
+                    )}
+
+                    {/* Calendar */}
+                    {!calendarLoading && (
+                      <div className="vis-calendar-wrapper">
+                        <FullCalendar
+                          ref={calendarRef}
+                          plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
+                          initialView="dayGridMonth"
+                          headerToolbar={false}
+                          events={calendarEvents}
+                          eventClick={handleCalendarEventClick}
+                          eventContent={renderCalendarEventContent}
+                          height="auto"
+                          contentHeight="auto"
+                          aspectRatio={1.8}
+                          editable={false}
+                          droppable={false}
+                          eventResizableFromStart={false}
+                          eventDurationEditable={false}
+                          eventStartEditable={false}
+                          selectable={false}
+                          eventClassNames="vis-cal-event"
+                          dayMaxEvents={3}
+                          moreLinkText="more"
+                          timeZone="local"
+                          views={{
+                            dayGridMonth: {
+                              titleFormat: { year: 'numeric', month: 'long' }
+                            },
+                            timeGridWeek: {
+                              titleFormat: { year: 'numeric', month: 'short', day: 'numeric' }
+                            },
+                            timeGridDay: {
+                              titleFormat: { year: 'numeric', month: 'long', day: 'numeric' }
+                            }
+                          }}
+                          eventMouseEnter={(info) => {
+                            info.el.style.transform = 'scale(1.05)';
+                            info.el.style.transition = 'transform 0.2s';
+                            info.el.style.zIndex = '1000';
+                          }}
+                          eventMouseLeave={(info) => {
+                            info.el.style.transform = 'scale(1)';
+                            info.el.style.zIndex = 'auto';
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    {/* Empty state */}
+                    {!calendarLoading && calendarEvents.length === 0 && (
+                      <div className="vis-no-calendar-events">
+                        <Calendar size={48} aria-hidden="true" />
+                        <p>You have no registered events</p>
+                        <button 
+                          className="vis-btn vis-btn-primary-visitor" 
+                          onClick={() => handleNavigate("events")}
+                        >
+                          Browse Events
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </section>
+              )}
             </>
           )}
         </div>
@@ -1398,9 +1710,9 @@ export default function VisitorDashboard() {
       {selectedEvent && (
         <div className="vis-modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
           <div className="vis-modal-visitor-content" onClick={(e) => e.stopPropagation()} role="dialog" aria-labelledby="event-details-title" aria-modal="true">
-            <button className="vis-modal-visitor-close" onClick={() => setSelectedEvent(null)} aria-label="Close modal">
+            {/* <button className="vis-modal-visitor-close" onClick={() => setSelectedEvent(null)} aria-label="Close modal">
               <X size={24} />
-            </button>
+            </button> */}
             <div className="vis-modal-visitor-header">
               <img 
                 src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]} 
@@ -1412,14 +1724,14 @@ export default function VisitorDashboard() {
             <div className="vis-modal-visitor-body">
               <div className="vis-modal-visitor-info">
                 <p><strong><Tag size={16} /> Category:</strong> {selectedEvent.category}</p>
-                <p><strong><Calendar size={16} /> Start Date:</strong> {selectedEvent.startDate ? formatDateDDMMYYYY(selectedEvent.startDate) : formatDateDDMMYYYY(selectedEvent.date)}</p>
-                <p><strong><Clock size={16} /> Start Time:</strong> {selectedEvent.startTime ? formatTimeAMPM(selectedEvent.startTime) : 'TBD'}</p>
+                <p><strong><Calendar size={16} /> Start :</strong> {selectedEvent.startDate ? formatDateDDMMYYYY(selectedEvent.startDate) : formatDateDDMMYYYY(selectedEvent.date)} At  {selectedEvent.startTime ? formatTimeAMPM(selectedEvent.startTime) : 'TBD'}</p>
+                {/* <p><strong><Clock size={16} /> Start Time:</strong></p> */}
                 {selectedEvent.endDate && (
-                  <p><strong><Calendar size={16} /> End Date:</strong> {formatDateDDMMYYYY(selectedEvent.endDate)}</p>
+                  <p><strong><Calendar size={16} /> End Date:</strong> {formatDateDDMMYYYY(selectedEvent.endDate)} At {formatTimeAMPM(selectedEvent.endTime)}</p>
                 )}
-                {selectedEvent.endTime && (
+                {/* {selectedEvent.endTime && (
                   <p><strong><Clock size={16} /> End Time:</strong> {formatTimeAMPM(selectedEvent.endTime)}</p>
-                )}
+                )} */}
                 <p><strong><MapPin size={16} /> Location:</strong> {selectedEvent.location}</p>
                 <p><strong><UserCheck size={16} /> Organizer:</strong> {selectedEvent.organizerName}</p>
                 {selectedEvent.maxAttendees && (

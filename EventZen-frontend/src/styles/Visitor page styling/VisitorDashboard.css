@@ -1291,6 +1291,348 @@
 }
 
 /* ================================================================
+ * 🆕 NEW: CALENDAR STYLES - Add before media queries (around line 800)
+ * ================================================================ */
+
+/* Calendar Page Container */
+.vis-calendar-page {
+  width: 100%;
+}
+
+.vis-calendar-container {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+}
+
+/* Calendar Toolbar */
+.vis-cal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.vis-cal-toolbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.vis-cal-toolbar-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-left: 16px;
+}
+
+.vis-cal-toolbar-views {
+  display: flex;
+  gap: 8px;
+  background: #fff;
+  padding: 4px;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+}
+
+/* Calendar Buttons */
+.vis-cal-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: #334155;
+  border: 2px solid #e2e8f0;
+}
+
+.vis-cal-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.vis-cal-btn-icon {
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  justify-content: center;
+}
+
+.vis-cal-btn-today {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+}
+
+.vis-cal-btn-today:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6a3d91 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.vis-cal-btn-view {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+}
+
+.vis-cal-btn-view:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  transform: none;
+  box-shadow: none;
+}
+
+.vis-cal-btn-view.vis-cal-active {
+  background: #667eea;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Calendar Loading */
+.vis-cal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  color: #64748b;
+}
+
+.vis-cal-loading p {
+  margin-top: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Calendar Wrapper */
+.vis-calendar-wrapper {
+  margin-top: 20px;
+  min-height: 600px;
+}
+
+/* FullCalendar Overrides for Visitor */
+.vis-calendar-wrapper .fc {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.vis-calendar-wrapper .fc .fc-col-header-cell {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 8px;
+  border: none;
+}
+
+.vis-calendar-wrapper .fc .fc-daygrid-day {
+  background: #fff;
+  transition: background 0.2s;
+}
+
+.vis-calendar-wrapper .fc .fc-daygrid-day:hover {
+  background: #f8fafc;
+}
+
+.vis-calendar-wrapper .fc .fc-daygrid-day-number {
+  padding: 8px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.vis-calendar-wrapper .fc .fc-day-today {
+  background: #eef2ff !important;
+}
+
+.vis-calendar-wrapper .fc .fc-day-today .fc-daygrid-day-number {
+  background: #667eea;
+  color: #fff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Calendar Events */
+.vis-cal-event {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: 2px 0;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.vis-cal-event:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.vis-cal-event-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vis-cal-event-time {
+  font-size: 11px;
+  opacity: 0.9;
+  font-weight: 700;
+}
+
+.vis-cal-event-title {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+/* Calendar Event Status */
+.vis-cal-event.cal-event-upcoming {
+  opacity: 1;
+}
+
+.vis-cal-event.cal-event-completed {
+  opacity: 0.7;
+}
+
+/* Calendar Empty State */
+.vis-no-calendar-events {
+  text-align: center;
+  padding: 80px 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.vis-no-calendar-events svg {
+  color: #667eea;
+  opacity: 0.5;
+}
+
+.vis-no-calendar-events p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+/* ================================================================
+ * CALENDAR RESPONSIVE STYLES
+ * ================================================================ */
+
+@media (max-width: 991px) {
+  .vis-cal-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vis-cal-toolbar-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vis-cal-toolbar-title {
+    margin-left: 0;
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  .vis-cal-toolbar-views {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .vis-calendar-container {
+    padding: 12px;
+  }
+
+  .vis-cal-toolbar {
+    padding: 16px;
+  }
+
+  .vis-cal-toolbar-title {
+    font-size: 18px;
+  }
+
+  .vis-cal-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .vis-calendar-wrapper {
+    min-height: 400px;
+  }
+
+  .vis-cal-event-title {
+    font-size: 11px;
+  }
+
+  .vis-cal-event-time {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 575px) {
+  .vis-calendar-container {
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .vis-cal-toolbar {
+    padding: 12px;
+  }
+
+  .vis-cal-toolbar-nav {
+    gap: 8px;
+  }
+
+  .vis-cal-btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+  }
+
+  .vis-cal-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .vis-cal-toolbar-title {
+    font-size: 16px;
+  }
+}
+
+/* ================================================================
  * FILE: src/styles/Visitor page styling/VisitorDashboard.css - PART 5/5
  * Responsive media queries for all breakpoints
  * ================================================================ */

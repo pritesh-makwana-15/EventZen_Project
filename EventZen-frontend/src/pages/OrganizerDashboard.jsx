@@ -581,8 +581,8 @@ function MyEvents({ onEditEvent }) {
                   <th scope="col">Title</th>
                   <th scope="col">Start Date</th>
                   <th scope="col">End Date</th>
-                  <th scope="col">Start Time</th>
-                  <th scope="col">End Time</th>
+                  {/* <th scope="col">Start Time</th>
+                  <th scope="col">End Time</th> */}
                   <th scope="col">Category</th>
                   <th scope="col">Type</th>
                   <th scope="col">Attendees</th>
@@ -604,10 +604,10 @@ function MyEvents({ onEditEvent }) {
                         />
                       </td>
                       <td><span className="org-event-title">{event.title}</span></td>
-                      <td>{formatDateDDMMYYYY(event.startDate)}</td>
-                      <td>{formatDateDDMMYYYY(event.endDate || event.startDate)}</td>
-                      <td>{formatTimeAMPM(event.startTime || '00:00')}</td>
-                      <td>{formatTimeAMPM(event.endTime || '23:59')}</td>
+                      <td>{formatDateDDMMYYYY(event.startDate)} {<br></br>} {formatTimeAMPM(event.startTime || '00:00')}</td>
+                      <td>{formatDateDDMMYYYY(event.endDate || event.startDate)}{<br></br>}{formatTimeAMPM(event.endTime || '23:59')}</td>
+                      {/* <td>{formatTimeAMPM(event.startTime || '00:00')}</td>
+                      <td>{formatTimeAMPM(event.endTime || '23:59')}</td> */}
                       <td><span className="org-category-badge">{event.category}</span></td>
                       <td>
                         <span className={`org-type-badge org-type-${event.eventType?.toLowerCase()}`}>

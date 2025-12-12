@@ -37,16 +37,16 @@ const EventModal = ({ event, onClose, onEdit }) => {
   return (
     <div className="cal-modal-overlay" onClick={onClose}>
       <div className="cal-modal-content cal-modal-compact" onClick={(e) => e.stopPropagation()}>
-        <button className="cal-modal-close" onClick={onClose} aria-label="Close">
+        {/* <button className="cal-modal-close" onClick={onClose} aria-label="Close">
           <X size={24} />
-        </button>
+        </button> */}
 
-        <div className="cal-modal-header">
+        {/* <div className="cal-modal-header">
           <h2>Event Details</h2>
-        </div>
+        </div> */}
 
         {/* VIEW MODE - Read Only */}
-        <div className="cal-modal-body">
+        <div className="cal-modal-body">  
           {event.imageUrl && (
             <img src={event.imageUrl} alt={event.title} className="cal-event-image" />
           )}

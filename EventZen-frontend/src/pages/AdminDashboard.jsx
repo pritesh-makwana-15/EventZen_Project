@@ -812,15 +812,15 @@ const AdminDashboard = () => {
             <table>
               <thead>
                 <tr>
-                  <th>ID</th>
+                  {/* <th>ID</th> */}
                   <th>Image</th>
                   <th>Title</th>
                   <th>Organizer</th>
                   {/* 🆕 NEW: Date/Time columns */}
-                  <th>Start Date</th>
-                  <th>End Date</th>
-                  <th>Start Time</th>
-                  <th>End Time</th>
+                  <th>Start Date and Time</th>
+                  <th>End Date and Time</th>
+                  {/* <th>Start Time</th>
+                  <th>End Time</th> */}
                   <th>Category</th>
                   <th>Attendees</th>
                   <th>Type</th>
@@ -831,7 +831,7 @@ const AdminDashboard = () => {
               <tbody>
                 {filteredEvents.map((e) => (
                   <tr key={e.id}>
-                    <td className="ad-td-id">{e.id}</td>
+                    {/* <td className="ad-td-id">{e.id}</td> */}
                     <td>
                       <img 
                         src={e.imageUrl || defaultImages[e.category] || defaultImages["Other"]} 
@@ -842,10 +842,9 @@ const AdminDashboard = () => {
                     <td className="ad-td-title">{e.title}</td>
                     <td>{e.organizerName}</td>
                     {/* 🆕 NEW: Display formatted dates and times */}
-                    <td>{formatDateDDMMYYYY(e.startDate || e.date)}</td>
-                    <td>{formatDateDDMMYYYY(e.endDate || e.date)}</td>
-                    <td>{formatTimeAMPM(e.startTime)}</td>
-                    <td>{formatTimeAMPM(e.endTime)}</td>
+                    <td>{formatDateDDMMYYYY(e.startDate || e.date)} {<br></br>} {formatTimeAMPM(e.startTime)}</td>
+                    <td>{formatDateDDMMYYYY(e.endDate || e.date)} {<br></br>} {formatTimeAMPM(e.endTime)}</td>
+                    {/* <td></td> */}
                     <td>{e.category || "N/A"}</td>
                     <td>
                       {e.currentAttendees || 0}/{e.maxAttendees || "∞"}
@@ -1454,13 +1453,13 @@ const AdminDashboard = () => {
         className="ad-modal-content"
         onClick={(e) => e.stopPropagation()}
       >
-        <button
+        {/* <button
           className="ad-modal-close"
           onClick={() => setShowEventDetailModal(false)}
           aria-label="Close modal"
         >
           ×
-        </button>
+        </button> */}
 
         {currentItem && (
           <div className="ad-modal-body">
@@ -1476,10 +1475,10 @@ const AdminDashboard = () => {
             <div className="ad-event-info">
               <p><strong>Category:</strong> {currentItem.category || "N/A"}</p>
               {/* 🆕 NEW: Display formatted date/time */}
-              <p><strong>Start Date:</strong> {formatDateDDMMYYYY(currentItem.startDate || currentItem.date)}</p>
-              <p><strong>End Date:</strong> {formatDateDDMMYYYY(currentItem.endDate || currentItem.date)}</p>
-              <p><strong>Start Time:</strong> {formatTimeAMPM(currentItem.startTime)}</p>
-              <p><strong>End Time:</strong> {formatTimeAMPM(currentItem.endTime)}</p>
+              <p><strong>Start :</strong> {formatDateDDMMYYYY(currentItem.startDate || currentItem.date)} At  {formatTimeAMPM(currentItem.startTime)}</p>
+              <p><strong>End :</strong> {formatDateDDMMYYYY(currentItem.endDate || currentItem.date)} At {formatTimeAMPM(currentItem.endTime)}</p>
+              {/* <p><strong>Start Time:</strong></p>
+              <p><strong>End Time:</strong> </p> */}
               <p><strong>Location:</strong> {currentItem.location || "N/A"}</p>
               <p><strong>Organizer:</strong> {currentItem.organizerName}</p>
               {currentItem.maxAttendees && (
