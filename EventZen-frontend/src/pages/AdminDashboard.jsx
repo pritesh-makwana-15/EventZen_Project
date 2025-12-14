@@ -1,12 +1,7 @@
 // ================================================================
-// FILE: src/pages/AdminDashboard.jsx (PART 1/2)
-// 🆕 UPDATED: Added mobile menu, organizer filter, Analytics integration, profile image upload fix
-// Changes:
-// - Mobile hamburger menu with open/close
-// - Organizer click redirects to Events with filter
-// - Analytics section integrated
-// - Profile image upload with preview
-// - Date/Time utilities imported and used
+// FILE: src/pages/AdminDashboard.jsx (PART 1/6)
+// MERGED: Old code + New venue/feedback buttons + Export functionality
+// Imports, State Setup, and Initial Logic
 // ================================================================
 
 import React, { useState, useEffect } from "react";
@@ -27,7 +22,10 @@ import {
   Upload,
   CircleX,
   ChartBarStacked,
-  Menu
+  Menu,
+  Building2,
+  MessageSquare,
+  Download
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Admin Dashborad/AdminDashboard.css";
@@ -41,6 +39,13 @@ import {
   updateUser,
   getAdminProfile,
   updateAdminProfile,
+  exportEventsCsv,
+  exportEventsPdf,
+  exportUsersCsv,
+  exportUsersPdf,
+  exportRegistrationsCsv,
+  exportRegistrationsPdf,
+  downloadFile
 } from "../services/adminService";
 import { logout } from "../services/api";
 import AdminAnalyticsPage from "../pages/AdminAnalyticsPage";
@@ -51,6 +56,66 @@ import {
   getEventStatus 
 } from "../utils/dateTime";
 
+// ================================================================
+// 🆕 NEW: Export Buttons Component
+// ================================================================
+const ExportButtons = ({ type }) => {
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async (format) => {
+    try {
+      setExporting(true);
+      let blob, filename;
+
+      switch (type) {
+        case "events":
+          blob = format === "csv" ? await exportEventsCsv() : await exportEventsPdf();
+          filename = `events.${format}`;
+          break;
+        case "users":
+          blob = format === "csv" ? await exportUsersCsv() : await exportUsersPdf();
+          filename = `users.${format}`;
+          break;
+        case "registrations":
+          blob = format === "csv" ? await exportRegistrationsCsv() : await exportRegistrationsPdf();
+          filename = `registrations.${format}`;
+          break;
+        default:
+          return;
+      }
+
+      downloadFile(blob, filename);
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  return (
+    <div className="export-buttons">
+      <button
+        className="btn-export btn-csv"
+        onClick={() => handleExport("csv")}
+        disabled={exporting}
+      >
+        <Download size={16} /> Export CSV
+      </button>
+      <button
+        className="btn-export btn-pdf"
+        onClick={() => handleExport("pdf")}
+        disabled={exporting}
+      >
+        <Download size={16} /> Export PDF
+      </button>
+    </div>
+  );
+};
+
+// ================================================================
+// Main AdminDashboard Component
+// ================================================================
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("events");
@@ -58,7 +123,7 @@ const AdminDashboard = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // 🆕 NEW: Mobile sidebar state
+  // Mobile sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   // Data states
@@ -70,7 +135,7 @@ const AdminDashboard = () => {
   const [filteredVisitors, setFilteredVisitors] = useState([]);
   const [adminProfile, setAdminProfile] = useState(null);
 
-  // 🆕 NEW: Organizer filter from Analytics/Organizers page
+  // Organizer filter from Analytics/Organizers page
   const [organizerFilter, setOrganizerFilter] = useState(null);
 
   // Filter states for Events
@@ -134,6 +199,9 @@ const AdminDashboard = () => {
     newPassword: "",
   });
 
+  // ================================================================
+  // Effects
+  // ================================================================
   useEffect(() => {
     loadData();
   }, [activeSection]);
@@ -195,10 +263,13 @@ const AdminDashboard = () => {
     }
   };
 
+  // ================================================================
+  // Filter Functions
+  // ================================================================
   const applyFilters = () => {
     let filtered = [...events];
 
-    // 🆕 NEW: Apply organizer filter if set
+    // Apply organizer filter if set
     if (organizerFilter) {
       filtered = filtered.filter((e) => e.organizerId === organizerFilter.id);
     }
@@ -231,7 +302,6 @@ const AdminDashboard = () => {
       );
     }
 
-    // 🆕 UPDATED: Sort filtered events
     setFilteredEvents(sortEventsByDateTime(filtered));
   };
 
@@ -300,14 +370,15 @@ const AdminDashboard = () => {
     return events.filter((e) => e.organizerId === organizerId).length;
   };
 
-  // 🆕 NEW: Handle organizer click - redirect to Events with filter
+  // ================================================================
+  // Handler Functions
+  // ================================================================
   const handleOrganizerClick = (organizer) => {
     setOrganizerFilter(organizer);
     setActiveSection("events");
     setSidebarOpen(false);
   };
 
-  // 🆕 NEW: Clear organizer filter
   const clearOrganizerFilter = () => {
     setOrganizerFilter(null);
   };
@@ -343,12 +414,6 @@ const AdminDashboard = () => {
       setLoading(false);
     }
   };
-
-  // Continued in Part 2...
-  // ================================================================
-// FILE: src/pages/AdminDashboard.jsx (PART 2/2)
-// Continuation from Part 1 - Handlers and Render Functions
-// ================================================================
 
   const handleDelete = async () => {
     setLoading(true);
@@ -399,7 +464,6 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🆕 UPDATED: Profile image upload with preview
   const handleProfileImageUpload = async (file) => {
     if (!file) return;
 
@@ -416,7 +480,6 @@ const AdminDashboard = () => {
     try {
       setUploadingImage(true);
       
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -536,10 +599,8 @@ const AdminDashboard = () => {
     Other: "https://via.placeholder.com/400x200/6b7280/ffffff?text=Event"
   };
 
-  // 🆕 UPDATED: Sidebar with mobile support
   const renderSidebarAdmin = () => (
     <div className={`ad-sidebarAdmin ${sidebarOpen ? 'ad-open' : ''}`}>
-      {/* 🆕 NEW: Close button for mobile */}
       <button 
         className="ad-sidebar-close-btn"
         onClick={() => setSidebarOpen(false)}
@@ -570,6 +631,7 @@ const AdminDashboard = () => {
             <span className="ad-nav-count">{events.length}</span>
           </div>
         </button>
+
         <button
           className={`ad-nav-btn ${activeSection === "organizers" ? "ad-active" : ""}`}
           onClick={() => {
@@ -584,6 +646,7 @@ const AdminDashboard = () => {
             <span className="ad-nav-count">{organizers.length}</span>
           </div>
         </button>
+
         <button
           className={`ad-nav-btn ${activeSection === "visitors" ? "ad-active" : ""}`}
           onClick={() => {
@@ -598,6 +661,7 @@ const AdminDashboard = () => {
             <span className="ad-nav-count">{visitors.length}</span>
           </div>
         </button>
+
         <button
           className={`ad-nav-btn ${activeSection === "create-organizer" ? "ad-active" : ""}`}
           onClick={() => {
@@ -608,6 +672,7 @@ const AdminDashboard = () => {
         >
           <UserPlus size={20} /> Create Organizer
         </button>
+
         <button
           className={`ad-nav-btn ${activeSection === "profile" ? "ad-active" : ""}`}
           onClick={() => {
@@ -619,6 +684,7 @@ const AdminDashboard = () => {
         >
           <User size={20} /> Profile
         </button>
+
         <button
           className={`ad-nav-btn ${activeSection === "analytics" ? "ad-active" : ""}`}
           onClick={() => {
@@ -632,10 +698,11 @@ const AdminDashboard = () => {
             <span>Analytics</span>
           </div>
         </button>
+
         <button
           className={`ad-nav-btn ${activeSection === "calendar" ? "ad-active" : ""}`}
           onClick={() => {
-            navigate("/admin/calendar"); // Navigate to calendar route
+            navigate("/admin/calendar");
             setSidebarOpen(false);
           }}
           aria-label="Calendar View"
@@ -645,14 +712,45 @@ const AdminDashboard = () => {
             <span>Calendar</span>
           </div>
         </button>
+
+        {/* 🆕 NEW: Venues Button */}
+        <button
+          className={`ad-nav-btn ${activeSection === "venues" ? "ad-active" : ""}`}
+          onClick={() => {
+            navigate("/admin/venues");
+            setSidebarOpen(false);
+          }}
+          aria-label="Manage Venues"
+        >
+          <Building2 size={20} />
+          <div className="ad-nav-btn-content">
+            <span>Venues</span>
+          </div>
+        </button>
+
+        {/* 🆕 NEW: Feedback Button */}
+        <button
+          className={`ad-nav-btn ${activeSection === "feedback" ? "ad-active" : ""}`}
+          onClick={() => {
+            navigate("/admin/feedback");
+            setSidebarOpen(false);
+          }}
+          aria-label="Moderate Feedback"
+        >
+          <MessageSquare size={20} />
+          <div className="ad-nav-btn-content">
+            <span>Feedback</span>
+          </div>
+        </button>
       </nav>
     </div>
   );
 
-  // 🆕 UPDATED: Topbar with hamburger menu
+  // ================================================================
+  // Topbar with hamburger menu
+  // ================================================================
   const renderTopbar = () => (
     <div className="ad-topbar">
-      {/* 🆕 NEW: Hamburger menu button */}
       <button 
         className="ad-menu-btn"
         onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -670,14 +768,6 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Render functions continue in Part 3 (Events, Organizers, Visitors sections)...
-  // ================================================================
-// FILE: src/pages/AdminDashboard.jsx (PART 3/5)
-// Events and Organizers Render Functions
-// 🆕 UPDATED: Added 4 new date/time columns, organizer filter display, organizer click handler
-// ================================================================
-
-  // 🆕 UPDATED: Events Section with new date/time columns and organizer filter
   const renderEvents = () => (
     <div className="ad-content">
       {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
@@ -686,10 +776,13 @@ const AdminDashboard = () => {
       <div className="ad-card">
         <div className="ad-card-header">
           <h2>Events Overview</h2>
-          <span className="ad-card-count">{filteredEvents.length} Total</span>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <span className="ad-card-count">{filteredEvents.length} Total</span>
+            <ExportButtons type="events" />
+          </div>
         </div>
 
-        {/* 🆕 NEW: Organizer filter indicator */}
+        {/* Organizer filter indicator */}
         {organizerFilter && (
           <div className="ad-active-filter">
             <span>
@@ -812,15 +905,11 @@ const AdminDashboard = () => {
             <table>
               <thead>
                 <tr>
-                  {/* <th>ID</th> */}
                   <th>Image</th>
                   <th>Title</th>
                   <th>Organizer</th>
-                  {/* 🆕 NEW: Date/Time columns */}
                   <th>Start Date and Time</th>
                   <th>End Date and Time</th>
-                  {/* <th>Start Time</th>
-                  <th>End Time</th> */}
                   <th>Category</th>
                   <th>Attendees</th>
                   <th>Type</th>
@@ -831,7 +920,6 @@ const AdminDashboard = () => {
               <tbody>
                 {filteredEvents.map((e) => (
                   <tr key={e.id}>
-                    {/* <td className="ad-td-id">{e.id}</td> */}
                     <td>
                       <img 
                         src={e.imageUrl || defaultImages[e.category] || defaultImages["Other"]} 
@@ -841,10 +929,8 @@ const AdminDashboard = () => {
                     </td>
                     <td className="ad-td-title">{e.title}</td>
                     <td>{e.organizerName}</td>
-                    {/* 🆕 NEW: Display formatted dates and times */}
-                    <td>{formatDateDDMMYYYY(e.startDate || e.date)} {<br></br>} {formatTimeAMPM(e.startTime)}</td>
-                    <td>{formatDateDDMMYYYY(e.endDate || e.date)} {<br></br>} {formatTimeAMPM(e.endTime)}</td>
-                    {/* <td></td> */}
+                    <td>{formatDateDDMMYYYY(e.startDate || e.date)} <br /> {formatTimeAMPM(e.startTime)}</td>
+                    <td>{formatDateDDMMYYYY(e.endDate || e.date)} <br /> {formatTimeAMPM(e.endTime)}</td>
                     <td>{e.category || "N/A"}</td>
                     <td>
                       {e.currentAttendees || 0}/{e.maxAttendees || "∞"}
@@ -889,7 +975,9 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // 🆕 UPDATED: Organizers Section with click handler
+  // ================================================================
+  // Organizers Section with click handler and export
+  // ================================================================
   const renderOrganizers = () => (
     <div className="ad-content">
       {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
@@ -898,7 +986,10 @@ const AdminDashboard = () => {
       <div className="ad-card">
         <div className="ad-card-header">
           <h2>Organizers</h2>
-          <span className="ad-card-count">{filteredOrganizers.length} Total</span>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <span className="ad-card-count">{filteredOrganizers.length} Total</span>
+            <ExportButtons type="users" />
+          </div>
         </div>
 
         <div className="ad-filters-section" role="search" aria-label="Organizer Filters">
@@ -1019,14 +1110,6 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Continues in Part 4...
-  // ================================================================
-// FILE: src/pages/AdminDashboard.jsx (PART 4/5)
-// Visitors, Create Organizer, Profile, and Modal Render Functions
-// 🆕 UPDATED: Profile with image preview, Event modal with date/time
-// ================================================================
-
-  // Visitors Section (unchanged structure, just included for completeness)
   const renderVisitors = () => (
     <div className="ad-content">
       {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
@@ -1035,7 +1118,10 @@ const AdminDashboard = () => {
       <div className="ad-card">
         <div className="ad-card-header">
           <h2>Visitors</h2>
-          <span className="ad-card-count">{filteredVisitors.length} Total</span>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <span className="ad-card-count">{filteredVisitors.length} Total</span>
+            <ExportButtons type="users" />
+          </div>
         </div>
 
         <div className="ad-filters-section" role="search" aria-label="Visitor Filters">
@@ -1138,7 +1224,9 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Create Organizer Form (unchanged)
+  // ================================================================
+  // Create Organizer Form
+  // ================================================================
   const renderCreateOrganizer = () => (
     <section className="ad-create-organizer">
       {error && <div className="ad-alert ad-alert-error" role="alert">{error}</div>}
@@ -1252,7 +1340,9 @@ const AdminDashboard = () => {
     </section>
   );
 
-  // 🆕 UPDATED: Profile Section with image preview
+  // ================================================================
+  // Profile Section with image preview
+  // ================================================================
   const renderProfile = () => (
     <section className="ad-profile-page">
       <div className="ad-content">
@@ -1313,7 +1403,6 @@ const AdminDashboard = () => {
                       ? "Change Image"
                       : "Upload Image"}
                   </label>
-                  {/* 🆕 NEW: Image preview */}
                   {imagePreview && (
                     <div className="ad-image-preview ad-profile-preview">
                       <img src={imagePreview} alt="Profile preview" />
@@ -1434,33 +1523,19 @@ const AdminDashboard = () => {
     </section>
   );
 
-  // 🆕 NEW: Analytics Section
+  // ================================================================
+  // Analytics Section
+  // ================================================================
   const renderAdminAnalyticsPage = () => (
     <AdminAnalyticsPage />
   );
 
-  // Modals continue in Part 5...
-  // ================================================================
-// FILE: src/pages/AdminDashboard.jsx (PART 5/5)
-// Modals and Main Return Statement
-// 🆕 UPDATED: Event detail modal with date/time display
-// ================================================================
-
-  // 🆕 UPDATED: Event Detail Modal with date/time
   const renderEventDetailModal = () => (
     <div className="ad-modal-overlay" onClick={() => setShowEventDetailModal(false)}>
       <div
         className="ad-modal-content"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* <button
-          className="ad-modal-close"
-          onClick={() => setShowEventDetailModal(false)}
-          aria-label="Close modal"
-        >
-          ×
-        </button> */}
-
         {currentItem && (
           <div className="ad-modal-body">
             <div className="ad-modal-header">
@@ -1474,11 +1549,8 @@ const AdminDashboard = () => {
 
             <div className="ad-event-info">
               <p><strong>Category:</strong> {currentItem.category || "N/A"}</p>
-              {/* 🆕 NEW: Display formatted date/time */}
-              <p><strong>Start :</strong> {formatDateDDMMYYYY(currentItem.startDate || currentItem.date)} At  {formatTimeAMPM(currentItem.startTime)}</p>
-              <p><strong>End :</strong> {formatDateDDMMYYYY(currentItem.endDate || currentItem.date)} At {formatTimeAMPM(currentItem.endTime)}</p>
-              {/* <p><strong>Start Time:</strong></p>
-              <p><strong>End Time:</strong> </p> */}
+              <p><strong>Start:</strong> {formatDateDDMMYYYY(currentItem.startDate || currentItem.date)} At {formatTimeAMPM(currentItem.startTime)}</p>
+              <p><strong>End:</strong> {formatDateDDMMYYYY(currentItem.endDate || currentItem.date)} At {formatTimeAMPM(currentItem.endTime)}</p>
               <p><strong>Location:</strong> {currentItem.location || "N/A"}</p>
               <p><strong>Organizer:</strong> {currentItem.organizerName}</p>
               {currentItem.maxAttendees && (
@@ -1514,7 +1586,9 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Edit Modal (unchanged)
+  // ================================================================
+  // Edit Modal
+  // ================================================================
   const renderEditModal = () => (
     <div className="ad-modal-overlay" onClick={() => setShowEditModal(false)}>
       <div className="ad-modal-content" onClick={(e) => e.stopPropagation()}>
@@ -1577,7 +1651,9 @@ const AdminDashboard = () => {
     </div>
   );
 
-  // Delete Modal (unchanged)
+  // ================================================================
+  // Delete Modal
+  // ================================================================
   const renderDeleteModal = () => (
     <div className="ad-modal-overlay" onClick={() => setShowDeleteModal(false)}>
       <div className="ad-modal-content ad-modal-danger" onClick={(e) => e.stopPropagation()}>
@@ -1611,7 +1687,9 @@ const AdminDashboard = () => {
     </div>
   );
 
+  // ================================================================
   // Content Switcher
+  // ================================================================
   const renderContent = () => {
     switch (activeSection) {
       case "visitors":
@@ -1631,10 +1709,12 @@ const AdminDashboard = () => {
     }
   };
 
-  // 🆕 UPDATED: Main Return with mobile overlay
+  // ================================================================
+  // Main Return Statement
+  // ================================================================
   return (
     <div className="ad-dashboard">
-      {/* 🆕 NEW: Sidebar overlay for mobile */}
+      {/* Sidebar overlay for mobile */}
       {sidebarOpen && (
         <div 
           className="ad-sidebar-overlay"
@@ -1657,3 +1737,5 @@ const AdminDashboard = () => {
 };
 
 export default AdminDashboard;
+
+// ================================================================

@@ -229,6 +229,222 @@ export const getTopOrganizers = async () => {
   }
 };
 
+export const getAllVenues = async () => {
+  try {
+    const { data } = await API.get("/admin/venues");
+    return data;
+  } catch (error) {
+    console.error("Error fetching venues:", error);
+    throw error;
+  }
+};
+
+export const getActiveVenues = async () => {
+  try {
+    const { data } = await API.get("/admin/venues/active");
+    return data;
+  } catch (error) {
+    console.error("Error fetching active venues:", error);
+    throw error;
+  }
+};
+
+export const getVenueById = async (venueId) => {
+  try {
+    const { data } = await API.get(`/admin/venues/${venueId}`);
+    return data;
+  } catch (error) {
+    console.error(`Error fetching venue ${venueId}:`, error);
+    throw error;
+  }
+};
+
+export const createVenue = async (venueData) => {
+  try {
+    const { data } = await API.post("/admin/venues", venueData);
+    return data;
+  } catch (error) {
+    console.error("Error creating venue:", error);
+    throw error;
+  }
+};
+
+export const updateVenue = async (venueId, venueData) => {
+  try {
+    const { data } = await API.put(`/admin/venues/${venueId}`, venueData);
+    return data;
+  } catch (error) {
+    console.error(`Error updating venue ${venueId}:`, error);
+    throw error;
+  }
+};
+
+export const deleteVenue = async (venueId) => {
+  try {
+    await API.delete(`/admin/venues/${venueId}`);
+  } catch (error) {
+    console.error(`Error deleting venue ${venueId}:`, error);
+    throw error;
+  }
+};
+
+export const getVenueConflicts = async (venueId) => {
+  try {
+    const { data } = await API.get(`/admin/venues/${venueId}/conflicts`);
+    return data;
+  } catch (error) {
+    console.error(`Error fetching conflicts for venue ${venueId}:`, error);
+    throw error;
+  }
+};
+
+// ==================== EXPORT FUNCTIONS ====================
+
+export const exportEventsCsv = async () => {
+  try {
+    const response = await API.get("/admin/export/events/csv", {
+      responseType: "blob",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error exporting events CSV:", error);
+    throw error;
+  }
+};
+
+export const exportEventsPdf = async () => {
+  try {
+    const response = await API.get("/admin/export/events/pdf", {
+      responseType: "blob",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error exporting events PDF:", error);
+    throw error;
+  }
+};
+
+export const exportUsersCsv = async () => {
+  try {
+    const response = await API.get("/admin/export/users/csv", {
+      responseType: "blob",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error exporting users CSV:", error);
+    throw error;
+  }
+};
+
+export const exportUsersPdf = async () => {
+  try {
+    const response = await API.get("/admin/export/users/pdf", {
+      responseType: "blob",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error exporting users PDF:", error);
+    throw error;
+  }
+};
+
+export const exportRegistrationsCsv = async () => {
+  try {
+    const response = await API.get("/admin/export/registrations/csv", {
+      responseType: "blob",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error exporting registrations CSV:", error);
+    throw error;
+  }
+};
+
+export const exportRegistrationsPdf = async () => {
+  try {
+    const response = await API.get("/admin/export/registrations/pdf", {
+      responseType: "blob",
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error exporting registrations PDF:", error);
+    throw error;
+  }
+};
+
+// Helper function to download blob
+export const downloadFile = (blob, filename) => {
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};
+
+// ==================== FEEDBACK MODERATION ====================
+
+export const getAllFeedback = async () => {
+  try {
+    const { data } = await API.get("/admin/feedback");
+    return data;
+  } catch (error) {
+    console.error("Error fetching feedback:", error);
+    throw error;
+  }
+};
+
+export const getUnreviewedFeedback = async () => {
+  try {
+    const { data } = await API.get("/admin/feedback/unreviewed");
+    return data;
+  } catch (error) {
+    console.error("Error fetching unreviewed feedback:", error);
+    throw error;
+  }
+};
+
+export const getFlaggedFeedback = async () => {
+  try {
+    const { data } = await API.get("/admin/feedback/flagged");
+    return data;
+  } catch (error) {
+    console.error("Error fetching flagged feedback:", error);
+    throw error;
+  }
+};
+
+export const deleteFeedback = async (feedbackId) => {
+  try {
+    await API.delete(`/admin/feedback/${feedbackId}`);
+  } catch (error) {
+    console.error(`Error deleting feedback ${feedbackId}:`, error);
+    throw error;
+  }
+};
+
+export const markFeedbackAsReviewed = async (feedbackId) => {
+  try {
+    const { data } = await API.put(`/admin/feedback/${feedbackId}/review`);
+    return data;
+  } catch (error) {
+    console.error(`Error marking feedback ${feedbackId} as reviewed:`, error);
+    throw error;
+  }
+};
+
+export const flagFeedback = async (feedbackId) => {
+  try {
+    const { data } = await API.put(`/admin/feedback/${feedbackId}/flag`);
+    return data;
+  } catch (error) {
+    console.error(`Error flagging feedback ${feedbackId}:`, error);
+    throw error;
+  }
+};
+
 // ==================== EXPORTS ====================
 
 export default {
@@ -262,4 +478,31 @@ export default {
   // Statistics
   getDashboardStats,
   getTopOrganizers,
+
+  // Venue Management
+  getAllVenues,
+  getActiveVenues,
+  getVenueById,
+  createVenue,
+  updateVenue,
+  deleteVenue,
+  getVenueConflicts,
+  
+  // Export Functions
+  exportEventsCsv,
+  exportEventsPdf,
+  exportUsersCsv,
+  exportUsersPdf,
+  exportRegistrationsCsv,
+  exportRegistrationsPdf,
+  downloadFile,
+  
+  // Feedback Moderation
+  getAllFeedback,
+  getUnreviewedFeedback,
+  getFlaggedFeedback,
+  deleteFeedback,
+  markFeedbackAsReviewed,
+  flagFeedback,
 };
+

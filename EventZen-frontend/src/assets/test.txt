@@ -1,1231 +1,801 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import "../styles/Visitor page styling/VisitorDashboard.css";
-import API from "../services/api";
-import { registerForEvent, getMyRegistrations, cancelRegistration } from "../services/registrations";
-import {
-  Calendar,
-  Users,
-  User,
-  UserPlus,
-  LogOut,
-  Trash2,
-  Edit,
-  X,
-  Save,
-  Loader,
-  Eye,
-  Filter,
-  RotateCcw,
-  Upload,
-  CircleX,
-  ChartBarStacked,
-  ImagePlus
-} from "lucide-react";
+// ================================================================
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/service/impl/EventServiceImpl.java
+// MERGED: Old + New (calendar methods, category/city extraction, admin update)
+// ================================================================
 
-export default function VisitorDashboard() {
-  const navigate = useNavigate();
-  const [activePage, setActivePage] = useState("events");
-  
-  const [userId, setUserId] = useState(null);
-  const [userProfile, setUserProfile] = useState(null);
-  
-  const [allEvents, setAllEvents] = useState([]);
-  const [myRegistrations, setMyRegistrations] = useState([]);
-  const [registeredEventIds, setRegisteredEventIds] = useState(new Set());
-  
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-  const [selectedEvent, setSelectedEvent] = useState(null);
-  
-  // 🆕 NEW: Registration Modal State
-  const [showRegisterModal, setShowRegisterModal] = useState(false);
-  const [regEvent, setRegEvent] = useState(null);
-  const [regLoading, setRegLoading] = useState(false);
-  const [regError, setRegError] = useState("");
-  const [registrationForm, setRegistrationForm] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    notes: "",
-    privateCode: ""
-  });
-  
-  const [searchQuery, setSearchQuery] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
-  const [organizerFilter, setOrganizerFilter] = useState("");
-  const [typeFilter, setTypeFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+package com.eventzen.service.impl;
 
-  const [registrationFilter, setRegistrationFilter] = useState("all");
-  const [regEventNameFilter, setRegEventNameFilter] = useState("");
-  const [regCategoryFilter, setRegCategoryFilter] = useState("");
-  const [regLocationFilter, setRegLocationFilter] = useState("");
-  const [regOrganizerFilter, setRegOrganizerFilter] = useState("");
-  const [regTypeFilter, setRegTypeFilter] = useState("");
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-  const [editing, setEditing] = useState(false);
-  const [profileForm, setProfileForm] = useState({
-    name: "",
-    email: "",
-    mobileNumber: "",
-    imageUrl: ""
-  });
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 
-  const [passwordForm, setPasswordForm] = useState({
-    currentPassword: "",
-    newPassword: ""
-  });
+import com.eventzen.dto.request.EventRequest;
+import com.eventzen.dto.request.VisitorRegistrationRequest;
+import com.eventzen.dto.response.EventResponse;
+import com.eventzen.dto.response.RegistrationResponse;
+import com.eventzen.entity.Event;
+import com.eventzen.entity.Registration;
+import com.eventzen.entity.RegistrationStatus;
+import com.eventzen.entity.Role;
+import com.eventzen.entity.User;
+import com.eventzen.repository.EventRepository;
+import com.eventzen.repository.RegistrationRepository;
+import com.eventzen.repository.UserRepository;
+import com.eventzen.service.EventService;
+import com.eventzen.dto.response.EventCalendarResponse;
+import com.eventzen.entity.Venue;
+import com.eventzen.repository.VenueRepository;
 
-  useEffect(() => {
-    loadUserData();
-  }, []);
+@Service
+public class EventServiceImpl implements EventService {
 
-  useEffect(() => {
-    if (activePage === "events") {
-      loadAllEvents();
-    } else if (activePage === "registrations") {
-      loadMyRegistrations();
-    }
-  }, [activePage]);
+    @Autowired
+    private EventRepository eventRepository;
 
-  const loadUserData = async () => {
-    try {
-      const response = await API.get("/users/profile");
-      setUserProfile(response.data);
-      setUserId(response.data.id);
-      localStorage.setItem("userId", response.data.id);
-      
-      setProfileForm({
-        name: response.data.name,
-        email: response.data.email,
-        mobileNumber: response.data.mobileNumber || "",
-        imageUrl: response.data.imageUrl || ""
-      });
-      
-      // 🆕 Pre-fill registration form with user data
-      setRegistrationForm(prev => ({
-        ...prev,
-        name: response.data.name,
-        email: response.data.email,
-        phone: response.data.mobileNumber || ""
-      }));
-    } catch (err) {
-      console.error("Error loading user profile:", err);
-      setError("Failed to load user profile");
-    }
-  };
+    @Autowired
+    private UserRepository userRepository;
 
-  const loadAllEvents = async () => {
-    try {
-      setLoading(true);
-      const response = await API.get("/events");
-      
-      const upcomingEvents = response.data.filter(event => {
-        const eventDate = new Date(event.date);
-        return event.isActive && eventDate >= new Date();
-      });
-      
-      setAllEvents(upcomingEvents);
-      
-      if (userId || localStorage.getItem("userId")) {
-        await loadRegistrationStatus();
-      }
-    } catch (err) {
-      console.error("Error loading events:", err);
-      setError("Failed to load events. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    @Autowired
+    private RegistrationRepository registrationRepository;
 
-  const loadRegistrationStatus = async () => {
-    try {
-      const storedUserId = userId || localStorage.getItem("userId");
-      if (!storedUserId) return;
-      
-      const response = await getMyRegistrations(storedUserId);
-      const registeredIds = new Set(
-        response
-          .filter(reg => reg.status !== "CANCELLED")
-          .map(reg => reg.eventId)
-      );
-      setRegisteredEventIds(registeredIds);
-    } catch (err) {
-      console.error("Error loading registration status:", err);
-    }
-  };
+    @Autowired
+    private VenueRepository venueRepository;
 
-  const loadMyRegistrations = async () => {
-    try {
-      setLoading(true);
-      const storedUserId = userId || localStorage.getItem("userId");
-      if (!storedUserId) {
-        setError("User not logged in");
-        return;
-      }
+    // ================================================================
+    // CREATE EVENT - 🆕 UPDATED: Use separate date/time fields
+    // ================================================================
+    @Override
+    public EventResponse createEvent(EventRequest request) throws Exception {
+        System.out.println("Creating new event: " + request.getTitle());
 
-      const registrations = await getMyRegistrations(storedUserId);
-      
-      const registrationsWithEvents = await Promise.all(
-        registrations
-          .filter(reg => reg.status !== "CANCELLED")
-          .map(async (reg) => {
-            try {
-              const eventResponse = await API.get(`/events/${reg.eventId}`);
-              return {
-                ...reg,
-                event: eventResponse.data
-              };
-            } catch (err) {
-              console.error(`Error loading event ${reg.eventId}:`, err);
-              return null;
-            }
-          })
-      );
+        Long organizerId = getCurrentUserId();
+        User organizer = userRepository.findById(organizerId)
+                .orElseThrow(() -> new Exception("Organizer not found"));
 
-      setMyRegistrations(registrationsWithEvents.filter(r => r !== null));
-    } catch (err) {
-      console.error("Error loading registrations:", err);
-      setError("Failed to load registrations");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🆕 NEW: Open Registration Modal
-  const handleOpenRegisterModal = (event) => {
-    setRegEvent(event);
-    setRegError("");
-    
-    // Pre-fill form with user data
-    setRegistrationForm({
-      name: userProfile?.name || "",
-      email: userProfile?.email || "",
-      phone: userProfile?.mobileNumber || "",
-      notes: "",
-      privateCode: ""
-    });
-    
-    setShowRegisterModal(true);
-  };
-
-  // 🆕 NEW: Close Registration Modal
-  const handleCloseRegisterModal = () => {
-    setShowRegisterModal(false);
-    setRegEvent(null);
-    setRegError("");
-    setRegistrationForm({
-      name: userProfile?.name || "",
-      email: userProfile?.email || "",
-      phone: userProfile?.mobileNumber || "",
-      notes: "",
-      privateCode: ""
-    });
-  };
-
-  // 🆕 NEW: Handle Registration Form Change
-  const handleRegistrationFormChange = (e) => {
-    const { name, value } = e.target;
-    setRegistrationForm(prev => ({
-      ...prev,
-      [name]: value
-    }));
-    setRegError(""); // Clear error on input change
-  };
-
-  // 🆕 NEW: Submit Registration
-  const handleRegisterSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!registrationForm.name.trim()) {
-      setRegError("Name is required");
-      return;
-    }
-    if (!registrationForm.email.trim()) {
-      setRegError("Email is required");
-      return;
-    }
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(registrationForm.email)) {
-      setRegError("Please enter a valid email address");
-      return;
-    }
-    
-    // Private event validation
-    if (regEvent.eventType === "PRIVATE" && !registrationForm.privateCode.trim()) {
-      setRegError("Private code is required for this event");
-      return;
-    }
-
-    try {
-      setRegLoading(true);
-      setRegError("");
-
-      await registerForEvent(regEvent.id, registrationForm);
-      
-      // Update UI
-      setRegisteredEventIds(prev => new Set([...prev, regEvent.id]));
-      setSuccess("Successfully registered for the event!");
-      setTimeout(() => setSuccess(""), 3000);
-      
-      // Close modal and reload
-      handleCloseRegisterModal();
-      loadAllEvents();
-      
-    } catch (err) {
-      console.error("Error registering for event:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Registration failed";
-      setRegError(errorMsg);
-    } finally {
-      setRegLoading(false);
-    }
-  };
-
-  const handleCancelRegistration = async (registrationId, eventId) => {
-    if (!window.confirm("Are you sure you want to cancel this registration?")) {
-      return;
-    }
-
-    try {
-      await cancelRegistration(registrationId);
-      setRegisteredEventIds(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(eventId);
-        return newSet;
-      });
-      setSuccess("Registration cancelled successfully");
-      setTimeout(() => setSuccess(""), 3000);
-      
-      if (activePage === "registrations") {
-        loadMyRegistrations();
-      } else {
-        loadAllEvents();
-      }
-    } catch (err) {
-      console.error("Error cancelling registration:", err);
-      setError("Failed to cancel registration");
-      setTimeout(() => setError(""), 5000);
-    }
-  };
-
-  const handleImageUpload = async (file) => {
-    if (!file) return;
-    
-    if (!file.type.startsWith('image/')) {
-      setError("Please upload a valid image file");
-      return;
-    }
-    
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Image size must be less than 5MB");
-      return;
-    }
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      
-      const response = await API.post('/uploads', formData, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
-      
-      setProfileForm(prev => ({ ...prev, imageUrl: response.data.url }));
-      setError("");
-    } catch (err) {
-      console.error("Error uploading image:", err);
-      setError(err.response?.data?.error || "Failed to upload image");
-    }
-  };
-
-  const handleProfileUpdate = async (e) => {
-    e.preventDefault();
-    try {
-      setLoading(true);
-      
-      const response = await API.put("/users/profile", {
-        name: profileForm.name,
-        mobileNumber: profileForm.mobileNumber,
-        profileImage: profileForm.imageUrl
-      });
-      
-      setUserProfile(response.data);
-      
-      if (passwordForm.currentPassword && passwordForm.newPassword) {
-        try {
-          await API.put("/users/password", {
-            currentPassword: passwordForm.currentPassword,
-            newPassword: passwordForm.newPassword
-          });
-          
-          setSuccess("Profile and password updated successfully!");
-          setPasswordForm({ currentPassword: "", newPassword: "" });
-        } catch (passErr) {
-          console.error("Error updating password:", passErr);
-          setError(passErr.response?.data || "Failed to update password");
-          setLoading(false);
-          return;
+        if (organizer.getRole() != Role.ORGANIZER) {
+            throw new Exception("Only organizers can create events");
         }
-      } else {
-        setSuccess("Profile updated successfully!");
-      }
-      
-      setEditing(false);
-      setTimeout(() => setSuccess(""), 3000);
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      setError("Failed to update profile");
-      setTimeout(() => setError(""), 5000);
-    } finally {
-      setLoading(false);
+
+        // 🆕 NEW: Validate start datetime is in the future
+        LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+        if (!startDateTime.isAfter(LocalDateTime.now())) {
+            throw new Exception("Event start date/time must be in the future");
+        }
+
+        // 🆕 NEW: Validate end is after start
+        LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+        if (!endDateTime.isAfter(startDateTime)) {
+            throw new Exception("Event end date/time must be after start date/time");
+        }
+
+        // 🆕 Venue validation & availability
+        Venue venue = null;
+        if (request.getVenueId() != null) {
+            venue = venueRepository.findById(request.getVenueId())
+                    .orElseThrow(() -> new Exception("Venue not found"));
+
+            if (!venue.getIsActive()) {
+                throw new Exception("Selected venue is not active");
+            }
+
+            List<Event> conflicts = eventRepository.findConflictingEvents(
+                    request.getVenueId(),
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    -1L);
+
+            if (!conflicts.isEmpty()) {
+                throw new Exception("Venue not available for selected date/time");
+            }
+        }
+
+        Event event = new Event();
+        event.setTitle(request.getTitle());
+        event.setDescription(request.getDescription());
+
+        // 🆕 NEW: Set separate date/time fields
+        event.setStartDate(request.getStartDate());
+        event.setStartTime(request.getStartTime());
+        event.setEndDate(request.getEndDate());
+        event.setEndTime(request.getEndTime());
+
+        event.setState(request.getState());
+        event.setCity(request.getCity());
+        event.setAddress(request.getAddress());
+        event.setCategory(request.getCategory());
+        event.setImageUrl(request.getImageUrl());
+        event.setOrganizerId(organizerId);
+        event.setMaxAttendees(request.getMaxAttendees());
+        event.setEventType(request.getEventType() != null ? request.getEventType() : "PUBLIC");
+        event.setPrivateCode(request.getPrivateCode());
+        event.setIsActive(true);
+        event.setVenue(venue);
+
+        Event savedEvent = eventRepository.save(event);
+
+        return convertToResponse(savedEvent, organizer.getName());
     }
-  };
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
-  };
+    // ================================================================
+    // UPDATE EVENT - 🆕 UPDATED: Use separate date/time fields
+    // ================================================================
+    @Override
+    public EventResponse updateEvent(Long eventId, EventRequest request) throws Exception {
+        System.out.println("Updating event ID: " + eventId);
 
-  const handleReset = () => {
-    setSearchQuery("");
-    setCategoryFilter("");
-    setLocationFilter("");
-    setOrganizerFilter("");
-    setTypeFilter("");
-    setStatusFilter("");
-  };
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
 
-  const handleRegistrationReset = () => {
-    setRegistrationFilter("all");
-    setRegEventNameFilter("");
-    setRegCategoryFilter("");
-    setRegLocationFilter("");
-    setRegOrganizerFilter("");
-    setRegTypeFilter("");
-  };
+        Long currentUserId = getCurrentUserId();
 
-  const getFilteredEvents = () => {
-    const now = new Date();
-    
-    return allEvents.filter(event => {
-      const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          event.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesCategory = !categoryFilter || event.category === categoryFilter;
-      
-      const matchesLocation = !locationFilter || 
-                            event.location?.toLowerCase().includes(locationFilter.toLowerCase());
-      
-      const matchesOrganizer = !organizerFilter || 
-                              event.organizerName?.toLowerCase().includes(organizerFilter.toLowerCase());
-      
-      const matchesType = !typeFilter || event.eventType === typeFilter;
-      
-      const eventDate = new Date(event.date);
-      let matchesStatus = true;
-      if (statusFilter === "Upcoming") {
-        matchesStatus = eventDate >= now;
-      } else if (statusFilter === "Completed") {
-        matchesStatus = eventDate < now;
-      }
-      
-      return matchesSearch && matchesCategory && matchesLocation && 
-             matchesOrganizer && matchesType && matchesStatus;
-    });
-  };
+        if (!event.getOrganizerId().equals(currentUserId)) {
+            throw new Exception("You can only update your own events");
+        }
 
-  const getFilteredRegistrations = () => {
-    const now = new Date();
-    
-    return myRegistrations.filter(reg => {
-      if (!reg.event) return false;
-      
-      const eventDate = new Date(reg.event.date);
-      
-      let matchesStatusFilter = true;
-      if (registrationFilter === "upcoming") {
-        matchesStatusFilter = eventDate >= now;
-      } else if (registrationFilter === "past") {
-        matchesStatusFilter = eventDate < now;
-      }
-      
-      const matchesEventName = !regEventNameFilter || 
-                              reg.event.title?.toLowerCase().includes(regEventNameFilter.toLowerCase());
-      
-      const matchesCategory = !regCategoryFilter || reg.event.category === regCategoryFilter;
-      
-      const matchesLocation = !regLocationFilter || 
-                            reg.event.location?.toLowerCase().includes(regLocationFilter.toLowerCase());
-      
-      const matchesOrganizer = !regOrganizerFilter || 
-                              reg.event.organizerName?.toLowerCase().includes(regOrganizerFilter.toLowerCase());
-      
-      const matchesType = !regTypeFilter || reg.event.eventType === regTypeFilter;
-      
-      return matchesStatusFilter && matchesEventName && matchesCategory && 
-             matchesLocation && matchesOrganizer && matchesType;
-    });
-  };
+        // 🆕 NEW: Validate start datetime is in the future
+        LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+        if (!startDateTime.isAfter(LocalDateTime.now())) {
+            throw new Exception("Event start date/time must be in the future");
+        }
 
-  const formatDateTime = (dateTimeString) => {
-    const date = new Date(dateTimeString);
-    return date.toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
+        // 🆕 NEW: Validate end is after start
+        LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+        if (!endDateTime.isAfter(startDateTime)) {
+            throw new Exception("Event end date/time must be after start date/time");
+        }
 
-  const today = new Date();
-  const upcomingRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) >= today);
-  const pastRegistrations = myRegistrations.filter(r => r.event && new Date(r.event.date) < today);
+        // 🆕 Venue validation & availability
+        Venue venue = null;
+        if (request.getVenueId() != null) {
+            venue = venueRepository.findById(request.getVenueId())
+                    .orElseThrow(() -> new Exception("Venue not found"));
 
-  const defaultImages = {
-    Technology: "https://via.placeholder.com/400x200/667eea/ffffff?text=Technology",
-    Business: "https://via.placeholder.com/400x200/f59e0b/ffffff?text=Business",
-    Music: "https://via.placeholder.com/400x200/ec4899/ffffff?text=Music",
-    Health: "https://via.placeholder.com/400x200/10b981/ffffff?text=Health",
-    Food: "https://via.placeholder.com/400x200/f97316/ffffff?text=Food",
-    Art: "https://via.placeholder.com/400x200/8b5cf6/ffffff?text=Art",
-    Community: "https://via.placeholder.com/400x200/3b82f6/ffffff?text=Community",
-    Entertainment: "https://via.placeholder.com/400x200/ef4444/ffffff?text=Entertainment",
-    Education: "https://via.placeholder.com/400x200/06b6d4/ffffff?text=Education",
-    Sports: "https://via.placeholder.com/400x200/84cc16/ffffff?text=Sports",
-    Other: "https://via.placeholder.com/400x200/6b7280/ffffff?text=Event"
-  };
+            if (!venue.getIsActive()) {
+                throw new Exception("Selected venue is not active");
+            }
 
-  return (
-    <div className="vis-visitor-dashboard">
-      <aside className="vis-sidebar">
-        <div className="vis-logo">
-          <div className="vis-logo-icon">
-            <img src="/src/assets/EZ-logo1.png" alt="logo" className="vis-logo-img" />
-          </div>
-          <span className="vis-logo-text">EventZen</span>
-        </div>
+            List<Event> conflicts = eventRepository.findConflictingEvents(
+                    request.getVenueId(),
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    eventId);
 
-        <nav className="vis-nav-menu-visitor">
-          <button
-            className={`vis-nav-item ${activePage === "events" ? "vis-active" : ""}`}
-            onClick={() => setActivePage("events")}
-          >
-            <span className="vis-nav-icon">📅</span>
-            <span>Events</span>
-          </button>
-          <button
-            className={`vis-nav-item ${activePage === "registrations" ? "vis-active" : ""}`}
-            onClick={() => setActivePage("registrations")}
-          >
-            <span className="vis-nav-icon">🎟️</span>
-            <span>My Registrations</span>
-          </button>
-          <button
-            className={`vis-nav-item ${activePage === "profile" ? "vis-active" : ""}`}
-            onClick={() => setActivePage("profile")}
-          >
-            <span className="vis-nav-icon">👤</span>
-            <span>Profile</span>
-          </button>
-          <button className="vis-nav-item vis-logout" onClick={handleLogout}>
-            <span className="vis-nav-icon">🚪</span>
-            <span>Logout</span>
-          </button>
-        </nav>
-      </aside>
+            if (!conflicts.isEmpty()) {
+                throw new Exception("Venue not available for selected date/time");
+            }
+        }
 
-      <main className="vis-main-content">
-        <div className="vis-content-wrapper">
-          {error && (
-            <div className="vis-alert vis-error">
-              {error}
-              <button onClick={() => setError("")} className="vis-alert-close">×</button>
-            </div>
-          )}
-          {success && (
-            <div className="vis-alert vis-success">
-              {success}
-              <button onClick={() => setSuccess("")} className="vis-alert-close">×</button>
-            </div>
-          )}
+        event.setTitle(request.getTitle());
+        event.setDescription(request.getDescription());
 
-          {loading ? (
-            <div className="vis-loading-state">
-              <div className="vis-spinner"></div>
-              <p>Loading...</p>
-            </div>
-          ) : (
-            <>
-              {activePage === "events" && (
-                <section className="vis-events-page">
-                  <div className="vis-page-header">
-                    <h1>Discover Events</h1>
-                    <p className="vis-subtitle">Find and register for exciting events</p>
-                  </div>
+        // 🆕 NEW: Update separate date/time fields
+        event.setStartDate(request.getStartDate());
+        event.setStartTime(request.getStartTime());
+        event.setEndDate(request.getEndDate());
+        event.setEndTime(request.getEndTime());
 
-                  <div className="vis-filters-bar">
-                    <input
-                      type="text"
-                      className="vis-search-input"
-                      placeholder="🔍 Search events..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      aria-label="Search events by name"
-                    />
-                    
-                    <select
-                      className="vis-filter-select"
-                      value={categoryFilter}
-                      onChange={(e) => setCategoryFilter(e.target.value)}
-                      aria-label="Filter by category"
-                    >
-                      <option value="">All Categories</option>
-                      <option value="Technology">Technology</option>
-                      <option value="Business">Business</option>
-                      <option value="Music">Music</option>
-                      <option value="Health">Health</option>
-                      <option value="Food">Food</option>
-                      <option value="Art">Art</option>
-                      <option value="Community">Community</option>
-                      <option value="Entertainment">Entertainment</option>
-                      <option value="Education">Education</option>
-                      <option value="Sports">Sports</option>
-                      <option value="Finance">Finance</option>
-                      <option value="Media">Media</option>
-                      <option value="Design">Design</option>
-                      <option value="Crafts">Crafts</option>
-                      <option value="Travel">Travel</option>
-                      <option value="Environment">Environment</option>
-                    </select>
-                    
-                    <input
-                      type="text"
-                      className="vis-search-input"
-                      placeholder="Filter by location..."
-                      value={locationFilter}
-                      onChange={(e) => setLocationFilter(e.target.value)}
-                      aria-label="Filter by location"
-                    />
-                    
-                    <input
-                      type="text"
-                      className="vis-search-input"
-                      placeholder="Filter by organizer..."
-                      value={organizerFilter}
-                      onChange={(e) => setOrganizerFilter(e.target.value)}
-                      aria-label="Filter by organizer name"
-                    />
-                    
-                    <select
-                      className="vis-filter-select"
-                      value={typeFilter}
-                      onChange={(e) => setTypeFilter(e.target.value)}
-                      aria-label="Filter by event type"
-                    >
-                      <option value="">All Types</option>
-                      <option value="PUBLIC">Public</option>
-                      <option value="PRIVATE">Private</option>
-                    </select>
-                    
-                    <button 
-                      className="vis-reset-btn-visitor" 
-                      onClick={handleReset}
-                      aria-label="Reset all filters"
-                    >
-                      Reset Filters
-                    </button>
-                  </div>
+        event.setState(request.getState());
+        event.setCity(request.getCity());
+        event.setAddress(request.getAddress());
+        event.setCategory(request.getCategory());
+        event.setImageUrl(request.getImageUrl());
+        event.setMaxAttendees(request.getMaxAttendees());
+        event.setEventType(request.getEventType());
+        event.setPrivateCode(request.getPrivateCode());
+        event.setVenue(venue);
 
-                  <div className="vis-events-grid">
-                    {getFilteredEvents().length > 0 ? (
-                      getFilteredEvents().map(event => (
-                        <div key={event.id} className="vis-event-card-visitor">
-                          <div className="vis-event-image">
-                            <img 
-                              src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
-                              alt={event.title} 
-                            />
-                            <span className={`vis-event-badge ${
-                              registeredEventIds.has(event.id) 
-                                ? 'vis-registered' 
-                                : event.eventType === 'PRIVATE' 
-                                  ? 'vis-private' 
-                                  : 'vis-public'
-                            }`}>
-                              {registeredEventIds.has(event.id) 
-                                ? '✓ Registered' 
-                                : event.eventType === 'PRIVATE' 
-                                  ? '🔒 Private' 
-                                  : '🌐 Public'}
-                            </span>
-                          </div>
-                          <div className="vis-event-details-visitor">
-                            <h3>{event.title}</h3>
-                            <span className="vis-event-category">{event.category}</span>
-                            <div className="vis-event-info-grid">
-                              <p className="vis-event-date">📅 {formatDateTime(event.date)}</p>
-                              <p className="vis-event-location">📍 {event.location}</p>
-                              <p className="vis-event-organizer">👤 {event.organizerName}</p>
-                              {event.maxAttendees && (
-                                <p className="vis-event-capacity">
-                                  👥 {event.currentAttendees || 0}/{event.maxAttendees}
-                                </p>
-                              )}
-                            </div>
-                            <div className="vis-event-actions">
-                              {registeredEventIds.has(event.id) ? (
-                                <button className="vis-btn vis-btn-registered" disabled>
-                                  Registered
-                                </button>
-                              ) : (
-                                <button
-                                  className="vis-btn vis-btn-primary-visitor"
-                                  onClick={() => handleOpenRegisterModal(event)}
-                                  disabled={event.maxAttendees && event.currentAttendees >= event.maxAttendees}
-                                >
-                                  {event.maxAttendees && event.currentAttendees >= event.maxAttendees ? "Full" : "Register Now"}
-                                </button>
-                              )}
-                              <button
-                                className="vis-btn vis-btn-secondary"
-                                onClick={() => setSelectedEvent(event)}
-                              >
-                                Details
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="vis-no-events">
-                        <p>No events found matching your filters</p>
-                        <button className="vis-btn vis-btn-primary-visitor" onClick={handleReset}>
-                          Clear All Filters
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </section>
-              )}
+        Event updatedEvent = eventRepository.save(event);
 
-              {activePage === "registrations" && (
-                <section className="vis-registrations-page">
-                  <div className="vis-stats-cards">
-                    <div className="vis-stat-card-visitor">
-                      <div className="vis-stat-info">
-                        <div className="vis-stat-icon">📊</div>
-                        <h3>{myRegistrations.length}</h3>
-                      </div>
-                      <p>Total Registrations</p>
-                    </div>
-                    <div className="vis-stat-card-visitor">
-                      <div className="vis-stat-info">
-                        <div className="vis-stat-icon">🚀</div>
-                        <h3>{upcomingRegistrations.length}</h3>
-                      </div>
-                      <p>Upcoming Events</p>
-                    </div>
-                    <div className="vis-stat-card-visitor">
-                      <div className="vis-stat-info">
-                        <div className="vis-stat-icon">✓</div>
-                        <h3>{pastRegistrations.length}</h3>
-                      </div>
-                      <p>Completed Events</p>
-                    </div>
-                  </div>
+        User organizer = userRepository.findById(currentUserId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
-                  <div className="vis-registrations-filters-section">
-                    <div className="vis-filters-bar">
-                      <input
-                        type="text"
-                        className="vis-search-input"
-                        placeholder="Search by event name..."
-                        value={regEventNameFilter}
-                        onChange={(e) => setRegEventNameFilter(e.target.value)}
-                        aria-label="Filter by event name"
-                      />
+        return convertToResponse(updatedEvent, organizerName);
+    }
 
-                      <input
-                        type="text"
-                        className="vis-search-input"
-                        placeholder="Filter by organizer..."
-                        value={regOrganizerFilter}
-                        onChange={(e) => setRegOrganizerFilter(e.target.value)}
-                        aria-label="Filter by organizer"
-                      />
+    // ================================================================
+    // DELETE EVENT (ORGANIZER)
+    // ================================================================
+    @Override
+    @Transactional
+    public void deleteEvent(Long eventId) throws Exception {
+        System.out.println("Deleting event ID: " + eventId);
 
-                      <select
-                        className="vis-filter-select"
-                        value={regCategoryFilter}
-                        onChange={(e) => setRegCategoryFilter(e.target.value)}
-                        aria-label="Filter by category"
-                      >
-                        <option value="">All Categories</option>
-                        <option value="Technology">Technology</option>
-                        <option value="Business">Business</option>
-                        <option value="Music">Music</option>
-                        <option value="Health">Health</option>
-                        <option value="Food">Food</option>
-                        <option value="Art">Art</option>
-                        <option value="Community">Community</option>
-                        <option value="Entertainment">Entertainment</option>
-                        <option value="Education">Education</option>
-                        <option value="Sports">Sports</option>
-                        <option value="Finance">Finance</option>  
-                        <option value="Media">Media</option>
-                        <option value="Design">Design</option>
-                        <option value="Crafts">Crafts</option>
-                        <option value="Travel">Travel</option>
-                        <option value="Environment">Environment</option>
-                      </select>
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
 
-                      <input
-                        type="text"
-                        className="vis-search-input"
-                        placeholder="Filter by location..."
-                        value={regLocationFilter}
-                        onChange={(e) => setRegLocationFilter(e.target.value)}
-                        aria-label="Filter by location"
-                      />
+        Long currentUserId = getCurrentUserId();
 
-                      <select
-                        className="vis-filter-select"
-                        value={regTypeFilter}
-                        onChange={(e) => setRegTypeFilter(e.target.value)}
-                        aria-label="Filter by type"
-                      >
-                        <option value="">All Types</option>
-                        <option value="PUBLIC">Public</option>
-                        <option value="PRIVATE">Private</option>
-                      </select>
+        if (!event.getOrganizerId().equals(currentUserId)) {
+            throw new Exception("You can only delete your own events");
+        }
 
-                      <select
-                        className="vis-filter-select"
-                        value={registrationFilter}
-                        onChange={(e) => setRegistrationFilter(e.target.value)}
-                        aria-label="Filter by status"
-                      >
-                        <option value="all">All Events</option>
-                        <option value="upcoming">Upcoming</option>
-                        <option value="past">Past</option>
-                      </select>
-      
-                      <button 
-                        className="vis-reset-btn-visitor" 
-                        onClick={handleRegistrationReset}
-                        aria-label="Reset all filters"
-                      >
-                        Reset Filters
-                      </button>
-                    </div>
-                  </div>
+        try {
+            long registrationCount = registrationRepository.countByEventId(eventId);
 
-                  {getFilteredRegistrations().length > 0 ? (
-                    <div className="vis-registrations-table">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Image</th>
-                            <th>Event</th>
-                            <th>Category</th>
-                            <th>Date</th>
-                            <th>Location</th>
-                            <th>Organizer</th>
-                            <th>Type</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {getFilteredRegistrations().map(reg => {
-                            const isUpcoming = new Date(reg.event.date) >= today;
-                            return (
-                              <tr key={reg.id}>
-                                <td>
-                                  <img 
-                                    src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]} 
-                                    alt={`${reg.event.title} event image`}
-                                    className="vis-event-thumbnail"
-                                  />
-                                  </td>
-                                <td>{reg.event.title}</td>
-                                <td>{reg.event.category}</td>
-                                <td>{formatDateTime(reg.event.date)}</td>
-                                <td>{reg.event.location}</td>
-                                <td>{reg.event.organizerName}</td>
-                                <td>
-                                  <span className={`vis-type-badge-vis ${
-                                    reg.event.eventType === 'PRIVATE' ? 'vis-private' : 'vis-public'
-                                  }`}>
-                                    {reg.event.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}
-                                  </span>
-                                </td>
-                                <td>
-                                  <span className={`vis-status-badge-vis ${isUpcoming ? 'vis-upcoming' : 'vis-past'}`}>
-                                    {isUpcoming ? 'Upcoming' : 'Completed'}
-                                  </span>
-                                </td>
-                                <td>
-                                  <div className="vis-table-actions">
-                                    <button
-                                      className="vis-btn-view"
-                                      onClick={() => setSelectedEvent(reg.event)}
-                                    >
-                                      View
-                                    </button>
-                                    {isUpcoming && (
-                                      <button
-                                        className="vis-btn-cancel"
-                                        onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
-                                      >
-                                        Cancel
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <div className="vis-no-registrations">
-                      <p>You haven't registered for any events yet</p>
-                      <button className="vis-btn vis-btn-primary-visitor" onClick={() => setActivePage("events")}>
-                        Browse Events
-                      </button>
-                    </div>
-                  )}
-                </section>
-              )}
+            if (registrationCount > 0) {
+                registrationRepository.deleteByEventId(eventId);
+            }
 
-              {activePage === "profile" && userProfile && (
-                <section className="vis-profile-page">
-                  <div className="vis-profile-container">
-                    {!editing ? (
-                      <div className="vis-profile-view-card">
-                        <div className="vis-profile-avatar-wrapper">
-                          <img 
-                            src={profileForm.imageUrl || userProfile.imageUrl || "/src/assets/EZ-logo1.png"} 
-                            alt="Profile" 
-                            className="vis-profile-avatar"
-                          />
-                        </div>
-                        <div className="vis-profile-details">
-                          <h3 className="vis-profile-name">{userProfile.name}</h3>
-                          <p className="vis-profile-email">{userProfile.email}</p>
-                          <span className="vis-role-badge">{userProfile.role}</span>
-                          <div className="vis-profile-meta">
-                            <div className="vis-meta-item">
-                              <span className="vis-meta-label">Mobile:</span>
-                              <span className="vis-meta-value">{userProfile.mobileNumber || "Not provided"}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <button className="vis-btn vis-btn-primary-visitor" onClick={() => setEditing(true)}>
-                          Edit Profile
-                        </button>
-                      </div>
-                    ) : (
-                      <form className="vis-profile-edit-form" onSubmit={handleProfileUpdate}>
-                        <div className="vis-form-group vis-full-width">
-                          <label className="vis-form-label">Profile Image</label>
-                          <div className="vis-image-upload-area">
-                            <input 
-                              type="file" 
-                              accept="image/*"
-                              onChange={(e) => {
-                                const file = e.target.files[0];
-                                handleImageUpload(file);
-                              }}
-                              className="vis-file-input"
-                              id="profile-image-upload"
-                            />
-                            <label htmlFor="profile-image-upload" className="vis-upload-label">
-                              <ImagePlus size={20}/>
-                              {profileForm.imageUrl ? "" : "Upload Image"}
-                            </label>
-                            {profileForm.imageUrl && (
-                              <div className="vis-image-preview vis-profile-preview">
-                                <img src={profileForm.imageUrl} alt="Profile preview" />
-                              </div>
-                            )}
-                          </div>
-                        </div>
+            eventRepository.delete(event);
 
-                        <div className="vis-form-row">
-                          <div className="vis-form-col">
-                            <label className="vis-form-label">Name *</label>
-                            <input
-                              type="text"
-                              name="name"
-                              value={profileForm.name}
-                              onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
-                              className="vis-form-input"
-                              required
-                            />
-                          </div>
-                          
-                          <div className="vis-form-col">
-                            <label className="vis-form-label">Email (Cannot be changed)</label>
-                            <input
-                              type="email"
-                              value={profileForm.email}
-                              disabled
-                              className="vis-form-input vis-disabled"
-                            />
-                          </div>
-                        </div>
+        } catch (DataIntegrityViolationException e) {
+            throw new Exception("Cannot delete event due to database constraint");
+        }
+    }
 
-                        <div className="vis-form-row">
-                          <div className="vis-form-col">
-                            <label className="vis-form-label">Mobile Number</label>
-                            <input
-                              type="tel"
-                              name="mobileNumber"
-                              value={profileForm.mobileNumber || ""}
-                              onChange={(e) => setProfileForm({...profileForm, mobileNumber: e.target.value})}
-                              placeholder="+91 9876543210"
-                              className="vis-form-input"
-                            />
-                          </div>
-                          
-                          <div className="vis-form-col">
-                            <label className="vis-form-label">Role</label>
-                            <input
-                              type="text"
-                              value={userProfile.role}
-                              disabled
-                              className="vis-form-input vis-disabled"
-                            />
-                          </div>
-                        </div>
+    // ================================================================
+    // GET EVENT BY ID - 🆕 UPDATED: Return separate date/time fields
+    // ================================================================
+    @Override
+    public EventResponse getEventById(Long eventId) throws Exception {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
 
-                        <div className="vis-password-section">
-                          <p className="vis-section-subtitle">Leave empty to keep your current password</p>
-                          
-                          <div className="vis-form-row">
-                            <div className="vis-form-col">
-                              <label className="vis-form-label">Current Password</label>
-                              <input
-                                type="password"
-                                name="currentPassword"
-                                value={passwordForm.currentPassword}
-                                onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                                placeholder="Enter current password"
-                                className="vis-form-input"
-                              />
-                            </div>
-                            
-                            <div className="vis-form-col">
-                              <label className="vis-form-label">New Password</label>
-                              <input
-                                type="password"
-                                name="newPassword"
-                                value={passwordForm.newPassword}
-                                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                                placeholder="Enter new password (min 6 characters)"
-                                className="vis-form-input"
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="vis-form-actions">
-                          <button type="submit" className="vis-btn vis-btn-primary-visitor" disabled={loading}>
-                            {loading ? "Saving..." : "Save Changes"}
-                          </button>
-                          <button
-                            type="button"
-                            className="vis-btn vis-btn-secondary"
-                            onClick={() => {
-                              setEditing(false);
-                              setError("");
-                              setPasswordForm({ currentPassword: "", newPassword: "" });
-                              loadUserData();
-                            }}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </form>
-                    )}
-                  </div>
-                </section>
-              )}
-            </>
-          )}
-        </div>
-      </main>
-          
-      {/* Event Details Modal */}
-      {selectedEvent && (
-        <div className="vis-modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
-          <div className="vis-modal-visitor-content" onClick={(e) => e.stopPropagation()}>
-            <button className="vis-modal-visitor-close" onClick={() => setSelectedEvent(null)}>×</button>
-            <div className="vis-modal-visitor-header">
-              <img 
-                src={selectedEvent.imageUrl || "https://via.placeholder.com/400x200?text=Event"} 
-                alt={selectedEvent.title} 
-                className="vis-modal-visitor-image" 
-              />
-              <h2>{selectedEvent.title}</h2>
-            </div>
-            <div className="vis-modal-visitor-body">
-              <div className="vis-modal-visitor-info">
-                <p><strong>Category:</strong> {selectedEvent.category}</p>
-                <p><strong>Date:</strong> {formatDateTime(selectedEvent.date)}</p>
-                <p><strong>Location:</strong> {selectedEvent.location}</p>
-                <p><strong>Organizer:</strong> {selectedEvent.organizerName}</p>
-                {selectedEvent.maxAttendees && (
-                  <p><strong>Capacity:</strong> {selectedEvent.currentAttendees || 0} / {selectedEvent.maxAttendees}</p>
-                )}
-                <p><strong>Type:</strong> {selectedEvent.eventType === 'PRIVATE' ? '🔒 Private' : '🌐 Public'}</p>
-              </div>
-              <div className="vis-modal-visitor-description">
-                <h3>About this event</h3>
-                <p>{selectedEvent.description}</p>
-              </div>
-            </div>
-            <div className="vis-modal-visitor-footer">
-              {!registeredEventIds.has(selectedEvent.id) && (
-                <button
-                  className="vis-btn vis-btn-primary-visitor"
-                  onClick={() => {
-                    setSelectedEvent(null);
-                    handleOpenRegisterModal(selectedEvent);
-                  }}
-                  disabled={selectedEvent.maxAttendees && selectedEvent.currentAttendees >= selectedEvent.maxAttendees}
-                >
-                  Register Now
-                </button>
-              )}
-              <button className="vis-btn vis-event-close" onClick={() => setSelectedEvent(null)}>
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
-      {/* 🆕 NEW: Registration Modal */}
-      {showRegisterModal && regEvent && (
-        <div className="vis-modal-visitor-overlay" onClick={handleCloseRegisterModal}>
-          <div className="vis-modal-visitor-content vis-registration-modal" onClick={(e) => e.stopPropagation()}>
-            {/* <button className="vis-modal-visitor-registration-close" onClick={handleCloseRegisterModal}>×</button> */}
-            
-            <div className="vis-modal-visitor-header">
-              {/* <img 
-                src={regEvent.imageUrl || defaultImages[regEvent.category] || defaultImages["Other"]} 
-                alt={regEvent.title} 
-                className="vis-modal-visitor-image" 
-              /> */}
-              <h2>Register for {regEvent.title}</h2>
-            </div>
-            
-            <form onSubmit={handleRegisterSubmit}>
-              <div className="vis-modal-visitor-body">
-                {regError && (
-                  <div className="vis-reg-error-message">
-                    {regError}
-                  </div>
-                )}
-                
-                <div className="vis-form-group">
-                  <label className="vis-form-label">Name *</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={registrationForm.name}
-                    onChange={handleRegistrationFormChange}
-                    className="vis-form-input"
-                    placeholder="Enter your full name"
-                    required
-                  />
-                </div>
+        return convertToResponse(event, organizerName);
+    }
 
-                <div className="vis-form-group">
-                  <label className="vis-form-label">Email *</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={registrationForm.email}
-                    onChange={handleRegistrationFormChange}
-                    className="vis-form-input"
-                    placeholder="Enter your email address"
-                    required
-                  />
-                </div>
+    // ================================================================
+    // GET ALL EVENTS - 🆕 UPDATED: Return separate date/time fields
+    // ================================================================
+    @Override
+    public List<EventResponse> getAllEvents() {
+        List<Event> events = eventRepository.findAll();
+        return events.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+                    return convertToResponse(event, organizerName);
+                })
+                .collect(Collectors.toList());
+    }
 
-                <div className="vis-form-group">
-                  <label className="vis-form-label">Phone (Optional)</label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={registrationForm.phone}
-                    onChange={handleRegistrationFormChange}
-                    className="vis-form-input"
-                    placeholder="Enter your phone number"
-                  />
-                </div>
+    // ================================================================
+    // GET EVENTS BY ORGANIZER
+    // ================================================================
+    @Override
+    public List<EventResponse> getEventsByOrganizer(Long organizerId) {
+        List<Event> events = eventRepository.findByOrganizerIdOrderByStartDateDesc(organizerId);
+        User organizer = userRepository.findById(organizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
-                <div className="vis-form-group">
-                  <label className="vis-form-label">Notes (Optional)</label>
-                  <textarea
-                    name="notes"
-                    value={registrationForm.notes}
-                    onChange={handleRegistrationFormChange}
-                    className="vis-form-textarea"
-                    placeholder="Any special requirements or notes..."
-                    rows="3"
-                  />
-                </div>
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
+    }
 
-                {regEvent.eventType === "PRIVATE" && (
-                  <div className="vis-form-group">
-                    <label className="vis-form-label">Private Code *</label>
-                    <input
-                      type="text"
-                      name="privateCode"
-                      value={registrationForm.privateCode}
-                      onChange={handleRegistrationFormChange}
-                      className="vis-form-input"
-                      placeholder="Enter the private event code"
-                      required
-                    />
-                    {/* <p className="vis-form-hint">🔒 This event requires a private code to register</p> */}
-                  </div>
-                )}
-              </div>
+    public List<EventResponse> getMyEvents() throws Exception {
+        Long currentUserId = getCurrentUserId();
+        return getEventsByOrganizer(currentUserId);
+    }
 
-              <div className="vis-modal-visitor-footer">
-                <button
-                  type="button"
-                  className="vis-btn vis-btn-secondary"
-                  onClick={handleCloseRegisterModal}
-                  disabled={regLoading}
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="vis-btn vis-btn-primary-visitor"
-                  disabled={regLoading}
-                >
-                  {regLoading ? "Registering..." : "Submit Registration"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+    // 🆕 UPDATED: Use startDate for filtering
+    public List<EventResponse> getUpcomingEventsByOrganizer(Long organizerId) throws Exception {
+        LocalDate today = LocalDate.now();
+        List<Event> events = eventRepository.findByOrganizerIdAndStartDateGreaterThanEqualOrderByStartDateDesc(
+                organizerId, today);
+
+        User organizer = userRepository.findById(organizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
+    }
+
+    // 🆕 UPDATED: Use endDate for filtering
+    public List<EventResponse> getPastEventsByOrganizer(Long organizerId) throws Exception {
+        LocalDate today = LocalDate.now();
+        List<Event> events = eventRepository.findByOrganizerIdAndEndDateLessThanOrderByEndDateDesc(
+                organizerId, today);
+
+        User organizer = userRepository.findById(organizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
+    }
+
+    // ================================================================
+    // VISITOR REGISTRATION
+    // ================================================================
+    @Transactional
+    public RegistrationResponse registerVisitorForEvent(Long eventId, VisitorRegistrationRequest request)
+            throws Exception {
+
+        System.out.println("=== VISITOR REGISTRATION START ===");
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        if (event.getIsActive() == null || !event.getIsActive()) {
+            throw new Exception("This event is no longer active");
+        }
+
+        // Private code validation
+        if ("PRIVATE".equalsIgnoreCase(event.getEventType())) {
+            String provided = request.getPrivateCode();
+            String actual = event.getPrivateCode();
+
+            if (provided == null || provided.trim().isEmpty()) {
+                throw new Exception("Private code is required for this event");
+            }
+            if (!provided.trim().equals(actual)) {
+                throw new Exception("Private code is not correct");
+            }
+        }
+
+        // Find visitor by email
+        User visitor = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (visitor == null) {
+            throw new Exception("User not found. Please login or register first.");
+        }
+
+        // Check duplicate
+        boolean registered = registrationRepository.findByVisitor(visitor)
+                .stream()
+                .anyMatch(reg -> reg.getEvent().getId().equals(eventId)
+                        && reg.getStatus() != RegistrationStatus.CANCELLED);
+
+        if (registered) {
+            throw new Exception("You are already registered for this event");
+        }
+
+        // Capacity check
+        int max = event.getMaxAttendees() != null ? event.getMaxAttendees() : Integer.MAX_VALUE;
+        int current = event.getCurrentAttendees() != null ? event.getCurrentAttendees() : 0;
+
+        if (current >= max) {
+            throw new Exception("Registration closed - maximum attendees reached");
+        }
+
+        // Create registration
+        Registration registration = new Registration();
+        registration.setVisitor(visitor);
+        registration.setEvent(event);
+        registration.setStatus(RegistrationStatus.CONFIRMED);
+        registration.setRegisteredAt(LocalDateTime.now());
+        registration.setPhone(request.getPhone());
+        registration.setNotes(request.getNotes());
+
+        Registration saved = registrationRepository.save(registration);
+
+        // Update event count
+        event.setCurrentAttendees(current + 1);
+        eventRepository.save(event);
+
+        return new RegistrationResponse(
+                saved.getId(),
+                event.getId(),
+                visitor.getId(),
+                saved.getStatus(),
+                saved.getRegisteredAt());
+    }
+
+    // ================================================================
+    // VALIDATION ERROR MAP
+    // ================================================================
+    public Map<String, String> processValidationErrors(BindingResult bindingResult) {
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError error : bindingResult.getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+        return errors;
+    }
+
+    // ================================================================
+    // CURRENT USER ID
+    // ================================================================
+    private Long getCurrentUserId() throws Exception {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new Exception("User not authenticated");
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new Exception("User not found"));
+
+        return user.getId();
+    }
+
+    // ================================================================
+    // EVENT → DTO - 🆕 UPDATED: Map separate date/time fields
+    // ================================================================
+    private EventResponse convertToResponse(Event event, String organizerName) {
+        EventResponse response = new EventResponse();
+        response.setId(event.getId());
+        response.setTitle(event.getTitle());
+        response.setDescription(event.getDescription());
+
+        // 🆕 NEW: Set separate date/time fields
+        response.setStartDate(event.getStartDate());
+        response.setStartTime(event.getStartTime());
+        response.setEndDate(event.getEndDate());
+        response.setEndTime(event.getEndTime());
+
+        response.setLocation(event.getLocation());
+        response.setCategory(event.getCategory());
+        response.setImageUrl(event.getImageUrl());
+        response.setOrganizerId(event.getOrganizerId());
+        response.setOrganizerName(organizerName);
+        response.setMaxAttendees(event.getMaxAttendees());
+        response.setCurrentAttendees(event.getCurrentAttendees());
+        response.setIsActive(event.getIsActive());
+        response.setEventType(event.getEventType());
+        response.setPrivateCode(event.getPrivateCode());
+        response.setCreatedAt(event.getCreatedAt());
+        response.setUpdatedAt(event.getUpdatedAt());
+
+        // 🆕 Venue info
+        if (event.getVenue() != null) {
+            response.setVenueId(event.getVenue().getId());
+            response.setVenueName(event.getVenue().getName());
+            response.setVenueAddress(event.getVenue().getLocation());
+        }
+
+        return response;
+    }
+
+    // ================================================================
+    // 🆕 NEW: Get events for calendar with date range and filters
+    // Admin can see ALL events regardless of status
+    // ================================================================
+    public List<EventResponse> getEventsForCalendar(
+            LocalDate startDate,
+            LocalDate endDate,
+            String category,
+            String city,
+            Long organizerId,
+            String eventType) {
+
+        System.out.println("📅 Fetching calendar events: " + startDate + " to " + endDate);
+
+        List<Event> events;
+
+        // If date range is provided, use it
+        if (startDate != null && endDate != null) {
+            events = eventRepository.findByStartDateBetween(startDate, endDate);
+        } else {
+            // Otherwise get all events
+            events = eventRepository.findAll();
+        }
+
+        // Apply filters
+        if (category != null && !category.isEmpty()) {
+            events = events.stream()
+                    .filter(e -> category.equalsIgnoreCase(e.getCategory()))
+                    .collect(Collectors.toList());
+        }
+
+        if (city != null && !city.isEmpty()) {
+            events = events.stream()
+                    .filter(e -> city.equalsIgnoreCase(e.getCity()))
+                    .collect(Collectors.toList());
+        }
+
+        if (organizerId != null) {
+            events = events.stream()
+                    .filter(e -> organizerId.equals(e.getOrganizerId()))
+                    .collect(Collectors.toList());
+        }
+
+        if (eventType != null && !eventType.isEmpty()) {
+            events = events.stream()
+                    .filter(e -> eventType.equalsIgnoreCase(e.getEventType()))
+                    .collect(Collectors.toList());
+        }
+
+        // Convert to responses
+        return events.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+                    return convertToResponse(event, organizerName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 🆕 NEW: Get events for ORGANIZER calendar
+     * Similar to admin calendar but filtered by organizerId from JWT
+     * Organizers can only see their own events
+     */
+    public List<EventResponse> getEventsForOrganizerCalendar(
+            LocalDate startDate,
+            LocalDate endDate,
+            Long organizerId,
+            String category) throws Exception {
+
+        System.out.println("📅 Fetching organizer calendar events: " + startDate + " to " + endDate);
+
+        // Get current organizer ID from JWT
+        Long currentOrganizerId = getCurrentUserId();
+
+        // Security: Ensure organizer can only see their own events
+        if (organizerId != null && !organizerId.equals(currentOrganizerId)) {
+            throw new Exception("You can only view your own events");
+        }
+
+        List<Event> events;
+
+        // If date range is provided, use it
+        if (startDate != null && endDate != null) {
+            events = eventRepository.findByOrganizerIdAndDateBetween(
+                    currentOrganizerId, startDate, endDate);
+        } else {
+            // Otherwise get all organizer's events
+            events = eventRepository.findByOrganizerId(currentOrganizerId);
+        }
+
+        // Apply category filter
+        if (category != null && !category.isEmpty()) {
+            events = events.stream()
+                    .filter(e -> category.equalsIgnoreCase(e.getCategory()))
+                    .collect(Collectors.toList());
+        }
+
+        // Get organizer name
+        User organizer = userRepository.findById(currentOrganizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        // Convert to responses
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
+    }
+
+    // ================================================================
+    // 🆕 NEW: Get all unique categories from events
+    // ================================================================
+    public List<String> getAllCategories() {
+        try {
+            List<Event> events = eventRepository.findAll();
+            Set<String> categories = new HashSet<>();
+
+            for (Event event : events) {
+                if (event.getCategory() != null && !event.getCategory().isEmpty()) {
+                    categories.add(event.getCategory());
+                }
+            }
+
+            // Add default categories if none exist
+            if (categories.isEmpty()) {
+                categories.add("Technology");
+                categories.add("Business");
+                categories.add("Music");
+                categories.add("Health");
+                categories.add("Food");
+                categories.add("Art");
+                categories.add("Community");
+                categories.add("Entertainment");
+                categories.add("Education");
+                categories.add("Sports");
+                categories.add("Other");
+            }
+
+            List<String> sortedCategories = new ArrayList<>(categories);
+            Collections.sort(sortedCategories);
+            return sortedCategories;
+        } catch (Exception e) {
+            System.err.println("Error fetching categories: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    // ================================================================
+    // 🆕 NEW: Get all unique cities from events
+    // ================================================================
+    public List<String> getAllCities() {
+        try {
+            List<Event> events = eventRepository.findAll();
+            Set<String> cities = new HashSet<>();
+
+            for (Event event : events) {
+                if (event.getCity() != null && !event.getCity().isEmpty()) {
+                    cities.add(event.getCity());
+                }
+            }
+
+            List<String> sortedCities = new ArrayList<>(cities);
+            Collections.sort(sortedCities);
+            return sortedCities;
+        } catch (Exception e) {
+            System.err.println("Error fetching cities: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+
+    // ================================================================
+    // 🆕 NEW: Admin can update any event (no ownership check)
+    // ================================================================
+    public EventResponse adminUpdateEvent(Long eventId, EventRequest request) throws Exception {
+        System.out.println("Admin updating event ID: " + eventId);
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        // Validate dates
+        LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
+        LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
+
+        if (!endDateTime.isAfter(startDateTime)) {
+            throw new Exception("Event end date/time must be after start date/time");
+        }
+
+        // Update event fields
+        event.setTitle(request.getTitle());
+        event.setDescription(request.getDescription());
+        event.setStartDate(request.getStartDate());
+        event.setStartTime(request.getStartTime());
+        event.setEndDate(request.getEndDate());
+        event.setEndTime(request.getEndTime());
+        event.setState(request.getState());
+        event.setCity(request.getCity());
+        event.setAddress(request.getAddress());
+        event.setCategory(request.getCategory());
+        event.setImageUrl(request.getImageUrl());
+        event.setMaxAttendees(request.getMaxAttendees());
+        event.setEventType(request.getEventType());
+        event.setPrivateCode(request.getPrivateCode());
+
+        Event updatedEvent = eventRepository.save(event);
+
+        User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        return convertToResponse(updatedEvent, organizerName);
+    }
+
+    /**
+     * 🆕 NEW: Get events for VISITOR calendar
+     * Returns only events where the visitor has an active registration
+     * Events are filtered by date range and registration status
+     */
+    public List<EventCalendarResponse> getEventsForVisitorCalendar(
+            LocalDate startDate,
+            LocalDate endDate) throws Exception {
+
+        System.out.println("📅 Fetching visitor calendar events: " + startDate + " to " + endDate);
+
+        // Get current visitor ID from JWT
+        Long currentVisitorId = getCurrentUserId();
+
+        // Get visitor's user object
+        User visitor = userRepository.findById(currentVisitorId)
+                .orElseThrow(() -> new Exception("Visitor not found"));
+
+        // Security check: ensure user is a VISITOR
+        if (visitor.getRole() != Role.VISITOR) {
+            throw new Exception("Only visitors can access this endpoint");
+        }
+
+        // Get all registrations for this visitor (non-cancelled)
+        List<Registration> registrations = registrationRepository.findByVisitor(visitor)
+                .stream()
+                .filter(reg -> reg.getStatus() != RegistrationStatus.CANCELLED)
+                .collect(Collectors.toList());
+
+        if (registrations.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // Extract event IDs from registrations
+        Set<Long> registeredEventIds = registrations.stream()
+                .map(reg -> reg.getEvent().getId())
+                .collect(Collectors.toSet());
+
+        // Fetch events that:
+        // 1. User is registered for
+        // 2. Fall within the date range
+        List<Event> events = eventRepository.findAll().stream()
+                .filter(event -> registeredEventIds.contains(event.getId()))
+                .filter(event -> {
+                    // Check if event overlaps with requested date range
+                    boolean startsInRange = !event.getStartDate().isBefore(startDate) &&
+                            !event.getStartDate().isAfter(endDate);
+                    boolean endsInRange = !event.getEndDate().isBefore(startDate) &&
+                            !event.getEndDate().isAfter(endDate);
+                    boolean spansRange = event.getStartDate().isBefore(startDate) &&
+                            event.getEndDate().isAfter(endDate);
+
+                    return startsInRange || endsInRange || spansRange;
+                })
+                .collect(Collectors.toList());
+
+        // Convert to calendar response DTOs
+        return events.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+                    // Find registration for this event
+                    Registration registration = registrations.stream()
+                            .filter(reg -> reg.getEvent().getId().equals(event.getId()))
+                            .findFirst()
+                            .orElse(null);
+
+                    // Determine status (UPCOMING or COMPLETED)
+                    LocalDateTime now = LocalDateTime.now();
+                    LocalDateTime eventEnd = LocalDateTime.of(event.getEndDate(), event.getEndTime());
+                    String status = eventEnd.isAfter(now) ? "UPCOMING" : "COMPLETED";
+
+                    return convertToCalendarResponse(event, organizerName, registration, status);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Helper: Convert Event to EventCalendarResponse for visitor calendar
+     */
+    private EventCalendarResponse convertToCalendarResponse(
+            Event event,
+            String organizerName,
+            Registration registration,
+            String status) {
+
+        EventCalendarResponse response = new EventCalendarResponse();
+        response.setId(event.getId());
+        response.setTitle(event.getTitle());
+        response.setStartDate(event.getStartDate());
+        response.setStartTime(event.getStartTime());
+        response.setEndDate(event.getEndDate());
+        response.setEndTime(event.getEndTime());
+        response.setCategory(event.getCategory());
+        response.setColor(getCategoryColorHex(event.getCategory()));
+        response.setOrganizerName(organizerName);
+        response.setIsPublic(!"PRIVATE".equalsIgnoreCase(event.getEventType()));
+        response.setRegistrationStatus(registration != null ? registration.getStatus().toString() : "NONE");
+        response.setRegistrationCount(event.getCurrentAttendees() != null ? event.getCurrentAttendees() : 0);
+        response.setCapacity(event.getMaxAttendees() != null ? event.getMaxAttendees() : 0);
+        response.setStatus(status);
+        response.setLocation(
+                event.getLocation() != null ? event.getLocation() : event.getCity() + ", " + event.getState());
+        response.setDescription(event.getDescription());
+        response.setImageUrl(event.getImageUrl());
+
+        return response;
+    }
+
+    /**
+     * Helper: Get category color hex code
+     */
+    private String getCategoryColorHex(String category) {
+        Map<String, String> colors = new HashMap<>();
+        colors.put("Technology", "#667eea");
+        colors.put("Business", "#f59e0b");
+        colors.put("Music", "#ec4899");
+        colors.put("Health", "#10b981");
+        colors.put("Food", "#f97316");
+        colors.put("Art", "#8b5cf6");
+        colors.put("Community", "#3b82f6");
+        colors.put("Entertainment", "#ef4444");
+        colors.put("Education", "#06b6d4");
+        colors.put("Sports", "#84cc16");
+
+        return colors.getOrDefault(category, "#6b7280");
+    }
+
+    // ================================================================
+    // END OF CLASS
+    // ================================================================
 }

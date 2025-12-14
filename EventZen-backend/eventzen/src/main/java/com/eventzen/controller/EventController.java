@@ -1,6 +1,6 @@
 // ================================================================
-// FILE: D:\EventZen-backend\eventzen\src\main\java\com\eventzen\controller\EventController.java
-// 🆕 UPDATED: Added Admin Calendar endpoints for date-range filtering
+// FILE: EventController.java - FIXED
+// Changed ALL @PreAuthorize to use hasRole() instead of hasAuthority()
 // ================================================================
 
 package com.eventzen.controller;
@@ -27,11 +27,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.eventzen.dto.request.EventRequest;
 import com.eventzen.dto.request.VisitorRegistrationRequest;
+import com.eventzen.dto.response.EventCalendarResponse;
 import com.eventzen.dto.response.EventResponse;
 import com.eventzen.dto.response.RegistrationResponse;
 import com.eventzen.service.EventService;
 import com.eventzen.service.impl.EventServiceImpl;
-import com.eventzen.dto.response.EventCalendarResponse;
 
 import jakarta.validation.Valid;
 
@@ -75,7 +75,7 @@ public class EventController {
     // ===== ORGANIZER DASHBOARD ENDPOINTS =====
 
     @GetMapping("/organizer/{organizerId}/upcoming")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getUpcomingEvents(@PathVariable Long organizerId) {
         try {
             System.out.println("Fetching upcoming events for organizer: " + organizerId);
@@ -88,7 +88,7 @@ public class EventController {
     }
 
     @GetMapping("/organizer/{organizerId}/past")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getPastEvents(@PathVariable Long organizerId) {
         try {
             System.out.println("Fetching past events for organizer: " + organizerId);
@@ -101,7 +101,7 @@ public class EventController {
     }
 
     @GetMapping("/my-events")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getMyEvents() {
         try {
             System.out.println("Fetching events for current organizer");
@@ -116,7 +116,7 @@ public class EventController {
     // ===== ORGANIZER CRUD ENDPOINTS =====
 
     @PostMapping
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<?> createEvent(@Valid @RequestBody EventRequest request, BindingResult bindingResult) {
         try {
             if (bindingResult.hasErrors()) {
@@ -156,7 +156,7 @@ public class EventController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<?> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request,
             BindingResult bindingResult) {
         try {
@@ -203,7 +203,7 @@ public class EventController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
         try {
             System.out.println("Deleting event ID: " + id);
@@ -226,14 +226,9 @@ public class EventController {
     /**
      * Get events for organizer calendar view
      * Filtered by current organizer's JWT token
-     * 
-     * @param startDate - Calendar view start date
-     * @param endDate   - Calendar view end date
-     * @param category  - Optional category filter
-     * @return List of organizer's events in the date range
      */
     @GetMapping("/organizer/calendar")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getEventsForOrganizerCalendar(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -242,7 +237,6 @@ public class EventController {
         try {
             System.out.println("📅 Organizer Calendar request: " + startDate + " to " + endDate);
 
-            // Get events filtered by JWT organizer
             List<EventResponse> events = eventServiceImpl.getEventsForOrganizerCalendar(
                     startDate, endDate, organizerId, category);
 
@@ -258,13 +252,9 @@ public class EventController {
     /**
      * Get events for visitor calendar view
      * Returns only events that the authenticated visitor is registered for
-     * 
-     * @param from - Calendar view start date (YYYY-MM-DD)
-     * @param to   - Calendar view end date (YYYY-MM-DD)
-     * @return List of visitor's registered events in the date range
      */
     @GetMapping("/visitor/calendar/events")
-    @PreAuthorize("hasAuthority('VISITOR')")
+    @PreAuthorize("hasRole('VISITOR')")
     public ResponseEntity<List<EventCalendarResponse>> getEventsForVisitorCalendar(
             @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String from,
             @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String to) {
@@ -274,7 +264,6 @@ public class EventController {
             LocalDate startDate = LocalDate.parse(from);
             LocalDate endDate = LocalDate.parse(to);
 
-            // Get events filtered by visitor's registrations
             List<EventCalendarResponse> events = eventServiceImpl.getEventsForVisitorCalendar(
                     startDate, endDate);
 
@@ -288,7 +277,7 @@ public class EventController {
     // ===== ADMIN ENDPOINTS =====
 
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> adminDeleteEvent(@PathVariable Long id) {
         try {
             eventService.deleteEvent(id);
@@ -299,9 +288,8 @@ public class EventController {
         }
     }
 
-    // 🆕 NEW: Admin Update Event
     @PutMapping("/admin/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> adminUpdateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request,
             BindingResult bindingResult) {
         try {
@@ -319,9 +307,9 @@ public class EventController {
         }
     }
 
-    // 🆕 NEW: Calendar endpoint - Get events by date range with filters
+    // 🆕 FIXED: Calendar endpoint - Get events by date range with filters
     @GetMapping("/admin/calendar")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<EventResponse>> getEventsForCalendar(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
@@ -340,9 +328,9 @@ public class EventController {
         }
     }
 
-    // 🆕 NEW: Get all unique categories
+    // 🆕 FIXED: Get all unique categories
     @GetMapping("/admin/categories")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<String>> getAllCategories() {
         try {
             List<String> categories = eventServiceImpl.getAllCategories();
@@ -352,9 +340,9 @@ public class EventController {
         }
     }
 
-    // 🆕 NEW: Get all unique cities
+    // 🆕 FIXED: Get all unique cities
     @GetMapping("/admin/cities")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<String>> getAllCities() {
         try {
             List<String> cities = eventServiceImpl.getAllCities();

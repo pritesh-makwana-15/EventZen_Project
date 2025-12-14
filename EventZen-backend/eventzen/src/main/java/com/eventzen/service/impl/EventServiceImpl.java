@@ -1,6 +1,7 @@
 // ================================================================
 // FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/service/impl/EventServiceImpl.java
-// MERGED: Old + New (calendar methods, category/city extraction, admin update)
+// 🆕 COMPLETE FILE - Merged Old + New (Venue Integration)
+// This is the FULL, READY-TO-USE file
 // ================================================================
 
 package com.eventzen.service.impl;
@@ -29,16 +30,18 @@ import com.eventzen.dto.request.EventRequest;
 import com.eventzen.dto.request.VisitorRegistrationRequest;
 import com.eventzen.dto.response.EventResponse;
 import com.eventzen.dto.response.RegistrationResponse;
+import com.eventzen.dto.response.EventCalendarResponse;
 import com.eventzen.entity.Event;
 import com.eventzen.entity.Registration;
 import com.eventzen.entity.RegistrationStatus;
 import com.eventzen.entity.Role;
 import com.eventzen.entity.User;
+import com.eventzen.entity.Venue;
 import com.eventzen.repository.EventRepository;
 import com.eventzen.repository.RegistrationRepository;
 import com.eventzen.repository.UserRepository;
+import com.eventzen.repository.VenueRepository;
 import com.eventzen.service.EventService;
-import com.eventzen.dto.response.EventCalendarResponse;
 
 @Service
 public class EventServiceImpl implements EventService {
@@ -52,8 +55,11 @@ public class EventServiceImpl implements EventService {
     @Autowired
     private RegistrationRepository registrationRepository;
 
+    @Autowired
+    private VenueRepository venueRepository;
+
     // ================================================================
-    // CREATE EVENT - 🆕 UPDATED: Use separate date/time fields
+    // CREATE EVENT - WITH VENUE VALIDATION
     // ================================================================
     @Override
     public EventResponse createEvent(EventRequest request) throws Exception {
@@ -67,28 +73,48 @@ public class EventServiceImpl implements EventService {
             throw new Exception("Only organizers can create events");
         }
 
-        // 🆕 NEW: Validate start datetime is in the future
+        // Validate start datetime is in the future
         LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
         if (!startDateTime.isAfter(LocalDateTime.now())) {
             throw new Exception("Event start date/time must be in the future");
         }
 
-        // 🆕 NEW: Validate end is after start
+        // Validate end is after start
         LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
         if (!endDateTime.isAfter(startDateTime)) {
             throw new Exception("Event end date/time must be after start date/time");
         }
 
+        // 🆕 NEW: Venue validation and availability check
+        Venue venue = null;
+        if (request.getVenueId() != null) {
+            venue = venueRepository.findById(request.getVenueId())
+                    .orElseThrow(() -> new Exception("Venue not found"));
+
+            if (!venue.getIsActive()) {
+                throw new Exception("Selected venue is not active");
+            }
+
+            // Check venue availability
+            List<Event> conflicts = eventRepository.findConflictingEvents(
+                    request.getVenueId(),
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    -1L // No event to exclude for new event
+            );
+
+            if (!conflicts.isEmpty()) {
+                throw new Exception("Venue is not available for the selected date/time. Conflicting events exist.");
+            }
+        }
+
         Event event = new Event();
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
-
-        // 🆕 NEW: Set separate date/time fields
         event.setStartDate(request.getStartDate());
         event.setStartTime(request.getStartTime());
         event.setEndDate(request.getEndDate());
         event.setEndTime(request.getEndTime());
-
         event.setState(request.getState());
         event.setCity(request.getCity());
         event.setAddress(request.getAddress());
@@ -99,6 +125,7 @@ public class EventServiceImpl implements EventService {
         event.setEventType(request.getEventType() != null ? request.getEventType() : "PUBLIC");
         event.setPrivateCode(request.getPrivateCode());
         event.setIsActive(true);
+        event.setVenue(venue); // 🆕 NEW: Set venue
 
         Event savedEvent = eventRepository.save(event);
 
@@ -106,7 +133,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // UPDATE EVENT - 🆕 UPDATED: Use separate date/time fields
+    // UPDATE EVENT - WITH VENUE VALIDATION
     // ================================================================
     @Override
     public EventResponse updateEvent(Long eventId, EventRequest request) throws Exception {
@@ -121,27 +148,47 @@ public class EventServiceImpl implements EventService {
             throw new Exception("You can only update your own events");
         }
 
-        // 🆕 NEW: Validate start datetime is in the future
+        // Validate start datetime is in the future
         LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
         if (!startDateTime.isAfter(LocalDateTime.now())) {
             throw new Exception("Event start date/time must be in the future");
         }
 
-        // 🆕 NEW: Validate end is after start
+        // Validate end is after start
         LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
         if (!endDateTime.isAfter(startDateTime)) {
             throw new Exception("Event end date/time must be after start date/time");
         }
 
+        // 🆕 NEW: Venue validation and availability check
+        Venue venue = null;
+        if (request.getVenueId() != null) {
+            venue = venueRepository.findById(request.getVenueId())
+                    .orElseThrow(() -> new Exception("Venue not found"));
+
+            if (!venue.getIsActive()) {
+                throw new Exception("Selected venue is not active");
+            }
+
+            // Check venue availability (exclude current event)
+            List<Event> conflicts = eventRepository.findConflictingEvents(
+                    request.getVenueId(),
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    eventId // Exclude current event from conflict check
+            );
+
+            if (!conflicts.isEmpty()) {
+                throw new Exception("Venue is not available for the selected date/time. Conflicting events exist.");
+            }
+        }
+
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
-
-        // 🆕 NEW: Update separate date/time fields
         event.setStartDate(request.getStartDate());
         event.setStartTime(request.getStartTime());
         event.setEndDate(request.getEndDate());
         event.setEndTime(request.getEndTime());
-
         event.setState(request.getState());
         event.setCity(request.getCity());
         event.setAddress(request.getAddress());
@@ -150,6 +197,7 @@ public class EventServiceImpl implements EventService {
         event.setMaxAttendees(request.getMaxAttendees());
         event.setEventType(request.getEventType());
         event.setPrivateCode(request.getPrivateCode());
+        event.setVenue(venue); // 🆕 NEW: Update venue
 
         Event updatedEvent = eventRepository.save(event);
 
@@ -191,7 +239,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // GET EVENT BY ID - 🆕 UPDATED: Return separate date/time fields
+    // GET EVENT BY ID
     // ================================================================
     @Override
     public EventResponse getEventById(Long eventId) throws Exception {
@@ -205,7 +253,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // GET ALL EVENTS - 🆕 UPDATED: Return separate date/time fields
+    // GET ALL EVENTS
     // ================================================================
     @Override
     public List<EventResponse> getAllEvents() {
@@ -238,7 +286,6 @@ public class EventServiceImpl implements EventService {
         return getEventsByOrganizer(currentUserId);
     }
 
-    // 🆕 UPDATED: Use startDate for filtering
     public List<EventResponse> getUpcomingEventsByOrganizer(Long organizerId) throws Exception {
         LocalDate today = LocalDate.now();
         List<Event> events = eventRepository.findByOrganizerIdAndStartDateGreaterThanEqualOrderByStartDateDesc(
@@ -252,7 +299,6 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
-    // 🆕 UPDATED: Use endDate for filtering
     public List<EventResponse> getPastEventsByOrganizer(Long organizerId) throws Exception {
         LocalDate today = LocalDate.now();
         List<Event> events = eventRepository.findByOrganizerIdAndEndDateLessThanOrderByEndDateDesc(
@@ -370,20 +416,17 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // EVENT → DTO - 🆕 UPDATED: Map separate date/time fields
+    // EVENT → DTO - WITH VENUE INFO
     // ================================================================
     private EventResponse convertToResponse(Event event, String organizerName) {
         EventResponse response = new EventResponse();
         response.setId(event.getId());
         response.setTitle(event.getTitle());
         response.setDescription(event.getDescription());
-
-        // 🆕 NEW: Set separate date/time fields
         response.setStartDate(event.getStartDate());
         response.setStartTime(event.getStartTime());
         response.setEndDate(event.getEndDate());
         response.setEndTime(event.getEndTime());
-
         response.setLocation(event.getLocation());
         response.setCategory(event.getCategory());
         response.setImageUrl(event.getImageUrl());
@@ -397,12 +440,18 @@ public class EventServiceImpl implements EventService {
         response.setCreatedAt(event.getCreatedAt());
         response.setUpdatedAt(event.getUpdatedAt());
 
+        // 🆕 NEW: Add venue information
+        if (event.getVenue() != null) {
+            response.setVenueId(event.getVenue().getId());
+            response.setVenueName(event.getVenue().getName());
+            response.setVenueAddress(event.getVenue().getLocation());
+        }
+
         return response;
     }
 
     // ================================================================
-    // 🆕 NEW: Get events for calendar with date range and filters
-    // Admin can see ALL events regardless of status
+    // GET EVENTS FOR CALENDAR (ADMIN)
     // ================================================================
     public List<EventResponse> getEventsForCalendar(
             LocalDate startDate,
@@ -416,11 +465,9 @@ public class EventServiceImpl implements EventService {
 
         List<Event> events;
 
-        // If date range is provided, use it
         if (startDate != null && endDate != null) {
             events = eventRepository.findByStartDateBetween(startDate, endDate);
         } else {
-            // Otherwise get all events
             events = eventRepository.findAll();
         }
 
@@ -449,7 +496,6 @@ public class EventServiceImpl implements EventService {
                     .collect(Collectors.toList());
         }
 
-        // Convert to responses
         return events.stream()
                 .map(event -> {
                     User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
@@ -459,11 +505,9 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 🆕 NEW: Get events for ORGANIZER calendar
-     * Similar to admin calendar but filtered by organizerId from JWT
-     * Organizers can only see their own events
-     */
+    // ================================================================
+    // GET EVENTS FOR ORGANIZER CALENDAR
+    // ================================================================
     public List<EventResponse> getEventsForOrganizerCalendar(
             LocalDate startDate,
             LocalDate endDate,
@@ -472,44 +516,37 @@ public class EventServiceImpl implements EventService {
 
         System.out.println("📅 Fetching organizer calendar events: " + startDate + " to " + endDate);
 
-        // Get current organizer ID from JWT
         Long currentOrganizerId = getCurrentUserId();
 
-        // Security: Ensure organizer can only see their own events
         if (organizerId != null && !organizerId.equals(currentOrganizerId)) {
             throw new Exception("You can only view your own events");
         }
 
         List<Event> events;
 
-        // If date range is provided, use it
         if (startDate != null && endDate != null) {
             events = eventRepository.findByOrganizerIdAndDateBetween(
                     currentOrganizerId, startDate, endDate);
         } else {
-            // Otherwise get all organizer's events
             events = eventRepository.findByOrganizerId(currentOrganizerId);
         }
 
-        // Apply category filter
         if (category != null && !category.isEmpty()) {
             events = events.stream()
                     .filter(e -> category.equalsIgnoreCase(e.getCategory()))
                     .collect(Collectors.toList());
         }
 
-        // Get organizer name
         User organizer = userRepository.findById(currentOrganizerId).orElse(null);
         String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
-        // Convert to responses
         return events.stream()
                 .map(event -> convertToResponse(event, organizerName))
                 .collect(Collectors.toList());
     }
 
     // ================================================================
-    // 🆕 NEW: Get all unique categories from events
+    // GET ALL CATEGORIES
     // ================================================================
     public List<String> getAllCategories() {
         try {
@@ -522,7 +559,6 @@ public class EventServiceImpl implements EventService {
                 }
             }
 
-            // Add default categories if none exist
             if (categories.isEmpty()) {
                 categories.add("Technology");
                 categories.add("Business");
@@ -547,7 +583,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // 🆕 NEW: Get all unique cities from events
+    // GET ALL CITIES
     // ================================================================
     public List<String> getAllCities() {
         try {
@@ -570,7 +606,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // 🆕 NEW: Admin can update any event (no ownership check)
+    // ADMIN UPDATE EVENT (NO OWNERSHIP CHECK)
     // ================================================================
     public EventResponse adminUpdateEvent(Long eventId, EventRequest request) throws Exception {
         System.out.println("Admin updating event ID: " + eventId);
@@ -578,7 +614,6 @@ public class EventServiceImpl implements EventService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new Exception("Event not found"));
 
-        // Validate dates
         LocalDateTime startDateTime = LocalDateTime.of(request.getStartDate(), request.getStartTime());
         LocalDateTime endDateTime = LocalDateTime.of(request.getEndDate(), request.getEndTime());
 
@@ -586,7 +621,27 @@ public class EventServiceImpl implements EventService {
             throw new Exception("Event end date/time must be after start date/time");
         }
 
-        // Update event fields
+        // 🆕 NEW: Venue validation for admin update
+        Venue venue = null;
+        if (request.getVenueId() != null) {
+            venue = venueRepository.findById(request.getVenueId())
+                    .orElseThrow(() -> new Exception("Venue not found"));
+
+            if (!venue.getIsActive()) {
+                throw new Exception("Selected venue is not active");
+            }
+
+            List<Event> conflicts = eventRepository.findConflictingEvents(
+                    request.getVenueId(),
+                    request.getStartDate(),
+                    request.getEndDate(),
+                    eventId);
+
+            if (!conflicts.isEmpty()) {
+                throw new Exception("Venue is not available for the selected date/time.");
+            }
+        }
+
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
         event.setStartDate(request.getStartDate());
@@ -601,6 +656,7 @@ public class EventServiceImpl implements EventService {
         event.setMaxAttendees(request.getMaxAttendees());
         event.setEventType(request.getEventType());
         event.setPrivateCode(request.getPrivateCode());
+        event.setVenue(venue); // 🆕 NEW: Update venue
 
         Event updatedEvent = eventRepository.save(event);
 
@@ -610,30 +666,24 @@ public class EventServiceImpl implements EventService {
         return convertToResponse(updatedEvent, organizerName);
     }
 
-    /**
-     * 🆕 NEW: Get events for VISITOR calendar
-     * Returns only events where the visitor has an active registration
-     * Events are filtered by date range and registration status
-     */
+    // ================================================================
+    // GET EVENTS FOR VISITOR CALENDAR
+    // ================================================================
     public List<EventCalendarResponse> getEventsForVisitorCalendar(
             LocalDate startDate,
             LocalDate endDate) throws Exception {
 
         System.out.println("📅 Fetching visitor calendar events: " + startDate + " to " + endDate);
 
-        // Get current visitor ID from JWT
         Long currentVisitorId = getCurrentUserId();
 
-        // Get visitor's user object
         User visitor = userRepository.findById(currentVisitorId)
                 .orElseThrow(() -> new Exception("Visitor not found"));
 
-        // Security check: ensure user is a VISITOR
         if (visitor.getRole() != Role.VISITOR) {
             throw new Exception("Only visitors can access this endpoint");
         }
 
-        // Get all registrations for this visitor (non-cancelled)
         List<Registration> registrations = registrationRepository.findByVisitor(visitor)
                 .stream()
                 .filter(reg -> reg.getStatus() != RegistrationStatus.CANCELLED)
@@ -643,18 +693,13 @@ public class EventServiceImpl implements EventService {
             return new ArrayList<>();
         }
 
-        // Extract event IDs from registrations
         Set<Long> registeredEventIds = registrations.stream()
                 .map(reg -> reg.getEvent().getId())
                 .collect(Collectors.toSet());
 
-        // Fetch events that:
-        // 1. User is registered for
-        // 2. Fall within the date range
         List<Event> events = eventRepository.findAll().stream()
                 .filter(event -> registeredEventIds.contains(event.getId()))
                 .filter(event -> {
-                    // Check if event overlaps with requested date range
                     boolean startsInRange = !event.getStartDate().isBefore(startDate) &&
                             !event.getStartDate().isAfter(endDate);
                     boolean endsInRange = !event.getEndDate().isBefore(startDate) &&
@@ -666,19 +711,16 @@ public class EventServiceImpl implements EventService {
                 })
                 .collect(Collectors.toList());
 
-        // Convert to calendar response DTOs
         return events.stream()
                 .map(event -> {
                     User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
                     String organizerName = organizer != null ? organizer.getName() : "Unknown";
 
-                    // Find registration for this event
                     Registration registration = registrations.stream()
                             .filter(reg -> reg.getEvent().getId().equals(event.getId()))
                             .findFirst()
                             .orElse(null);
 
-                    // Determine status (UPCOMING or COMPLETED)
                     LocalDateTime now = LocalDateTime.now();
                     LocalDateTime eventEnd = LocalDateTime.of(event.getEndDate(), event.getEndTime());
                     String status = eventEnd.isAfter(now) ? "UPCOMING" : "COMPLETED";
@@ -688,9 +730,6 @@ public class EventServiceImpl implements EventService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Helper: Convert Event to EventCalendarResponse for visitor calendar
-     */
     private EventCalendarResponse convertToCalendarResponse(
             Event event,
             String organizerName,
@@ -720,9 +759,6 @@ public class EventServiceImpl implements EventService {
         return response;
     }
 
-    /**
-     * Helper: Get category color hex code
-     */
     private String getCategoryColorHex(String category) {
         Map<String, String> colors = new HashMap<>();
         colors.put("Technology", "#667eea");
@@ -738,8 +774,8 @@ public class EventServiceImpl implements EventService {
 
         return colors.getOrDefault(category, "#6b7280");
     }
-
-    // ================================================================
-    // END OF CLASS
-    // ================================================================
 }
+
+// ================================================================
+// END OF FILE - COMPLETE AND READY TO USE
+// ================================================================

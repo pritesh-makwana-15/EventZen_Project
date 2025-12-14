@@ -1,7 +1,6 @@
 // ================================================================
-// FILE: D:\EventZen-backend\eventzen\src\main\java\com\eventzen\repository\EventRepository.java
-// 🆕 UPDATED: Added calendar-specific query methods
-// This is the COMPLETE file with all queries
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/repository/EventRepository.java
+// 🆕 UPDATED: Added Venue-based queries & conflict checks
 // ================================================================
 
 package com.eventzen.repository;
@@ -22,94 +21,57 @@ import com.eventzen.entity.Event;
 public interface EventRepository extends JpaRepository<Event, Long> {
 
         // ====================
-        // Core Methods - Using startDate/endDate
+        // Organizer Based Queries
         // ====================
 
-        /**
-         * Find all events by organizer - SORTED BY START DATE DESC
-         */
         List<Event> findByOrganizerIdOrderByStartDateDesc(Long organizerId);
 
         /**
-         * Find upcoming events for organizer (startDate >= today) - SORTED BY START
-         * DATE DESC
+         * Upcoming events for organizer (startDate >= today)
          */
-        List<Event> findByOrganizerIdAndStartDateGreaterThanEqualOrderByStartDateDesc(Long organizerId, LocalDate date);
+        List<Event> findByOrganizerIdAndStartDateGreaterThanEqualOrderByStartDateDesc(
+                        Long organizerId, LocalDate date);
 
         /**
-         * Find past events for organizer (endDate < today) - SORTED BY END DATE DESC
+         * Past events for organizer (endDate < today)
          */
-        List<Event> findByOrganizerIdAndEndDateLessThanOrderByEndDateDesc(Long organizerId, LocalDate date);
+        List<Event> findByOrganizerIdAndEndDateLessThanOrderByEndDateDesc(
+                        Long organizerId, LocalDate date);
 
-        /**
-         * Find all events by organizer (no sorting)
-         */
         List<Event> findByOrganizerId(Long organizerId);
 
-        /**
-         * Find all active events sorted by start date
-         */
+        // ====================
+        // Public / Active Events
+        // ====================
+
         List<Event> findByIsActiveTrueOrderByStartDateDesc();
 
-        /**
-         * Find events by category (case insensitive)
-         */
-        List<Event> findByCategoryIgnoreCase(String category);
-
-        /**
-         * Find events by category (exact match)
-         */
-        List<Event> findByCategory(String category);
-
-        /**
-         * Find by event type
-         */
-        List<Event> findByEventType(String eventType);
-
-        /**
-         * Custom query to find events by organizer within a date range
-         */
-        @Query("SELECT e FROM Event e WHERE e.organizerId = :organizerId " +
-                        "AND e.startDate BETWEEN :startDate AND :endDate " +
-                        "ORDER BY e.startDate DESC")
-        List<Event> findByOrganizerIdAndDateBetween(
-                        @Param("organizerId") Long organizerId,
-                        @Param("startDate") LocalDate startDate,
-                        @Param("endDate") LocalDate endDate);
-
-        /**
-         * Find only public and active events - SORTED BY START DATE DESC
-         */
         @Query("SELECT e FROM Event e WHERE e.eventType = 'PUBLIC' " +
                         "AND e.isActive = true ORDER BY e.startDate DESC")
         List<Event> findPublicEvents();
 
         // ====================
-        // 🆕 NEW: Calendar-Specific Queries
+        // Category / Type Filters
         // ====================
 
-        /**
-         * Find events starting between two dates (for calendar view)
-         * This includes events that start within the visible calendar range
-         */
+        List<Event> findByCategoryIgnoreCase(String category);
+
+        List<Event> findByCategory(String category);
+
+        List<Event> findByEventType(String eventType);
+
+        // ====================
+        // Date Based Queries
+        // ====================
+
         List<Event> findByStartDateBetween(LocalDate startDate, LocalDate endDate);
 
-        /**
-         * Find events starting after a specific date
-         */
         List<Event> findByStartDateAfter(LocalDate date);
 
-        /**
-         * Find events ending before a specific date
-         */
         List<Event> findByEndDateBefore(LocalDate date);
 
         /**
-         * 🆕 NEW: Find events that overlap with a date range
-         * This catches events that:
-         * - Start before the range but end during it
-         * - Start during the range
-         * - Start before and end after the range
+         * Events overlapping a date range (calendar-safe)
          */
         @Query("SELECT e FROM Event e WHERE " +
                         "(e.startDate BETWEEN :startDate AND :endDate) OR " +
@@ -121,18 +83,59 @@ public interface EventRepository extends JpaRepository<Event, Long> {
                         @Param("endDate") LocalDate endDate);
 
         /**
-         * 🆕 NEW: Find events by city
+         * Organizer events within date range
          */
+        @Query("SELECT e FROM Event e WHERE e.organizerId = :organizerId " +
+                        "AND e.startDate BETWEEN :startDate AND :endDate " +
+                        "ORDER BY e.startDate DESC")
+        List<Event> findByOrganizerIdAndDateBetween(
+                        @Param("organizerId") Long organizerId,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
+
+        // ====================
+        // Location Filters
+        // ====================
+
         List<Event> findByCity(String city);
 
-        /**
-         * 🆕 NEW: Find events by state
-         */
         List<Event> findByState(String state);
 
+        // ====================
+        // 🆕 Venue Based Queries
+        // ====================
+
         /**
-         * 🆕 NEW: Complex calendar query with all filters
+         * Find all events for a venue
          */
+        List<Event> findByVenue_Id(Long venueId);
+        long countByVenue_Id(Long venueId);
+
+        @Query("SELECT e FROM Event e WHERE e.venue.id = :venueId " +
+                        "AND ((e.startDate BETWEEN :startDate AND :endDate) " +
+                        "OR (e.endDate BETWEEN :startDate AND :endDate) " +
+                        "OR (e.startDate <= :startDate AND e.endDate >= :endDate))")
+        List<Event> findByVenueAndDateRange(
+                        @Param("venueId") Long venueId,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate);
+
+        /**
+         * Find conflicting events for a venue (used for availability checks)
+         */
+        @Query("SELECT e FROM Event e WHERE e.venue.id = :venueId " +
+                        "AND e.id != :excludeEventId " +
+                        "AND (e.startDate < :endDate AND e.endDate > :startDate)")
+        List<Event> findConflictingEvents(
+                        @Param("venueId") Long venueId,
+                        @Param("startDate") LocalDate startDate,
+                        @Param("endDate") LocalDate endDate,
+                        @Param("excludeEventId") Long excludeEventId);
+
+        // ====================
+        // 🆕 Calendar (Admin / Dashboard)
+        // ====================
+
         @Query("SELECT e FROM Event e WHERE " +
                         "(:startDate IS NULL OR e.startDate >= :startDate) AND " +
                         "(:endDate IS NULL OR e.endDate <= :endDate) AND " +
@@ -153,24 +156,12 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         // Count Methods
         // ====================
 
-        /**
-         * Count total events by organizer
-         */
         long countByOrganizerId(Long organizerId);
 
-        /**
-         * Count upcoming events by organizer
-         */
         long countByOrganizerIdAndStartDateGreaterThanEqual(Long organizerId, LocalDate date);
 
-        /**
-         * 🆕 NEW: Count events by category
-         */
         long countByCategory(String category);
 
-        /**
-         * 🆕 NEW: Count events by city
-         */
         long countByCity(String city);
 
         // ====================
@@ -178,7 +169,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         // ====================
 
         /**
-         * Delete all events for a specific organizer (CASCADE FIX)
+         * Delete all events for a specific organizer
          */
         @Transactional
         @Modifying
@@ -189,9 +180,9 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 // ================================================================
 // USAGE NOTES:
 //
-// For calendar implementation, use:
-// - findByStartDateBetween() for simple month/week/day views
-// - findEventsOverlappingDateRange() for more accurate results
-// - findEventsForCalendar() for admin dashboard with all filters
+// ✔ Venue availability → findConflictingEvents()
+// ✔ Admin calendar → findEventsForCalendar()
+// ✔ Month/week view → findEventsOverlappingDateRange()
+// ✔ Venue analytics → countByVenueId()
 //
 // ================================================================

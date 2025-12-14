@@ -13,9 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * ✅ UPDATED Analytics Controller
- * 
- * Added: GET /api/analytics/admin/top-organizers endpoint
+ * ✅ FIXED Analytics Controller
+ * Changed ALL @PreAuthorize to use hasRole() instead of hasAuthority()
  */
 @RestController
 @RequestMapping("/api/analytics")
@@ -28,7 +27,7 @@ public class AnalyticsController {
      * Get global platform summary (Admin only)
      */
     @GetMapping("/admin/summary")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Map<String, Object>> getAdminSummary() {
         try {
             Map<String, Object> summary = analyticsService.getAdminSummary();
@@ -43,7 +42,7 @@ public class AnalyticsController {
      * Get event category distribution (Admin only)
      */
     @GetMapping("/admin/categories")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> getCategoryDistribution() {
         try {
             List<Map<String, Object>> categories = analyticsService.getCategoryDistribution();
@@ -58,7 +57,7 @@ public class AnalyticsController {
      * Get monthly registration trends (Admin only)
      */
     @GetMapping("/admin/monthly-trends")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> getMonthlyTrends() {
         try {
             List<Map<String, Object>> trends = analyticsService.getMonthlyRegistrationTrends();
@@ -70,10 +69,10 @@ public class AnalyticsController {
     }
 
     /**
-     * 🆕 NEW: Get top organizers by registrations (Admin only)
+     * 🆕 Get top organizers by registrations (Admin only)
      */
     @GetMapping("/admin/top-organizers")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<Map<String, Object>>> getTopOrganizers() {
         try {
             List<Map<String, Object>> topOrganizers = analyticsService.getTopOrganizers();
@@ -88,7 +87,7 @@ public class AnalyticsController {
      * Get organizer performance metrics
      */
     @GetMapping("/organizer/{organizerId}/performance")
-    @PreAuthorize("hasAuthority('ADMIN') or hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('ORGANIZER')")
     public ResponseEntity<Map<String, Object>> getOrganizerPerformance(
             @PathVariable Long organizerId) {
         try {

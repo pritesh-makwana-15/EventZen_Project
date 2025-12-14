@@ -1,7 +1,6 @@
 // ================================================================
 // FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/dto/request/EventRequest.java
-// 🆕 UPDATED: Added separate startDate, endDate, startTime, endTime fields
-// Changes: Frontend now sends 4 separate fields instead of 1 combined datetime
+// 🆕 UPDATED: Added venueId + separate start/end date & time fields
 // ================================================================
 
 package com.eventzen.dto.request;
@@ -23,7 +22,7 @@ public class EventRequest {
     @NotBlank(message = "Description is required")
     private String description;
 
-    // 🆕 NEW: Separate start date/time fields
+    // 🆕 Separate start date/time
     @NotNull(message = "Start date is required")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate startDate;
@@ -32,7 +31,7 @@ public class EventRequest {
     @JsonFormat(pattern = "HH:mm")
     private LocalTime startTime;
 
-    // 🆕 NEW: Separate end date/time fields
+    // 🆕 Separate end date/time
     @NotNull(message = "End date is required")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate endDate;
@@ -54,18 +53,34 @@ public class EventRequest {
     private String category;
 
     private String imageUrl;
+
     private String eventType = "PUBLIC"; // PUBLIC or PRIVATE
     private String privateCode;
 
+    // 🆕 NEW: Venue ID (links event to venue)
+    private Long venueId;
+
+    // ====================
     // Constructors
+    // ====================
+
     public EventRequest() {
     }
 
-    public EventRequest(String title, String description,
-            LocalDate startDate, LocalTime startTime,
-            LocalDate endDate, LocalTime endTime,
-            String address, String category, String imageUrl,
-            Integer maxAttendees, String eventType, String privateCode) {
+    public EventRequest(
+            String title,
+            String description,
+            LocalDate startDate,
+            LocalTime startTime,
+            LocalDate endDate,
+            LocalTime endTime,
+            String address,
+            String category,
+            String imageUrl,
+            Integer maxAttendees,
+            String eventType,
+            String privateCode,
+            Long venueId) {
         this.title = title;
         this.description = description;
         this.startDate = startDate;
@@ -78,9 +93,13 @@ public class EventRequest {
         this.maxAttendees = maxAttendees;
         this.eventType = eventType;
         this.privateCode = privateCode;
+        this.venueId = venueId;
     }
 
-    // Getters and Setters
+    // ====================
+    // Getters & Setters
+    // ====================
+
     public String getTitle() {
         return title;
     }
@@ -97,7 +116,6 @@ public class EventRequest {
         this.description = description;
     }
 
-    // 🆕 NEW: Start date/time getters/setters
     public LocalDate getStartDate() {
         return startDate;
     }
@@ -114,7 +132,6 @@ public class EventRequest {
         this.startTime = startTime;
     }
 
-    // 🆕 NEW: End date/time getters/setters
     public LocalDate getEndDate() {
         return endDate;
     }
@@ -195,8 +212,21 @@ public class EventRequest {
         this.privateCode = privateCode;
     }
 
-    // 🆕 NEW: Enhanced validation method
+    // 🆕 Venue getter/setter
+    public Long getVenueId() {
+        return venueId;
+    }
+
+    public void setVenueId(Long venueId) {
+        this.venueId = venueId;
+    }
+
+    // ====================
+    // Validation Logic
+    // ====================
+
     public boolean isValid() {
+
         if (title == null || title.trim().isEmpty())
             return false;
         if (description == null || description.trim().isEmpty())
@@ -220,13 +250,13 @@ public class EventRequest {
         if (endDate.equals(startDate) && !endTime.isAfter(startTime))
             return false;
 
-        // If private event, must have private code
+        // Private events must have private code
         if ("PRIVATE".equalsIgnoreCase(eventType) &&
                 (privateCode == null || privateCode.trim().isEmpty())) {
             return false;
         }
 
-        // Max attendees should be positive if provided
+        // Max attendees validation
         if (maxAttendees != null && maxAttendees <= 0)
             return false;
 
@@ -241,6 +271,7 @@ public class EventRequest {
                 ", startTime=" + startTime +
                 ", endDate=" + endDate +
                 ", endTime=" + endTime +
+                ", venueId=" + venueId +
                 ", address='" + address + '\'' +
                 ", city='" + city + '\'' +
                 ", state='" + state + '\'' +

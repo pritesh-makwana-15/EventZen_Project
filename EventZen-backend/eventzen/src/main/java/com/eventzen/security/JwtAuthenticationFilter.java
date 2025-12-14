@@ -37,18 +37,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = jwtService.getRoleFromToken(token);
 
                 if (email != null && role != null) {
-                    // ✅ Build authority list from role claim
-                    GrantedAuthority authority = new SimpleGrantedAuthority(role);
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email,
-                            null, Collections.singletonList(authority));
+                    // ✅ CRITICAL FIX: Add "ROLE_" prefix for Spring Security
+                    // Token has "ADMIN" → Spring Security needs "ROLE_ADMIN"
+                    GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            email, null, Collections.singletonList(authority));
 
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                    // 🔍 Debug log
+                    System.out.println("✅ Authenticated: " + email + " with authority: ROLE_" + role);
                 }
             }
         } catch (Exception ex) {
-            // Just log & continue — don’t block request on token failure
-            System.out.println("JWT filter error: " + ex.getMessage());
+            // Just log & continue — don't block request on token failure
+            System.out.println("❌ JWT filter error: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);

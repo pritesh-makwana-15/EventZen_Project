@@ -1,7 +1,10 @@
 // ================================================================
 // FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/entity/Event.java
-// 🆕 UPDATED: Added separate startDate, endDate, startTime, endTime fields
-// Changes: Replaced single 'date' field with 4 new fields for better granularity
+// 🆕 UPDATED: Separate start/end date & time fields + Venue relationship
+// Summary:
+//  - Replaced single 'date' with startDate, startTime, endDate, endTime
+//  - Added Venue relationship (@ManyToOne) with helper getters
+//  - Kept all utility methods (isOngoing/isUpcoming/hasEnded/etc.)
 // ================================================================
 
 package com.eventzen.entity;
@@ -12,9 +15,12 @@ import java.time.LocalTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -33,14 +39,14 @@ public class Event {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    // 🆕 NEW: Separate date/time fields for start
+    // 🆕 Separate date/time fields for start
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime;
 
-    // 🆕 NEW: Separate date/time fields for end
+    // 🆕 Separate date/time fields for end
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
@@ -81,6 +87,11 @@ public class Event {
 
     @Column(name = "private_code", length = 100)
     private String privateCode;
+
+    // 🆕 NEW: Venue relationship (many events can reference one venue)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "venue_id")
+    private Venue venue;
 
     // Automatically set timestamps
     @PrePersist
@@ -123,14 +134,14 @@ public class Event {
     public String getDescription() { return description; }
     public void setDescription(String description) { this.description = description; }
 
-    // 🆕 NEW: Start date/time getters/setters
+    // Start date/time
     public LocalDate getStartDate() { return startDate; }
     public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
 
     public LocalTime getStartTime() { return startTime; }
     public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
 
-    // 🆕 NEW: End date/time getters/setters
+    // End date/time
     public LocalDate getEndDate() { return endDate; }
     public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
 
@@ -176,6 +187,19 @@ public class Event {
     public String getPrivateCode() { return privateCode; }
     public void setPrivateCode(String privateCode) { this.privateCode = privateCode; }
 
+    // 🆕 Venue getters/setters
+    public Venue getVenue() { return venue; }
+    public void setVenue(Venue venue) { this.venue = venue; }
+
+    // Helper methods to expose venue info without loading it unnecessarily
+    public Long getVenueId() {
+        return venue != null ? venue.getId() : null;
+    }
+
+    public String getVenueName() {
+        return venue != null ? venue.getName() : null;
+    }
+
     // Utility methods
     public boolean isPrivate() {
         return "PRIVATE".equalsIgnoreCase(this.eventType);
@@ -195,7 +219,7 @@ public class Event {
         return Math.max(0, maxAttendees - (currentAttendees != null ? currentAttendees : 0));
     }
 
-    // 🆕 NEW: Get combined location string (backward compatibility)
+    // Combined location string (backward compatibility)
     public String getLocation() {
         StringBuilder location = new StringBuilder();
         if (address != null && !address.trim().isEmpty()) {
@@ -212,7 +236,7 @@ public class Event {
         return location.toString();
     }
 
-    // 🆕 NEW: Parse combined location (backward compatibility)
+    // Parse combined location back into fields
     public void setLocation(String location) {
         if (location != null) {
             String[] parts = location.split(", ");
@@ -229,7 +253,7 @@ public class Event {
         }
     }
 
-    // 🆕 NEW: Check if event is currently happening
+    // Time checks
     public boolean isOngoing() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime start = LocalDateTime.of(startDate, startTime);
@@ -237,17 +261,38 @@ public class Event {
         return now.isAfter(start) && now.isBefore(end);
     }
 
-    // 🆕 NEW: Check if event is upcoming
     public boolean isUpcoming() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime start = LocalDateTime.of(startDate, startTime);
         return start.isAfter(now);
     }
 
-    // 🆕 NEW: Check if event has ended
     public boolean hasEnded() {
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime end = LocalDateTime.of(endDate, endTime);
         return end.isBefore(now);
+    }
+
+    // Optionally override toString() for debugging (omit lazy-loaded venue details to avoid fetching)
+    @Override
+    public String toString() {
+        return "Event{" +
+                "id=" + id +
+                ", title='" + title + '\'' +
+                ", startDate=" + startDate +
+                ", startTime=" + startTime +
+                ", endDate=" + endDate +
+                ", endTime=" + endTime +
+                ", city='" + city + '\'' +
+                ", address='" + address + '\'' +
+                ", maxAttendees=" + maxAttendees +
+                ", currentAttendees=" + currentAttendees +
+                ", isActive=" + isActive +
+                ", organizerId=" + organizerId +
+                ", category='" + category + '\'' +
+                ", imageUrl='" + imageUrl + '\'' +
+                ", eventType='" + eventType + '\'' +
+                ", venueId=" + (venue != null ? venue.getId() : null) +
+                '}';
     }
 }

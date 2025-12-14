@@ -1,0 +1,161 @@
+/* ================================================================
+   FILE 2: src/styles/Admin Dashboard/Conflicts.css
+   ================================================================ */
+
+.conflicts-container {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.conflicts-header {
+  margin-bottom: 32px;
+}
+
+.btn-back {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: white;
+  border: 2px solid #667eea;
+  color: #667eea;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+}
+
+.btn-back:hover {
+  background: #667eea;
+  color: white;
+}
+
+.header-info h1 {
+  font-size: 28px;
+  margin: 0 0 4px 0;
+}
+
+.header-info p {
+  color: #7f8c8d;
+  margin: 0;
+}
+
+.no-conflicts {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+}
+
+.icon-success {
+  color: #10b981;
+}
+
+.no-conflicts h2 {
+  margin: 16px 0 8px 0;
+}
+
+.conflicts-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 24px;
+  background: #fee2e2;
+  border: 2px solid #ef4444;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  color: #991b1b;
+  font-weight: 600;
+}
+
+.conflict-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.conflict-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.icon-warning {
+  color: #f59e0b;
+}
+
+.conflict-events {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 24px;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.conflict-event {
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.event-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #667eea;
+  color: white;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.conflict-event h4 {
+  margin: 0 0 12px 0;
+  color: #2c3e50;
+}
+
+.event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #7f8c8d;
+  font-size: 14px;
+}
+
+.conflict-vs {
+  font-size: 20px;
+  font-weight: 700;
+  color: #ef4444;
+}
+
+.conflict-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.btn-view {
+  padding: 10px 20px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-view:hover {
+  background: #764ba2;
+}
