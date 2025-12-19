@@ -1,6 +1,6 @@
 // ================================================================
-// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/entity/Venue.java
-// 🆕 NEW: Venue entity for venue management
+// FILE: Venue.java (FIXED VERSION)
+// Location: D:\EventZen-backend\eventzen\src\main\java\com\eventzen\entity\Venue.java
 // ================================================================
 
 package com.eventzen.entity;
@@ -41,6 +41,13 @@ public class Venue {
     @Column(length = 100)
     private String state;
 
+    // 🆕 ADDED: Missing fields
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(columnDefinition = "TEXT")
+    private String amenities;
+
     @Column(name = "capacity")
     private Integer capacity = 0;
 
@@ -67,8 +74,10 @@ public class Venue {
     // Automatically set timestamps
     @PrePersist
     protected void onCreate() {
-        if (this.capacity == null) this.capacity = 0;
-        if (this.isActive == null) this.isActive = true;
+        if (this.capacity == null)
+            this.capacity = 0;
+        if (this.isActive == null)
+            this.isActive = true;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -79,7 +88,8 @@ public class Venue {
     }
 
     // Constructors
-    public Venue() {}
+    public Venue() {
+    }
 
     public Venue(String name, String address, String city, String state, Integer capacity) {
         this.name = name;
@@ -90,41 +100,119 @@ public class Venue {
     }
 
     // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getName() { return name; }
-    public void setName(String name) { this.name = name; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
+    public String getName() {
+        return name;
+    }
 
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
+    public void setName(String name) {
+        this.name = name;
+    }
 
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
+    public String getAddress() {
+        return address;
+    }
 
-    public Integer getCapacity() { return capacity; }
-    public void setCapacity(Integer capacity) { this.capacity = capacity; }
+    public void setAddress(String address) {
+        this.address = address;
+    }
 
-    public String getMapData() { return mapData; }
-    public void setMapData(String mapData) { this.mapData = mapData; }
+    public String getCity() {
+        return city;
+    }
 
-    public String getUnavailableDates() { return unavailableDates; }
-    public void setUnavailableDates(String unavailableDates) { this.unavailableDates = unavailableDates; }
+    public void setCity(String city) {
+        this.city = city;
+    }
 
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public String getState() {
+        return state;
+    }
 
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    public void setState(String state) {
+        this.state = state;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    // 🆕 NEW: Description getter/setter
+    public String getDescription() {
+        return description;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    // 🆕 NEW: Amenities getter/setter
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
+    }
+
+    public Integer getCapacity() {
+        return capacity;
+    }
+
+    public void setCapacity(Integer capacity) {
+        this.capacity = capacity;
+    }
+
+    public String getMapData() {
+        return mapData;
+    }
+
+    public void setMapData(String mapData) {
+        this.mapData = mapData;
+    }
+
+    public String getUnavailableDates() {
+        return unavailableDates;
+    }
+
+    public void setUnavailableDates(String unavailableDates) {
+        this.unavailableDates = unavailableDates;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
 
     // Utility methods for JSON handling
     private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -134,7 +222,8 @@ public class Venue {
             return List.of();
         }
         try {
-            return objectMapper.readValue(unavailableDates, new TypeReference<List<String>>() {});
+            return objectMapper.readValue(unavailableDates, new TypeReference<List<String>>() {
+            });
         } catch (JsonProcessingException e) {
             return List.of();
         }
@@ -155,11 +244,13 @@ public class Venue {
             location.append(address);
         }
         if (city != null && !city.trim().isEmpty()) {
-            if (location.length() > 0) location.append(", ");
+            if (location.length() > 0)
+                location.append(", ");
             location.append(city);
         }
         if (state != null && !state.trim().isEmpty()) {
-            if (location.length() > 0) location.append(", ");
+            if (location.length() > 0)
+                location.append(", ");
             location.append(state);
         }
         return location.toString();
@@ -177,11 +268,3 @@ public class Venue {
                 '}';
     }
 }
-
-// ================================================================
-// USAGE NOTES:
-// - mapData: Store as JSON string (e.g., SVG paths, coordinates)
-// - unavailableDates: Store as JSON array of date strings
-// - Use getUnavailableDatesList() to parse JSON into List<String>
-// - Use setUnavailableDatesList() to convert List to JSON
-// ================================================================

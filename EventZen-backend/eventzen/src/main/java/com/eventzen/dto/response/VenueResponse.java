@@ -1,10 +1,12 @@
 // ================================================================
-// FILE 3: VenueResponse.java
+// FILE: VenueResponse.java (FIXED VERSION)
+// Location: D:\EventZen-backend\eventzen\src\main\java\com\eventzen\dto\response\VenueResponse.java
 // ================================================================
 package com.eventzen.dto.response;
 
 import java.time.LocalDateTime;
 import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 public class VenueResponse {
@@ -13,6 +15,12 @@ public class VenueResponse {
     private String address;
     private String city;
     private String state;
+
+    // 🆕 ADDED: Missing fields
+    private String location; // Full location string (address + city + state)
+    private String description; // Venue description
+    private String amenities; // Venue amenities (comma-separated)
+
     private Integer capacity;
     private String mapData;
     private List<String> unavailableDates;
@@ -25,6 +33,10 @@ public class VenueResponse {
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
+
+    // Constructors
+    public VenueResponse() {
+    }
 
     // Getters and Setters
     public Long getId() {
@@ -65,6 +77,33 @@ public class VenueResponse {
 
     public void setState(String state) {
         this.state = state;
+    }
+
+    // 🆕 NEW: Location getter/setter
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    // 🆕 NEW: Description getter/setter
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    // 🆕 NEW: Amenities getter/setter
+    public String getAmenities() {
+        return amenities;
+    }
+
+    public void setAmenities(String amenities) {
+        this.amenities = amenities;
     }
 
     public Integer getCapacity() {
@@ -129,5 +168,16 @@ public class VenueResponse {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "VenueResponse{" +
+                "id=" + id +
+                ", name='" + name + '\'' +
+                ", location='" + location + '\'' +
+                ", capacity=" + capacity +
+                ", isActive=" + isActive +
+                '}';
     }
 }

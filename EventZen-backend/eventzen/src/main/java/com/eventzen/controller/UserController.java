@@ -28,18 +28,16 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    /**
-     * Get current user's profile (for organizer dashboard)
-     */
     @GetMapping("/profile")
-    @PreAuthorize("hasAnyAuthority('ORGANIZER', 'VISITOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'VISITOR', 'ADMIN')")  // ✅ FIXED: Changed to hasAnyRole
     public ResponseEntity<UserProfileResponse> getCurrentUserProfile() {
         try {
             System.out.println("Fetching current user profile");
 
-            // Get current user from JWT
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
+            
+            System.out.println("🔍 User authorities: " + authentication.getAuthorities());
 
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new Exception("User not found"));
@@ -48,7 +46,7 @@ public class UserController {
                     user.getId(),
                     user.getName(),
                     user.getEmail(),
-                    user.getRole().name(), // Convert enum to String
+                    user.getRole().name(),
                     user.getMobileNumber(),
                     user.getImageUrl());
 
@@ -59,23 +57,18 @@ public class UserController {
         }
     }
 
-    /**
-     * Update current user's profile
-     */
     @PutMapping("/profile")
-    @PreAuthorize("hasAnyAuthority('ORGANIZER', 'VISITOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'VISITOR', 'ADMIN')")  // ✅ FIXED
     public ResponseEntity<UserProfileResponse> updateProfile(@RequestBody UpdateProfileRequest request) {
         try {
             System.out.println("Updating user profile");
 
-            // Get current user from JWT
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
 
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new Exception("User not found"));
 
-            // Update allowed fields (don't allow email or role change)
             if (request.getName() != null && !request.getName().trim().isEmpty()) {
                 user.setName(request.getName().trim());
             }
@@ -85,7 +78,6 @@ public class UserController {
             }
 
             if (request.getProfileImage() != null) {
-                // Handle image URL safely - same logic as registration
                 String imageUrl = request.getProfileImage();
                 if (imageUrl.length() > 1000) {
                     System.out.println("⚠️ Image URL too long, skipping update");
@@ -100,7 +92,7 @@ public class UserController {
                     updatedUser.getId(),
                     updatedUser.getName(),
                     updatedUser.getEmail(),
-                    updatedUser.getRole().name(), // Convert enum to String
+                    updatedUser.getRole().name(),
                     updatedUser.getMobileNumber(),
                     updatedUser.getImageUrl());
 
@@ -112,17 +104,12 @@ public class UserController {
         }
     }
 
-    /**
-     * Update current user's password
-     * 🆕 NEW ENDPOINT for password change
-     */
     @PutMapping("/password")
-    @PreAuthorize("hasAnyAuthority('ORGANIZER', 'VISITOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'VISITOR', 'ADMIN')")  // ✅ FIXED
     public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordRequest request) {
         try {
             System.out.println("🔐 Password change request received");
 
-            // Validate request
             if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("Current password is required");
             }
@@ -135,20 +122,17 @@ public class UserController {
                 return ResponseEntity.badRequest().body("New password must be at least 6 characters");
             }
 
-            // Get current user from JWT
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
 
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new Exception("User not found"));
 
-            // Verify current password
             if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
                 System.out.println("❌ Current password does not match");
                 return ResponseEntity.badRequest().body("Current password is incorrect");
             }
 
-            // Update password
             user.setPassword(passwordEncoder.encode(request.getNewPassword()));
             userRepository.save(user);
 

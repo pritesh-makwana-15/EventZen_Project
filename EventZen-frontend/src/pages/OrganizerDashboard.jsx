@@ -4,10 +4,12 @@ import API from "../services/api";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
 // import OrganizerCalendarPage from "./organizer/OrganizerCalendarPage";
 import OrganizerCalendarPage from "./OrganizerCalendarPage";
+import { getActiveVenues } from "../services/api";
+
 import {
   Calendar,
   Users,
-  User,
+  User, 
   UserPlus,
   LogOut,
   Trash2,
@@ -16,10 +18,9 @@ import {
   Save,
   Loader,
   Eye,
-  Filter,
+  
   RotateCcw,
-  Upload,
-  CircleX,
+  
   ChartBarStacked,
   ImagePlus,
   Menu,
@@ -27,7 +28,7 @@ import {
   MapPin,
   CalendarDays,
   TrendingUp,
-  Award
+  
 } from "lucide-react";
 
 // 🆕 Import Analytics Components
@@ -37,12 +38,17 @@ import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer, LineChart, L
 import {
   formatDateDDMMYYYY,
   formatTimeAMPM,
-  formatDateTimeAMPM,
+  
   validateDateTime,
   getTomorrowDate,
-  isUpcomingEvent,
+  
   parseLocation
 } from "../utils/dateTime";
+
+import ViewRegistrations from "../pages/organizer/ViewRegistrations";
+import TicketPreviewModal from "../components/organizer/TicketPreviewModal";
+import VenueMapPreview from "../components/organizer/VenueMapPreview";
+import {  Download, FileText } from "lucide-react";
 
 // ============ Toast Notification Component ============
 function Toast({ message, type, onClose }) {
@@ -312,7 +318,11 @@ function AnalyticsDashboard({ organizerId }) {
 }
 
 // ============ MyEvents Component ============
-function MyEvents({ onEditEvent }) {
+function MyEvents({ onEditEvent, 
+  setShowRegistrations, 
+  setShowTicketPreview, 
+  handleExportCSV,
+setShowVenueMap  }) {
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   
@@ -624,6 +634,39 @@ function MyEvents({ onEditEvent }) {
                       </td>
                       <td>
                         <div className="org-action-buttons">
+                          {/* ADD these buttons in the <td> with className="org-action-buttons" */}
+                          <button 
+                            className="org-action-btn org-btn-view"
+                            onClick={() => setShowRegistrations(event)}
+                          >
+                            <Users size={14} />
+                            Registrations
+                          </button>
+
+                          <button 
+                            className="org-action-btn org-btn-export"
+                            onClick={() => handleExportCSV(event.id, event.title)}
+                          >
+                            <Download size={14} />
+                            Export CSV
+                          </button>
+
+                          <button 
+                            className="org-action-btn org-btn-ticket"
+                            onClick={() => setShowTicketPreview(event)}
+                          >
+                            <FileText size={14} />
+                            Preview
+                          </button>
+                          <button
+                            className="org-action-btn org-btn-map"
+                            onClick={() => setShowVenueMap(event.venueId || event.id)}  // ✅ FIXED
+                            disabled={!event.venueId}  // Disable if no venue
+                            title={!event.venueId ? "No venue assigned" : "View venue map"}
+                          >
+                            <MapPin size={14} />
+                            Venue Map
+                          </button>
                           {isUpcoming ? (
                             <>
                               <button 
@@ -853,6 +896,9 @@ function MyEvents({ onEditEvent }) {
 
 // ============ CreateEventForm Component ============
 function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
+  const [venues, setVenues] = useState([]);           // ← Move here
+  const [selectedVenue, setSelectedVenue] = useState(null);  // ← Move here
+  const [venueLoading, setVenueLoading] = useState(false);   // ← Move here
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -867,7 +913,8 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
     imageUrl: "",
     maxAttendees: "",
     eventType: "PUBLIC",
-    privateCode: ""
+    privateCode: "",
+    venueId: null  // ✅ ADD THIS LINE
   });
 
   const [loading, setLoading] = useState(false);
@@ -936,6 +983,54 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       }
     }
   }, [editingEvent]);
+
+  // ADD THIS NEW useEffect:
+  useEffect(() => {
+    fetchVenues();  // ← Fetch venues when component loads
+  }, []);
+
+  const fetchVenues = async () => {
+    try {
+      setVenueLoading(true);
+      const response = await getActiveVenues();
+      setVenues(response);
+    } catch (err) {
+      console.error("Error fetching venues:", err);
+      setError("Failed to load venues");
+    } finally {
+      setVenueLoading(false);
+    }
+  };
+
+  const handleVenueSelect = (venueId) => {
+  if (!venueId) {
+    setSelectedVenue(null);
+    setFormData(prev => ({
+      ...prev,
+      venueId: null,
+      address: "",
+      city: "",
+      state: ""
+    }));
+    return;
+  }
+
+  const venue = venues.find(v => v.id === parseInt(venueId));
+  if (venue) {
+    setSelectedVenue(venue);
+    
+    // Parse location: "address, city, state"
+    const locationParts = venue.location?.split(", ") || [];
+    
+    setFormData(prev => ({
+      ...prev,
+      venueId: venue.id,
+      address: locationParts[0] || venue.address || "",
+      city: venue.city || locationParts[locationParts.length - 2] || "",
+      state: venue.state || locationParts[locationParts.length - 1] || ""
+    }));
+  }
+};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1098,12 +1193,15 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
         endDate: formData.endDate,
         startTime: formData.startTime,
         endTime: formData.endTime,
-        location: location,
+        state: formData.state,        // ✅ ADD
+        city: formData.city,          // ✅ ADD
+        address: formData.address,    // ✅ ADD
         category: formData.category,
         imageUrl: formData.imageUrl || defaultImages[formData.category] || defaultImages["Other"],
         maxAttendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : null,
         eventType: formData.eventType,
-        privateCode: formData.eventType === "PRIVATE" ? formData.privateCode : null
+        privateCode: formData.eventType === "PRIVATE" ? formData.privateCode : null,
+        venueId: formData.venueId || null  // ✅ ADD THIS LINE
       };
 
       if (editingEvent) {
@@ -1221,6 +1319,46 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
           {fieldErrors.description && (
             <span className="org-error-message" role="alert">{fieldErrors.description}</span>
           )}
+        </div>
+
+        {/* 🆕 VENUE SELECTION - ADD THIS SECTION */}
+        <div className="org-form-group">
+          <label className="org-form-label">
+            Select Venue (Optional)
+            {venueLoading && <span className="org-loading-inline"> Loading...</span>}
+          </label>
+          
+          <select
+            name="venueId"
+            value={formData.venueId || ""}
+            onChange={(e) => handleVenueSelect(e.target.value)}
+            className="org-form-input"
+            disabled={venueLoading}
+            aria-label="Select venue"
+          >
+            <option value="">No Venue (Enter address manually)</option>
+            {venues.map((venue) => (
+              <option key={venue.id} value={venue.id}>
+                {venue.name} - {venue.location} (Capacity: {venue.capacity})
+              </option>
+            ))}
+          </select>
+          
+          {selectedVenue && (
+            <div className="org-venue-info-preview">
+              <p className="org-venue-info-title">✓ Selected Venue Details:</p>
+              <p><strong>Name:</strong> {selectedVenue.name}</p>
+              <p><strong>Location:</strong> {selectedVenue.location}</p>
+              <p><strong>Capacity:</strong> {selectedVenue.capacity} people</p>
+              {selectedVenue.amenities && (
+                <p><strong>Amenities:</strong> {selectedVenue.amenities}</p>
+              )}
+            </div>
+          )}
+          
+          <small className="org-form-hint">
+            Select a venue to auto-fill address details, or leave empty to enter manually
+          </small>
         </div>
 
         <div className="org-form-group">
@@ -1764,6 +1902,10 @@ export default function OrganizerDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false); // 🆕 Mobile menu state
   const [organizerId, setOrganizerId] = useState(null); // 🆕 For analytics
 
+  const [showRegistrations, setShowRegistrations] = useState(null);
+  const [showTicketPreview, setShowTicketPreview] = useState(null);
+  const [showVenueMap, setShowVenueMap] = useState(null);
+
   // 🆕 Get organizer ID from localStorage or API
   useEffect(() => {
     const fetchOrganizerId = async () => {
@@ -1814,6 +1956,26 @@ export default function OrganizerDashboard() {
     setActivePage(page);
     setEditingEvent(null);
     setMobileMenuOpen(false);
+  };
+
+  const handleExportCSV = async (eventId, eventTitle) => {
+    try {
+      const response = await API.get(
+        `/organizer/events/${eventId}/export?format=csv`,
+        { responseType: "blob" }
+      );
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `${eventTitle}_registrations.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+      setToast({ message: "Failed to export CSV", type: "error" });
+    }
   };
 
   return (
@@ -1920,7 +2082,13 @@ export default function OrganizerDashboard() {
 
       <main className="org-dashboard-main" role="main">
         {activePage === "myEvents" && (
-          <MyEvents onEditEvent={handleEditEvent} />
+          <MyEvents
+            onEditEvent={handleEditEvent}
+            setShowRegistrations={setShowRegistrations}
+            setShowTicketPreview={setShowTicketPreview}
+            handleExportCSV={handleExportCSV}
+            setShowVenueMap={setShowVenueMap}  
+          />
         )}
         
         {activePage === "createEvent" && (
@@ -1946,6 +2114,32 @@ export default function OrganizerDashboard() {
           />
         )}
       </main>
+
+      {/* ================= MODALS ================= */}
+
+      {showRegistrations && (
+        <ViewRegistrations
+          eventId={showRegistrations.id}
+          eventTitle={showRegistrations.title}
+          onClose={() => setShowRegistrations(null)}
+        />
+      )}
+
+      {showTicketPreview && (
+        <TicketPreviewModal
+          eventId={showTicketPreview.id}
+          eventTitle={showTicketPreview.title}
+          onClose={() => setShowTicketPreview(null)}
+        />
+      )}
+
+      {showVenueMap && (
+        <VenueMapPreview
+          venueId={showVenueMap}
+          onClose={() => setShowVenueMap(null)}
+        />
+      )}
+
     </div>
   );
 }

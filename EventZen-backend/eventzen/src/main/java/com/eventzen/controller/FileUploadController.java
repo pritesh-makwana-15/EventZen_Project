@@ -1,8 +1,3 @@
-// ================================================================
-// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/controller/FileUploadController.java
-// CHANGES: FIXED - Returns FULL URL with base path for image display
-// ================================================================
-
 package com.eventzen.controller;
 
 import java.io.IOException;
@@ -31,48 +26,34 @@ public class FileUploadController {
     @Value("${file.upload-dir:uploads}")
     private String uploadDir;
 
-    /**
-     * Upload file (images) for events and profiles
-     * Endpoint: POST /api/uploads
-     * Content-Type: multipart/form-data
-     * 
-     * FIXED: Now returns FULL URL (http://localhost:8080/uploads/...)
-     * so images display correctly in frontend
-     */
     @PostMapping
-    @PreAuthorize("hasAnyAuthority('ORGANIZER', 'VISITOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'VISITOR', 'ADMIN')") // ✅ FIXED
     public ResponseEntity<?> uploadFile(
             @RequestParam("file") MultipartFile file,
             HttpServletRequest request) {
         try {
-            // Validate file exists
             if (file.isEmpty()) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "Please select a file to upload"));
             }
 
-            // Validate file type (images only)
             String contentType = file.getContentType();
             if (contentType == null || !contentType.startsWith("image/")) {
                 return ResponseEntity.badRequest()
-                        .body(Map.of("error", "Only image files are allowed (JPEG, PNG, GIF, WebP)"));
+                        .body(Map.of("error", "Only image files are allowed"));
             }
 
-            // Validate file size (5MB max)
-            long maxSize = 5 * 1024 * 1024; // 5MB
+            long maxSize = 5 * 1024 * 1024;
             if (file.getSize() > maxSize) {
                 return ResponseEntity.badRequest()
                         .body(Map.of("error", "File size must be less than 5MB"));
             }
 
-            // Create upload directory if it doesn't exist
             Path uploadPath = Paths.get(uploadDir);
             if (!Files.exists(uploadPath)) {
                 Files.createDirectories(uploadPath);
-                System.out.println("✅ Created upload directory: " + uploadPath.toAbsolutePath());
             }
 
-            // Generate unique filename to prevent collisions
             String originalFilename = file.getOriginalFilename();
             String fileExtension = "";
             if (originalFilename != null && originalFilename.contains(".")) {
@@ -80,33 +61,24 @@ public class FileUploadController {
             }
             String uniqueFilename = UUID.randomUUID().toString() + fileExtension;
 
-            // Save file to disk
             Path filePath = uploadPath.resolve(uniqueFilename);
             Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
 
-            // ✅ FIXED: Build FULL URL with protocol, host, and port
-            String scheme = request.getScheme(); // http or https
-            String serverName = request.getServerName(); // localhost
-            int serverPort = request.getServerPort(); // 8080
-            String contextPath = request.getContextPath(); // empty or /api
+            String scheme = request.getScheme();
+            String serverName = request.getServerName();
+            int serverPort = request.getServerPort();
+            String contextPath = request.getContextPath();
 
-            // Build base URL
             String baseUrl = scheme + "://" + serverName;
-            if ((scheme.equals("http") && serverPort != 80) || 
-                (scheme.equals("https") && serverPort != 443)) {
+            if ((scheme.equals("http") && serverPort != 80) ||
+                    (scheme.equals("https") && serverPort != 443)) {
                 baseUrl += ":" + serverPort;
             }
             baseUrl += contextPath;
 
-            // Full accessible URL
             String fileUrl = baseUrl + "/uploads/" + uniqueFilename;
 
-            System.out.println("✅ File uploaded successfully:");
-            System.out.println("   Original: " + originalFilename);
-            System.out.println("   Saved as: " + uniqueFilename);
-            System.out.println("   Size: " + file.getSize() + " bytes");
-            System.out.println("   Full URL: " + fileUrl);
-            System.out.println("   File Path: " + filePath.toAbsolutePath());
+            System.out.println("✅ File uploaded: " + fileUrl);
 
             return ResponseEntity.ok(Map.of(
                     "url", fileUrl,
@@ -115,15 +87,8 @@ public class FileUploadController {
 
         } catch (IOException e) {
             System.err.println("❌ Error uploading file: " + e.getMessage());
-            e.printStackTrace();
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Failed to upload file: " + e.getMessage()));
-
-        } catch (Exception e) {
-            System.err.println("❌ Unexpected error: " + e.getMessage());
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "An unexpected error occurred"));
+                    .body(Map.of("error", "Failed to upload file"));
         }
     }
 }

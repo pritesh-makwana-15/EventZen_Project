@@ -37,8 +37,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = jwtService.getRoleFromToken(token);
 
                 if (email != null && role != null) {
-                    // ✅ CRITICAL FIX: Add "ROLE_" prefix for Spring Security
-                    // Token has "ADMIN" → Spring Security needs "ROLE_ADMIN"
+                    // ✅ FIX: Add "ROLE_" prefix to match Spring Security convention
+                    // Token has "ORGANIZER" → Authority becomes "ROLE_ORGANIZER"
                     GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
 
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
@@ -47,30 +47,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-                    // 🔍 Debug log
                     System.out.println("✅ Authenticated: " + email + " with authority: ROLE_" + role);
                 }
             }
         } catch (Exception ex) {
-            // Just log & continue — don't block request on token failure
             System.out.println("❌ JWT filter error: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);
     }
 
-    /**
-     * Skip authentication for public endpoints (register/login).
-     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         return path.startsWith("/api/auth/");
     }
 
-    /**
-     * Extract Bearer token from Authorization header.
-     */
     private String parseJwt(HttpServletRequest request) {
         String headerAuth = request.getHeader("Authorization");
         if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
