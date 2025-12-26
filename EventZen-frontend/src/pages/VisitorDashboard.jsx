@@ -9,6 +9,12 @@ import { useNavigate } from "react-router-dom";
 import "../styles/Visitor page styling/VisitorDashboard.css";
 import API from "../services/api";
 import { registerForEvent, getMyRegistrations, cancelRegistration } from "../services/registrations";
+import { 
+  getMyRegistrations as getVisitorRegistrations,
+  setReminder,
+  getMyReminders,
+  deleteReminder
+} from "../services/visitorService";
 import {
   Calendar,
   Users,
@@ -31,7 +37,13 @@ import {
   Trash2,
   ChevronLeft,  // 🆕 NEW
   ChevronRight, // 🆕 NEW
-  Loader        // 🆕 NEW  
+  Loader,        // 🆕 NEW  ,
+  Download,     // For ticket download
+  Bell,         // For reminder
+  BellOff,      // For remove reminder
+  MessageSquare, // For feedback
+  MapIcon,      // For venue map
+  Star          // For rating display
 } from "lucide-react";
 
 // Import date/time utilities for AM/PM formatting
@@ -46,6 +58,12 @@ import FullCalendar from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
+
+import TicketDownloadButton from "../components/Visitor dashboard/TicketDownloadButton";
+import FeedbackForm from "../components/Visitor dashboard/FeedbackForm";
+import VenueMapViewer from "../components/Visitor dashboard/VenueMapViewer";
+import CountdownTimer from "../components/Visitor dashboard/CountdownTimer";
+
 
 export default function VisitorDashboard() {
   const navigate = useNavigate();
@@ -111,6 +129,19 @@ export default function VisitorDashboard() {
     currentPassword: "",
     newPassword: ""
   });
+
+  // 🆕 NEW: Feedback modal state
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackEvent, setFeedbackEvent] = useState(null);
+
+  // 🆕 NEW: Venue map modal state
+  const [showVenueModal, setShowVenueModal] = useState(false);
+  const [selectedVenueId, setSelectedVenueId] = useState(null);
+
+  // 🆕 NEW: Reminders state
+  const [reminders, setReminders] = useState(new Set()); // Set of eventIds with reminders
+  const [reminderLoading, setReminderLoading] = useState({});
+
 
   const calendarRef = useRef(null);
   const [calendarEvents, setCalendarEvents] = useState([]);
@@ -195,7 +226,7 @@ export default function VisitorDashboard() {
     if (activePage === "events") {
       loadAllEvents();
     } else if (activePage === "registrations") {
-      loadMyRegistrations();
+      loadMyRegistrationsUpdated();
     }
   }, [activePage]);
 
@@ -310,6 +341,136 @@ export default function VisitorDashboard() {
       setLoading(false);
     }
   };
+
+  // ================================================================
+// FILE: src/pages/VisitorDashboard.jsx - UPDATES PART 2
+// ADD these handler functions after loadMyRegistrations() around line 280
+// ================================================================
+
+// 🆕 NEW: Load reminders when registrations load
+useEffect(() => {
+  if (activePage === "registrations" && userId) {
+    loadReminders();
+  }
+}, [activePage, userId]);
+
+// 🆕 NEW: Load user's reminders
+const loadReminders = async () => {
+  try {
+    const response = await getMyReminders();
+    const reminderEventIds = new Set(response.map(r => r.eventId));
+    setReminders(reminderEventIds);
+  } catch (err) {
+    console.error("Error loading reminders:", err);
+  }
+};
+
+// 🆕 NEW: Handle reminder toggle
+const handleReminderToggle = async (eventId) => {
+  try {
+    setReminderLoading(prev => ({ ...prev, [eventId]: true }));
+
+    if (reminders.has(eventId)) {
+      // Remove reminder
+      const response = await getMyReminders();
+      const reminder = response.find(r => r.eventId === eventId);
+      if (reminder) {
+        await deleteReminder(reminder.id);
+        setReminders(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(eventId);
+          return newSet;
+        });
+        setSuccess("Reminder removed");
+      }
+    } else {
+      // Add reminder
+      await setReminder(eventId);
+      setReminders(prev => new Set([...prev, eventId]));
+      setSuccess("Reminder set! You'll receive an email 1 day before the event");
+    }
+
+    setTimeout(() => setSuccess(""), 3000);
+  } catch (err) {
+    console.error("Error toggling reminder:", err);
+    setError(err.response?.data?.error || "Failed to update reminder");
+    setTimeout(() => setError(""), 3000);
+  } finally {
+    setReminderLoading(prev => ({ ...prev, [eventId]: false }));
+  }
+};
+
+// 🆕 NEW: Handle feedback modal open
+const handleOpenFeedbackModal = (event) => {
+  setFeedbackEvent(event);
+  setShowFeedbackModal(true);
+};
+
+// 🆕 NEW: Handle feedback modal close
+const handleCloseFeedbackModal = () => {
+  setShowFeedbackModal(false);
+  setFeedbackEvent(null);
+};
+
+// 🆕 NEW: Handle feedback success
+const handleFeedbackSuccess = (message) => {
+  setSuccess(message);
+  setTimeout(() => setSuccess(""), 3000);
+  handleCloseFeedbackModal();
+};
+
+// 🆕 NEW: Handle venue map open
+const handleOpenVenueMap = (venueId) => {
+  setSelectedVenueId(venueId);
+  setShowVenueModal(true);
+};
+
+// 🆕 NEW: Handle venue map close
+const handleCloseVenueMap = () => {
+  setShowVenueModal(false);
+  setSelectedVenueId(null);
+};
+
+// 🆕 NEW: Check if event has ended (for feedback)
+const hasEventEnded = (event) => {
+  if (!event.endDate || !event.endTime) return false;
+  const eventEnd = new Date(`${event.endDate}T${event.endTime}`);
+  return eventEnd < new Date();
+};
+
+// 🆕 NEW: Update loadMyRegistrations to use visitor service
+const loadMyRegistrationsUpdated = async () => {
+  try {
+    setLoading(true);
+
+    // Use visitor service instead of old method
+    const registrations = await getVisitorRegistrations();
+
+    const registrationsWithEvents = await Promise.all(
+      registrations.map(async (reg) => {
+        try {
+          const eventResponse = await API.get(`/events/${reg.eventId}`);
+          return {
+            ...reg,
+            event: eventResponse.data,
+            ticketId: reg.ticketId, // From backend response
+            hasTicket: reg.hasTicket // From backend response
+          };
+        } catch (err) {
+          console.error(`Error loading event ${reg.eventId}:`, err);
+          return null;
+        }
+      })
+    );
+
+    setMyRegistrations(registrationsWithEvents.filter(r => r !== null));
+  } catch (err) {
+    console.error("Error loading registrations:", err);
+    setError("Failed to load registrations");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Registration Modal Handlers
   const handleOpenRegisterModal = (event) => {
@@ -1097,6 +1258,14 @@ export default function VisitorDashboard() {
                               )}
                             </div>
                             <div className="vis-event-actions">
+                              {registeredEventIds.has(event.id) && (
+                                <CountdownTimer
+                                  eventDate={event.startDate || event.date}
+                                  eventTime={event.startTime || "00:00"}
+                                  compact
+                                />
+                              )}
+
                               {registeredEventIds.has(event.id) ? (
                                 <button className="vis-btn vis-btn-registered" disabled>
                                   <CheckCircle size={16} aria-hidden="true" />
@@ -1316,26 +1485,87 @@ export default function VisitorDashboard() {
                                     </span>
                                   </td>
                                   <td>
-                                    <div className="vis-table-actions">
+                                   <div className="vis-table-actions">
+                                    {/* View Details Button */}
+                                    <button
+                                      className="vis-btn-view"
+                                      onClick={() => setSelectedEvent(reg.event)}
+                                      aria-label={`View details for ${reg.event.title}`}
+                                      title="View Details"
+                                    >
+                                      <Eye size={14} aria-hidden="true" />
+                                      View
+                                    </button>
+
+                                    {/* 🆕 NEW: Download Ticket Button */}
+                                    {reg.hasTicket && reg.ticketId && (
+                                      <TicketDownloadButton
+                                        ticketId={reg.ticketId}
+                                        eventTitle={reg.event.title}
+                                      />
+                                    )}
+
+                                    {/* 🆕 NEW: Venue Map Button */}
+                                    {reg.event.venueId && (
                                       <button
                                         className="vis-btn-view"
-                                        onClick={() => setSelectedEvent(reg.event)}
-                                        aria-label={`View details for ${reg.event.title}`}
+                                        onClick={() => handleOpenVenueMap(reg.event.venueId)}
+                                        aria-label="View venue map"
+                                        title="View Venue Map"
                                       >
-                                        <Eye size={14} aria-hidden="true" />
-                                        View
+                                        <MapIcon size={14} aria-hidden="true" />
+                                        Map
                                       </button>
-                                      {isUpcoming && (
-                                        <button
-                                          className="vis-btn-cancel"
-                                          onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
-                                          aria-label={`Cancel registration for ${reg.event.title}`}
-                                        >
-                                          <Trash2 size={14} aria-hidden="true" />
-                                          Cancel
-                                        </button>
-                                      )}
-                                    </div>
+                                    )}
+
+                                    {/* 🆕 NEW: Feedback Button (only after event ends) */}
+                                    {hasEventEnded(reg.event) && (
+                                      <button
+                                        className="vis-btn-view"
+                                        onClick={() => handleOpenFeedbackModal(reg.event)}
+                                        aria-label="Submit feedback"
+                                        title="Submit Feedback"
+                                        style={{ background: "#10b981" }}
+                                      >
+                                        <MessageSquare size={14} aria-hidden="true" />
+                                        Feedback
+                                      </button>
+                                    )}
+
+                                    {/* 🆕 NEW: Reminder Toggle Button (only for upcoming events) */}
+                                    {isUpcoming && (
+                                      <button
+                                        className="vis-btn-view"
+                                        onClick={() => handleReminderToggle(reg.event.id)}
+                                        aria-label={reminders.has(reg.event.id) ? "Remove reminder" : "Set reminder"}
+                                        title={reminders.has(reg.event.id) ? "Remove Reminder" : "Set Reminder"}
+                                        disabled={reminderLoading[reg.event.id]}
+                                        style={{ 
+                                          background: reminders.has(reg.event.id) ? "#f59e0b" : "#667eea",
+                                          opacity: reminderLoading[reg.event.id] ? 0.6 : 1
+                                        }}
+                                      >
+                                        {reminders.has(reg.event.id) ? (
+                                          <BellOff size={14} aria-hidden="true" />
+                                        ) : (
+                                          <Bell size={14} aria-hidden="true" />
+                                        )}
+                                      </button>
+                                    )}
+
+                                    {/* Cancel Registration Button (only for upcoming events) */}
+                                    {isUpcoming && (
+                                      <button
+                                        className="vis-btn-cancel"
+                                        onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
+                                        aria-label={`Cancel registration for ${reg.event.title}`}
+                                        title="Cancel Registration"
+                                      >
+                                        <Trash2 size={14} aria-hidden="true" />
+                                        Cancel
+                                      </button>
+                                    )}
+                                  </div>
                                   </td>
                                 </tr>
                               );
@@ -1371,24 +1601,61 @@ export default function VisitorDashboard() {
                                   <p><MapPin size={14} /> {reg.event.location}</p>
                                   <p><UserCheck size={14} /> {reg.event.organizerName}</p>
                                 </div>
-                                <div className="vis-registration-card-actions">
-                                  <button
-                                    className="vis-btn vis-btn-secondary"
-                                    onClick={() => setSelectedEvent(reg.event)}
-                                  >
-                                    <Eye size={16} />
-                                    Details
-                                  </button>
-                                  {isUpcoming && (
-                                    <button
-                                      className="vis-btn vis-btn-cancel"
-                                      onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
-                                    >
-                                      <Trash2 size={16} />
-                                      Cancel
-                                    </button>
-                                  )}
-                                </div>
+                               <div className="vis-registration-card-actions">
+  <button
+    className="vis-btn vis-btn-secondary"
+    onClick={() => setSelectedEvent(reg.event)}
+  >
+    <Eye size={16} /> Details
+  </button>
+
+  {reg.hasTicket && reg.ticketId && (
+    <TicketDownloadButton
+      ticketId={reg.ticketId}
+      eventTitle={reg.event.title}
+    />
+  )}
+
+  {reg.event.venueId && (
+    <button
+      className="vis-btn vis-btn-secondary"
+      onClick={() => handleOpenVenueMap(reg.event.venueId)}
+    >
+      <MapIcon size={16} /> Map
+    </button>
+  )}
+
+  {hasEventEnded(reg.event) && (
+    <button
+      className="vis-btn vis-btn-primary-visitor"
+      style={{ background: "#10b981" }}
+      onClick={() => handleOpenFeedbackModal(reg.event)}
+    >
+      <MessageSquare size={16} /> Feedback
+    </button>
+  )}
+
+  {isUpcoming && (
+    <button
+      className="vis-btn vis-btn-secondary"
+      onClick={() => handleReminderToggle(reg.event.id)}
+      disabled={reminderLoading[reg.event.id]}
+      style={{ background: reminders.has(reg.event.id) ? "#f59e0b" : "#667eea", color: "#fff" }}
+    >
+      {reminders.has(reg.event.id) ? <BellOff size={16} /> : <Bell size={16} />}
+    </button>
+  )}
+
+  {isUpcoming && (
+    <button
+      className="vis-btn vis-btn-cancel"
+      onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
+    >
+      <Trash2 size={16} /> Cancel
+    </button>
+  )}
+</div>
+
                               </div>
                             </div>
                           );
@@ -1868,6 +2135,33 @@ export default function VisitorDashboard() {
           </div>
         </div>
       )}
+
+      {showFeedbackModal && feedbackEvent && (
+      <div 
+        className="vis-modal-visitor-overlay" 
+        onClick={handleCloseFeedbackModal}
+      >
+        <div 
+          className="vis-modal-visitor-content" 
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth: "600px" }}
+        >
+          <FeedbackForm
+            event={feedbackEvent}
+            onClose={handleCloseFeedbackModal}
+            onSuccess={handleFeedbackSuccess}
+          />
+        </div>
+      </div>
+    )}
+
+    {/* 🆕 NEW: Venue Map Modal */}
+    {showVenueModal && selectedVenueId && (
+      <VenueMapViewer
+        venueId={selectedVenueId}
+        onClose={handleCloseVenueMap}
+      />
+    )}
     </div>
   );
 }

@@ -95,6 +95,23 @@ export default function ViewRegistrations({ eventId, eventTitle, onClose }) {
               <p className="event-title">{eventTitle}</p>
             </div>
           </div>
+          <button
+            className="export-btn"
+            onClick={handleExport}
+            disabled={exporting || registrations.length === 0}
+          >
+            {exporting ? (
+              <>
+                <Loader size={16} className="spinning" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download size={16} />
+                Export CSV
+              </>
+            )}
+          </button>
           <button className="close-btn" onClick={onClose} aria-label="Close">
             <X size={20} />
           </button>
@@ -147,7 +164,7 @@ export default function ViewRegistrations({ eventId, eventTitle, onClose }) {
           </div>
         )}
 
-        {/* Export Button */}
+        {/* Export Button
         <div className="actions-bar">
           <button
             className="export-btn"
@@ -166,7 +183,7 @@ export default function ViewRegistrations({ eventId, eventTitle, onClose }) {
               </>
             )}
           </button>
-        </div>
+        </div> */}
 
         {/* Error Message */}
         {error && (

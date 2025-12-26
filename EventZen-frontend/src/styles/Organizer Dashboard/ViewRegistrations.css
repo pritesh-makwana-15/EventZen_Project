@@ -55,6 +55,7 @@
 .header-content {
   display: flex;
   align-items: center;
+  margin-right: 700px;
   gap: 16px;
 }
 
@@ -98,7 +99,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
-  padding: 24px;
+  padding: 12px;
   background: #f8f9fa;
 }
 

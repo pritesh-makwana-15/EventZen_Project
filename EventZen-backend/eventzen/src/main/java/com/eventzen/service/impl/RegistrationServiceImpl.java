@@ -18,6 +18,7 @@ import com.eventzen.repository.EventRepository;
 import com.eventzen.repository.RegistrationRepository;
 import com.eventzen.repository.UserRepository;
 import com.eventzen.service.RegistrationService;
+import com.eventzen.service.TicketService;
 
 @Service
 public class RegistrationServiceImpl implements RegistrationService {
@@ -30,6 +31,10 @@ public class RegistrationServiceImpl implements RegistrationService {
 
     @Autowired
     private EventRepository eventRepository;
+
+    // 🆕 NEW: Ticket auto-generation support
+    @Autowired
+    private TicketService ticketService;
 
     @Override
     @Transactional
@@ -55,31 +60,21 @@ public class RegistrationServiceImpl implements RegistrationService {
             throw new Exception("This event is no longer active");
         }
 
-        // Step 4: VALIDATE PRIVATE EVENT CODE (CRITICAL CHECK)
+        // Step 4: PRIVATE EVENT CODE VALIDATION
         if ("PRIVATE".equalsIgnoreCase(event.getEventType())) {
             String providedCode = request.getPrivateCode();
             String actualCode = event.getPrivateCode();
 
-            System.out.println("Private event detected!");
-            System.out.println("Provided code: '" + providedCode + "'");
-            System.out.println("Actual code: '" + actualCode + "'");
-
-            // Check if code was provided
             if (providedCode == null || providedCode.trim().isEmpty()) {
-                System.out.println("ERROR: No private code provided");
                 throw new Exception("Private code is required for this event");
             }
 
-            // Check if code matches
             if (!providedCode.trim().equals(actualCode)) {
-                System.out.println("ERROR: Private code does not match");
                 throw new Exception("Private code is not correct");
             }
-
-            System.out.println("SUCCESS: Private code validated");
         }
 
-        // Step 5: Check if already registered (exclude CANCELLED registrations)
+        // Step 5: Prevent duplicate registrations (except CANCELLED)
         boolean alreadyRegistered = registrationRepository.findByVisitor(visitor)
                 .stream()
                 .anyMatch(reg -> reg.getEvent().getId().equals(event.getId())
@@ -89,7 +84,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             throw new Exception("You are already registered for this event");
         }
 
-        // Step 6: Check capacity limit
+        // Step 6: Capacity check
         Integer maxAttendees = event.getMaxAttendees();
         Integer currentAttendees = event.getCurrentAttendees() != null
                 ? event.getCurrentAttendees()
@@ -99,22 +94,29 @@ public class RegistrationServiceImpl implements RegistrationService {
             throw new Exception("Registration closed - maximum attendees reached");
         }
 
-        // Step 7: Create registration with CONFIRMED status (use enum)
+        // Step 7: Create registration
         Registration registration = new Registration();
         registration.setVisitor(visitor);
         registration.setEvent(event);
         registration.setStatus(RegistrationStatus.CONFIRMED);
         registration.setRegisteredAt(LocalDateTime.now());
-        // createdAt/updatedAt will be handled by entity @PrePersist if configured
 
         Registration saved = registrationRepository.save(registration);
 
-        // Step 8: Increment attendee count
+        // Step 8: Update attendee count
         event.setCurrentAttendees(currentAttendees + 1);
         eventRepository.save(event);
 
+        // 🆕 Step 9: Auto-generate ticket (non-blocking)
+        try {
+            ticketService.generateTicket(saved);
+            System.out.println("Ticket generated for registration ID: " + saved.getId());
+        } catch (Exception e) {
+            System.err.println("Ticket generation failed: " + e.getMessage());
+        }
+
         System.out.println("Registration successful - Status: " + saved.getStatus()
-                + " - Attendee count: " + event.getCurrentAttendees() + "/" + maxAttendees);
+                + " - Attendees: " + event.getCurrentAttendees() + "/" + maxAttendees);
         System.out.println("=== REGISTRATION END ===");
 
         return mapToResponse(saved);
@@ -146,36 +148,26 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Transactional
     public void cancelRegistration(Long registrationId) throws Exception {
         System.out.println("=== CANCELLATION START ===");
-        System.out.println("Canceling registration ID: " + registrationId);
 
         Registration registration = registrationRepository.findById(registrationId)
                 .orElseThrow(() -> new Exception("Registration not found"));
 
-        // Check if registration is already cancelled
         if (registration.getStatus() == RegistrationStatus.CANCELLED) {
-            System.out.println("Registration already cancelled");
             throw new Exception("Registration is already cancelled");
         }
 
-        // Get event before cancellation for attendee count update
         Event event = registration.getEvent();
         Integer currentAttendees = event.getCurrentAttendees() != null
                 ? event.getCurrentAttendees()
                 : 0;
 
-        // Update status to CANCELLED (enum) and timestamp
         registration.setStatus(RegistrationStatus.CANCELLED);
         registration.setUpdatedAt(LocalDateTime.now());
         registrationRepository.save(registration);
-        System.out.println("Registration status updated to CANCELLED");
 
-        // Decrement attendee count
         if (currentAttendees > 0) {
             event.setCurrentAttendees(currentAttendees - 1);
             eventRepository.save(event);
-
-            System.out.println("Attendee count decremented: "
-                    + event.getCurrentAttendees() + "/" + event.getMaxAttendees());
         }
 
         System.out.println("=== CANCELLATION END ===");
@@ -194,8 +186,7 @@ public class RegistrationServiceImpl implements RegistrationService {
                 registration.getId(),
                 registration.getEvent().getId(),
                 registration.getVisitor().getId(),
-                registration.getStatus(), // RegistrationStatus enum
-                registration.getRegisteredAt() // Use registeredAt timestamp
-        );
+                registration.getStatus(),
+                registration.getRegisteredAt());
     }
 }
