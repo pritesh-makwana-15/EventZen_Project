@@ -15,6 +15,8 @@ import java.time.LocalTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -93,12 +95,32 @@ public class Event {
     @JoinColumn(name = "venue_id")
     private Venue venue;
 
+    /**
+     * Event approval status
+     * PENDING - Awaiting admin approval
+     * APPROVED - Approved by admin, visible to visitors
+     * REJECTED - Rejected by admin with reason
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private EventStatus status = EventStatus.PENDING;
+
+    /**
+     * Reason provided by admin when rejecting an event
+     * Only populated when status = REJECTED
+     */
+    @Column(name = "rejection_reason", columnDefinition = "TEXT")
+    private String rejectionReason;
+
     // Automatically set timestamps
     @PrePersist
     protected void onCreate() {
-        if (this.currentAttendees == null) this.currentAttendees = 0;
-        if (this.isActive == null) this.isActive = true;
-        if (this.eventType == null) this.eventType = "PUBLIC";
+        if (this.currentAttendees == null)
+            this.currentAttendees = 0;
+        if (this.isActive == null)
+            this.isActive = true;
+        if (this.eventType == null)
+            this.eventType = "PUBLIC";
         this.createdAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
@@ -109,10 +131,11 @@ public class Event {
     }
 
     // Constructors
-    public Event() {}
+    public Event() {
+    }
 
     public Event(String title, String description, LocalDate startDate, LocalTime startTime,
-                 LocalDate endDate, LocalTime endTime, String address, String category, Long organizerId) {
+            LocalDate endDate, LocalTime endTime, String address, String category, Long organizerId) {
         this.title = title;
         this.description = description;
         this.startDate = startDate;
@@ -125,71 +148,176 @@ public class Event {
     }
 
     // Getters and Setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
     // Start date/time
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public LocalDate getStartDate() {
+        return startDate;
+    }
 
-    public LocalTime getStartTime() { return startTime; }
-    public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
 
     // End date/time
-    public LocalDate getEndDate() { return endDate; }
-    public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+    public LocalDate getEndDate() {
+        return endDate;
+    }
 
-    public LocalTime getEndTime() { return endTime; }
-    public void setEndTime(LocalTime endTime) { this.endTime = endTime; }
+    public void setEndDate(LocalDate endDate) {
+        this.endDate = endDate;
+    }
 
-    public String getState() { return state; }
-    public void setState(String state) { this.state = state; }
+    public LocalTime getEndTime() {
+        return endTime;
+    }
 
-    public String getCity() { return city; }
-    public void setCity(String city) { this.city = city; }
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
+    }
 
-    public String getAddress() { return address; }
-    public void setAddress(String address) { this.address = address; }
+    public String getState() {
+        return state;
+    }
 
-    public Integer getMaxAttendees() { return maxAttendees; }
-    public void setMaxAttendees(Integer maxAttendees) { this.maxAttendees = maxAttendees; }
+    public void setState(String state) {
+        this.state = state;
+    }
 
-    public Integer getCurrentAttendees() { return currentAttendees; }
-    public void setCurrentAttendees(Integer currentAttendees) { this.currentAttendees = currentAttendees; }
+    public String getCity() {
+        return city;
+    }
 
-    public Boolean getIsActive() { return isActive; }
-    public void setIsActive(Boolean isActive) { this.isActive = isActive; }
+    public void setCity(String city) {
+        this.city = city;
+    }
 
-    public Long getOrganizerId() { return organizerId; }
-    public void setOrganizerId(Long organizerId) { this.organizerId = organizerId; }
+    public String getAddress() {
+        return address;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setAddress(String address) {
+        this.address = address;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Integer getMaxAttendees() {
+        return maxAttendees;
+    }
 
-    public String getCategory() { return category; }
-    public void setCategory(String category) { this.category = category; }
+    public void setMaxAttendees(Integer maxAttendees) {
+        this.maxAttendees = maxAttendees;
+    }
 
-    public String getImageUrl() { return imageUrl; }
-    public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
+    public Integer getCurrentAttendees() {
+        return currentAttendees;
+    }
 
-    public String getEventType() { return eventType; }
-    public void setEventType(String eventType) { this.eventType = eventType; }
+    public void setCurrentAttendees(Integer currentAttendees) {
+        this.currentAttendees = currentAttendees;
+    }
 
-    public String getPrivateCode() { return privateCode; }
-    public void setPrivateCode(String privateCode) { this.privateCode = privateCode; }
+    public Boolean getIsActive() {
+        return isActive;
+    }
+
+    public void setIsActive(Boolean isActive) {
+        this.isActive = isActive;
+    }
+
+    public Long getOrganizerId() {
+        return organizerId;
+    }
+
+    public void setOrganizerId(Long organizerId) {
+        this.organizerId = organizerId;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+
+    public String getEventType() {
+        return eventType;
+    }
+
+    public void setEventType(String eventType) {
+        this.eventType = eventType;
+    }
+
+    public String getPrivateCode() {
+        return privateCode;
+    }
+
+    public void setPrivateCode(String privateCode) {
+        this.privateCode = privateCode;
+    }
 
     // 🆕 Venue getters/setters
-    public Venue getVenue() { return venue; }
-    public void setVenue(Venue venue) { this.venue = venue; }
+    public Venue getVenue() {
+        return venue;
+    }
+
+    public void setVenue(Venue venue) {
+        this.venue = venue;
+    }
 
     // Helper methods to expose venue info without loading it unnecessarily
     public Long getVenueId() {
@@ -210,12 +338,14 @@ public class Event {
     }
 
     public boolean hasAvailableSpots() {
-        if (maxAttendees == null) return true;
+        if (maxAttendees == null)
+            return true;
         return currentAttendees == null || currentAttendees < maxAttendees;
     }
 
     public int getAvailableSpots() {
-        if (maxAttendees == null) return Integer.MAX_VALUE;
+        if (maxAttendees == null)
+            return Integer.MAX_VALUE;
         return Math.max(0, maxAttendees - (currentAttendees != null ? currentAttendees : 0));
     }
 
@@ -226,11 +356,13 @@ public class Event {
             location.append(address);
         }
         if (city != null && !city.trim().isEmpty()) {
-            if (location.length() > 0) location.append(", ");
+            if (location.length() > 0)
+                location.append(", ");
             location.append(city);
         }
         if (state != null && !state.trim().isEmpty()) {
-            if (location.length() > 0) location.append(", ");
+            if (location.length() > 0)
+                location.append(", ");
             location.append(state);
         }
         return location.toString();
@@ -253,6 +385,22 @@ public class Event {
         }
     }
 
+    public EventStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EventStatus status) {
+        this.status = status;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+
     // Time checks
     public boolean isOngoing() {
         LocalDateTime now = LocalDateTime.now();
@@ -273,7 +421,29 @@ public class Event {
         return end.isBefore(now);
     }
 
-    // Optionally override toString() for debugging (omit lazy-loaded venue details to avoid fetching)
+    /**
+     * Check if event is pending admin approval
+     */
+    public boolean isPending() {
+        return EventStatus.PENDING.equals(this.status);
+    }
+
+    /**
+     * Check if event is approved and visible to visitors
+     */
+    public boolean isApproved() {
+        return EventStatus.APPROVED.equals(this.status);
+    }
+
+    /**
+     * Check if event was rejected by admin
+     */
+    public boolean isRejected() {
+        return EventStatus.REJECTED.equals(this.status);
+    }
+
+    // Optionally override toString() for debugging (omit lazy-loaded venue details
+    // to avoid fetching)
     @Override
     public String toString() {
         return "Event{" +
@@ -293,6 +463,8 @@ public class Event {
                 ", imageUrl='" + imageUrl + '\'' +
                 ", eventType='" + eventType + '\'' +
                 ", venueId=" + (venue != null ? venue.getId() : null) +
+                ", status=" + status +
+                ", rejectionReason='" + rejectionReason + '\'' +
                 '}';
     }
 }

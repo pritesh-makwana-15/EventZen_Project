@@ -115,9 +115,10 @@ public class VisitorController {
 
             List<Map<String, Object>> response = registrations.stream().map(reg -> {
                 Event event = reg.getEvent();
+
+                // 🔧 FIX: Always query ticket, handle null safely
                 Ticket ticket = ticketRepository.findByRegistrationId(reg.getId()).orElse(null);
 
-                // 🔧 FIX: Use HashMap instead of Map.of() with too many arguments
                 Map<String, Object> regMap = new HashMap<>();
                 regMap.put("registrationId", reg.getId());
                 regMap.put("eventId", event.getId());
@@ -127,8 +128,11 @@ public class VisitorController {
                 regMap.put("eventLocation", event.getLocation() != null ? event.getLocation() : "N/A");
                 regMap.put("status", reg.getStatus().toString());
                 regMap.put("registeredAt", reg.getRegisteredAt().toString());
+
+                // 🆕 CRITICAL: ALWAYS include these fields (never null)
                 regMap.put("hasTicket", ticket != null);
                 regMap.put("ticketId", ticket != null ? ticket.getId() : null);
+
                 regMap.put("venueId", event.getVenueId() != null ? event.getVenueId() : null);
                 regMap.put("category", event.getCategory() != null ? event.getCategory() : "General");
 

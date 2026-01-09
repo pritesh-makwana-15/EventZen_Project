@@ -1,7 +1,7 @@
 // ================================================================
 // FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/service/impl/EventServiceImpl.java
-// 🆕 COMPLETE FILE - Merged Old + New (Venue Integration)
-// This is the FULL, READY-TO-USE file
+// 🆕 FIXED: Added status and rejectionReason to convertToResponse()
+// PART 1 of 2 - Lines 1-400
 // ================================================================
 
 package com.eventzen.service.impl;
@@ -27,6 +27,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 
 import com.eventzen.dto.request.EventRequest;
+import com.eventzen.entity.EventStatus;
 import com.eventzen.dto.request.VisitorRegistrationRequest;
 import com.eventzen.dto.response.EventResponse;
 import com.eventzen.dto.response.RegistrationResponse;
@@ -125,7 +126,8 @@ public class EventServiceImpl implements EventService {
         event.setEventType(request.getEventType() != null ? request.getEventType() : "PUBLIC");
         event.setPrivateCode(request.getPrivateCode());
         event.setIsActive(true);
-        event.setVenue(venue); // 🆕 NEW: Set venue
+        event.setVenue(venue);
+        event.setStatus(EventStatus.PENDING);
 
         Event savedEvent = eventRepository.save(event);
 
@@ -197,7 +199,7 @@ public class EventServiceImpl implements EventService {
         event.setMaxAttendees(request.getMaxAttendees());
         event.setEventType(request.getEventType());
         event.setPrivateCode(request.getPrivateCode());
-        event.setVenue(venue); // 🆕 NEW: Update venue
+        event.setVenue(venue);
 
         Event updatedEvent = eventRepository.save(event);
 
@@ -238,6 +240,234 @@ public class EventServiceImpl implements EventService {
         }
     }
 
+    /**
+     * Approve an event (Admin only)
+     */
+    @Override
+    @Transactional
+    public EventResponse approveEvent(Long eventId) throws Exception {
+        System.out.println("Admin approving event ID: " + eventId);
+
+        // Get current user and verify admin role
+        Long adminId = getCurrentUserId();
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new Exception("Admin not found"));
+
+        if (admin.getRole() != Role.ADMIN) {
+            throw new Exception("Only admins can approve events");
+        }
+
+        // Get event
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        // Validate current status
+        if (event.getStatus() != EventStatus.PENDING) {
+            throw new Exception("Only pending events can be approved. Current status: " + event.getStatus());
+        }
+
+        // Approve event
+        event.setStatus(EventStatus.APPROVED);
+        event.setRejectionReason(null); // Clear any previous rejection reason
+        event.setUpdatedAt(LocalDateTime.now());
+
+        Event approvedEvent = eventRepository.save(event);
+
+        // Get organizer name for response
+        User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        System.out.println("✅ Event approved: " + event.getTitle());
+        return convertToResponse(approvedEvent, organizerName);
+    }
+
+    /**
+     * Reject an event with reason (Admin only)
+     */
+    @Override
+    @Transactional
+    public EventResponse rejectEvent(Long eventId, String reason) throws Exception {
+        System.out.println("Admin rejecting event ID: " + eventId);
+
+        // Validate rejection reason
+        if (reason == null || reason.trim().isEmpty()) {
+            throw new Exception("Rejection reason is required");
+        }
+
+        // Get current user and verify admin role
+        Long adminId = getCurrentUserId();
+        User admin = userRepository.findById(adminId)
+                .orElseThrow(() -> new Exception("Admin not found"));
+
+        if (admin.getRole() != Role.ADMIN) {
+            throw new Exception("Only admins can reject events");
+        }
+
+        // Get event
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        // Validate current status
+        if (event.getStatus() != EventStatus.PENDING) {
+            throw new Exception("Only pending events can be rejected. Current status: " + event.getStatus());
+        }
+
+        // Reject event
+        event.setStatus(EventStatus.REJECTED);
+        event.setRejectionReason(reason.trim());
+        event.setUpdatedAt(LocalDateTime.now());
+
+        Event rejectedEvent = eventRepository.save(event);
+
+        // Get organizer name for response
+        User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        System.out.println("❌ Event rejected: " + event.getTitle() + " | Reason: " + reason);
+        return convertToResponse(rejectedEvent, organizerName);
+    }
+
+    // *** CONTINUE TO PART 2 ***
+    // ================================================================
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/service/impl/EventServiceImpl.java
+// 🆕 FIXED: Added status and rejectionReason to convertToResponse()
+// PART 2 of 2 - Lines 401-END
+// ================================================================
+
+    /**
+     * Get all pending events (Admin only)
+     */
+    @Override
+    public List<EventResponse> getPendingEvents() {
+        System.out.println("Fetching pending events for admin review");
+
+        List<Event> pendingEvents = eventRepository.findByStatusOrderByCreatedAtDesc(EventStatus.PENDING);
+
+        return pendingEvents.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+                    return convertToResponse(event, organizerName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all rejected events (Admin only)
+     */
+    @Override
+    public List<EventResponse> getRejectedEvents() {
+        System.out.println("Fetching rejected events");
+
+        List<Event> rejectedEvents = eventRepository.findByStatusOrderByCreatedAtDesc(EventStatus.REJECTED);
+
+        return rejectedEvents.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+                    return convertToResponse(event, organizerName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get all approved events (Public/Visitor)
+     */
+    @Override
+    public List<EventResponse> getApprovedEvents() {
+        System.out.println("Fetching approved events for visitors");
+
+        List<Event> approvedEvents = eventRepository.findApprovedEvents();
+
+        return approvedEvents.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+                    return convertToResponse(event, organizerName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get events by status (Admin only)
+     */
+    @Override
+    public List<EventResponse> getEventsByStatus(EventStatus status) {
+        System.out.println("Fetching events with status: " + status);
+
+        List<Event> events = eventRepository.findByStatus(status);
+
+        return events.stream()
+                .map(event -> {
+                    User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
+                    String organizerName = organizer != null ? organizer.getName() : "Unknown";
+                    return convertToResponse(event, organizerName);
+                })
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Get organizer's events by status
+     */
+    @Override
+    public List<EventResponse> getOrganizerEventsByStatus(Long organizerId, EventStatus status) {
+        System.out.println("Fetching events for organizer " + organizerId + " with status: " + status);
+
+        List<Event> events = eventRepository.findByOrganizerIdAndStatusOrderByStartDateDesc(organizerId, status);
+
+        User organizer = userRepository.findById(organizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Resubmit rejected event (Organizer only)
+     */
+    @Override
+    @Transactional
+    public EventResponse resubmitEvent(Long eventId) throws Exception {
+        System.out.println("Organizer resubmitting event ID: " + eventId);
+
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        Long currentUserId = getCurrentUserId();
+
+        // Verify ownership
+        if (!event.getOrganizerId().equals(currentUserId)) {
+            throw new Exception("You can only resubmit your own events");
+        }
+
+        // Validate current status
+        if (event.getStatus() != EventStatus.REJECTED) {
+            throw new Exception("Only rejected events can be resubmitted. Current status: " + event.getStatus());
+        }
+
+        // Resubmit event
+        event.setStatus(EventStatus.PENDING);
+        event.setRejectionReason(null); // Clear rejection reason
+        event.setUpdatedAt(LocalDateTime.now());
+
+        Event resubmittedEvent = eventRepository.save(event);
+
+        User organizer = userRepository.findById(currentUserId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        System.out.println("🔄 Event resubmitted for review: " + event.getTitle());
+        return convertToResponse(resubmittedEvent, organizerName);
+    }
+
+    /**
+     * Check if event is approved
+     */
+    @Override
+    public boolean isEventApproved(Long eventId) {
+        return eventRepository.existsByIdAndApproved(eventId);
+    }
+
     // ================================================================
     // GET EVENT BY ID
     // ================================================================
@@ -257,7 +487,8 @@ public class EventServiceImpl implements EventService {
     // ================================================================
     @Override
     public List<EventResponse> getAllEvents() {
-        List<Event> events = eventRepository.findAll();
+        List<Event> events = eventRepository.findApprovedEvents();
+
         return events.stream()
                 .map(event -> {
                     User organizer = userRepository.findById(event.getOrganizerId()).orElse(null);
@@ -284,6 +515,20 @@ public class EventServiceImpl implements EventService {
     public List<EventResponse> getMyEvents() throws Exception {
         Long currentUserId = getCurrentUserId();
         return getEventsByOrganizer(currentUserId);
+    }
+
+    /**
+     * Get APPROVED events by organizer (for public view)
+     */
+    public List<EventResponse> getApprovedEventsByOrganizer(Long organizerId) {
+        List<Event> events = eventRepository.findApprovedEventsByOrganizer(organizerId);
+
+        User organizer = userRepository.findById(organizerId).orElse(null);
+        String organizerName = organizer != null ? organizer.getName() : "Unknown";
+
+        return events.stream()
+                .map(event -> convertToResponse(event, organizerName))
+                .collect(Collectors.toList());
     }
 
     public List<EventResponse> getUpcomingEventsByOrganizer(Long organizerId) throws Exception {
@@ -416,7 +661,7 @@ public class EventServiceImpl implements EventService {
     }
 
     // ================================================================
-    // EVENT → DTO - WITH VENUE INFO
+    // 🆕 FIXED: EVENT → DTO - NOW INCLUDES STATUS & REJECTION REASON
     // ================================================================
     private EventResponse convertToResponse(Event event, String organizerName) {
         EventResponse response = new EventResponse();
@@ -440,12 +685,16 @@ public class EventServiceImpl implements EventService {
         response.setCreatedAt(event.getCreatedAt());
         response.setUpdatedAt(event.getUpdatedAt());
 
-        // 🆕 NEW: Add venue information
+        // Venue information
         if (event.getVenue() != null) {
             response.setVenueId(event.getVenue().getId());
             response.setVenueName(event.getVenue().getName());
             response.setVenueAddress(event.getVenue().getLocation());
         }
+
+        // 🆕 FIXED: Add status and rejection reason
+        response.setStatus(event.getStatus());
+        response.setRejectionReason(event.getRejectionReason());
 
         return response;
     }
@@ -621,7 +870,7 @@ public class EventServiceImpl implements EventService {
             throw new Exception("Event end date/time must be after start date/time");
         }
 
-        // 🆕 NEW: Venue validation for admin update
+        // Venue validation for admin update
         Venue venue = null;
         if (request.getVenueId() != null) {
             venue = venueRepository.findById(request.getVenueId())
@@ -656,7 +905,7 @@ public class EventServiceImpl implements EventService {
         event.setMaxAttendees(request.getMaxAttendees());
         event.setEventType(request.getEventType());
         event.setPrivateCode(request.getPrivateCode());
-        event.setVenue(venue); // 🆕 NEW: Update venue
+        event.setVenue(venue);
 
         Event updatedEvent = eventRepository.save(event);
 
@@ -777,5 +1026,5 @@ public class EventServiceImpl implements EventService {
 }
 
 // ================================================================
-// END OF FILE - COMPLETE AND READY TO USE
+// END OF FILE - EventServiceImpl.java - COMPLETE
 // ================================================================

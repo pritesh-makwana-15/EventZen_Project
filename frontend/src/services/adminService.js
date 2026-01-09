@@ -120,6 +120,126 @@ export const updateEventAdmin = async (eventId, eventData) => {
   }
 };
 
+
+/**
+ * Get all pending events awaiting approval
+ */
+export const getPendingEvents = async () => {
+  try {
+    const { data } = await API.get("/admin/events/pending");
+    return data;
+  } catch (error) {
+    console.error("Error fetching pending events:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all rejected events
+ */
+export const getRejectedEvents = async () => {
+  try {
+    const { data } = await API.get("/admin/events/rejected");
+    return data;
+  } catch (error) {
+    console.error("Error fetching rejected events:", error);
+    throw error;
+  }
+};
+
+/**
+ * Get all approved events
+ */
+export const getApprovedEventsAdmin = async () => {
+  try {
+    const { data } = await API.get("/admin/events/approved");
+    return data;
+  } catch (error) {
+    console.error("Error fetching approved events:", error);
+    throw error;
+  }
+};
+
+/**
+ * Approve a pending event
+ * @param {number} eventId - ID of event to approve
+ */
+export const approveEvent = async (eventId) => {
+  try {
+    const { data } = await API.post(`/admin/events/${eventId}/approve`);
+    return data;
+  } catch (error) {
+    console.error(`Error approving event ${eventId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Reject a pending event with reason
+ * @param {number} eventId - ID of event to reject
+ * @param {string} rejectionReason - Reason for rejection
+ */
+export const rejectEvent = async (eventId, rejectionReason) => {
+  try {
+    const { data } = await API.post(`/admin/events/${eventId}/reject`, {
+      rejectionReason: rejectionReason
+    });
+    return data;
+  } catch (error) {
+    console.error(`Error rejecting event ${eventId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Review event (combined approve/reject)
+ * @param {number} eventId - ID of event to review
+ * @param {string} action - "APPROVE" or "REJECT"
+ * @param {string} rejectionReason - Reason (required if action is REJECT)
+ */
+export const reviewEvent = async (eventId, action, rejectionReason = null) => {
+  try {
+    const payload = { action };
+    if (action === "REJECT" && rejectionReason) {
+      payload.rejectionReason = rejectionReason;
+    }
+    
+    const { data } = await API.put(`/admin/events/${eventId}/review`, payload);
+    return data;
+  } catch (error) {
+    console.error(`Error reviewing event ${eventId}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get events by status
+ * @param {string} status - "PENDING", "APPROVED", or "REJECTED"
+ */
+export const getEventsByStatus = async (status) => {
+  try {
+    const { data } = await API.get(`/admin/events/status/${status}`);
+    return data;
+  } catch (error) {
+    console.error(`Error fetching events with status ${status}:`, error);
+    throw error;
+  }
+};
+
+/**
+ * Get event approval statistics
+ */
+export const getApprovalStats = async () => {
+  try {
+    const { data } = await API.get("/admin/events/stats");
+    return data;
+  } catch (error) {
+    console.error("Error fetching approval stats:", error);
+    throw error;
+  }
+};
+
+
 // ==================== CALENDAR-SPECIFIC APIs ====================
 
 // 🆕 NEW: Get events by date range for calendar
@@ -504,5 +624,16 @@ export default {
   deleteFeedback,
   markFeedbackAsReviewed,
   flagFeedback,
+
+  // Event Approval
+  getPendingEvents,
+  getRejectedEvents,
+  getApprovedEventsAdmin,
+  approveEvent,
+  rejectEvent,
+  reviewEvent,
+  getEventsByStatus,
+  getApprovalStats,
+
 };
 

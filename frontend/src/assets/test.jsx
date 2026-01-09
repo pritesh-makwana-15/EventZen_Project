@@ -1,15 +1,9 @@
-// ================================================================
-// FILE: src/pages/VisitorDashboard.jsx - PART 1/5
-// CHANGES: Added mobile menu state, Lucide icons, registered filter state
-// Added dateTime utility imports for AM/PM formatting
-// ================================================================
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Visitor page styling/VisitorDashboard.css";
 import API from "../services/api";
 import { registerForEvent, getMyRegistrations, cancelRegistration } from "../services/registrations";
-import { 
+import {
   getMyRegistrations as getVisitorRegistrations,
   setReminder,
   getMyReminders,
@@ -68,24 +62,24 @@ import CountdownTimer from "../components/Visitor dashboard/CountdownTimer";
 export default function VisitorDashboard() {
   const navigate = useNavigate();
   const [activePage, setActivePage] = useState("events");
-  
+
   // Mobile menu state (NEW)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const mobileMenuRef = useRef(null);
   const menuButtonRef = useRef(null);
-  
+
   const [userId, setUserId] = useState(null);
   const [userProfile, setUserProfile] = useState(null);
-  
+
   const [allEvents, setAllEvents] = useState([]);
   const [myRegistrations, setMyRegistrations] = useState([]);
   const [registeredEventIds, setRegisteredEventIds] = useState(new Set());
-  
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [selectedEvent, setSelectedEvent] = useState(null);
-  
+
   // Registration Modal State
   const [showRegisterModal, setShowRegisterModal] = useState(false);
   const [regEvent, setRegEvent] = useState(null);
@@ -98,7 +92,7 @@ export default function VisitorDashboard() {
     notes: "",
     privateCode: ""
   });
-  
+
   // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
@@ -236,14 +230,14 @@ export default function VisitorDashboard() {
       setUserProfile(response.data);
       setUserId(response.data.id);
       localStorage.setItem("userId", response.data.id);
-      
+
       setProfileForm({
         name: response.data.name,
         email: response.data.email,
         mobileNumber: response.data.mobileNumber || "",
         imageUrl: response.data.imageUrl || ""
       });
-      
+
       // Pre-fill registration form with user data
       setRegistrationForm(prev => ({
         ...prev,
@@ -258,25 +252,33 @@ export default function VisitorDashboard() {
   };
 
   // ================================================================
-// FILE: src/pages/VisitorDashboard.jsx - PART 2/5
-// Data loading functions and event handlers
-// ================================================================
+  // FILE: src/pages/VisitorDashboard.jsx - PART 2/5
+  // Data loading functions and event handlers
+  // ================================================================
 
   const loadAllEvents = async () => {
     try {
       setLoading(true);
       const response = await API.get("/events");
-      
-      const upcomingEvents = response.data.filter(event => {
-        // Use startDate if available, fallback to date field
+
+      const filteredEvents = response.data.filter((event) => {
+        // Date + time handling (old + new)
         const eventDateStr = event.startDate || event.date;
-        const eventTimeStr = event.startTime || '00:00';
+        const eventTimeStr = event.startTime || "00:00";
         const eventDate = new Date(`${eventDateStr}T${eventTimeStr}`);
-        return event.isActive && eventDate >= new Date();
+
+        // 🆕 Approval safety check
+        const isApproved = !event.status || event.status === "APPROVED";
+
+        // Old active + upcoming logic
+        const isActive = event.isActive;
+        const isFuture = eventDate >= new Date();
+
+        return isApproved && isActive && isFuture;
       });
-      
-      setAllEvents(upcomingEvents);
-      
+
+      setAllEvents(filteredEvents);
+
       if (userId || localStorage.getItem("userId")) {
         await loadRegistrationStatus();
       }
@@ -288,11 +290,12 @@ export default function VisitorDashboard() {
     }
   };
 
+
   const loadRegistrationStatus = async () => {
     try {
       const storedUserId = userId || localStorage.getItem("userId");
       if (!storedUserId) return;
-      
+
       const response = await getMyRegistrations(storedUserId);
       const registeredIds = new Set(
         response
@@ -315,7 +318,7 @@ export default function VisitorDashboard() {
       }
 
       const registrations = await getMyRegistrations(storedUserId);
-      
+
       const registrationsWithEvents = await Promise.all(
         registrations
           .filter(reg => reg.status !== "CANCELLED")
@@ -343,151 +346,161 @@ export default function VisitorDashboard() {
   };
 
   // ================================================================
-// FILE: src/pages/VisitorDashboard.jsx - UPDATES PART 2
-// ADD these handler functions after loadMyRegistrations() around line 280
-// ================================================================
+  // FILE: src/pages/VisitorDashboard.jsx - UPDATES PART 2
+  // ADD these handler functions after loadMyRegistrations() around line 280
+  // ================================================================
 
-// 🆕 NEW: Load reminders when registrations load
-useEffect(() => {
-  if (activePage === "registrations" && userId) {
-    loadReminders();
-  }
-}, [activePage, userId]);
-
-// 🆕 NEW: Load user's reminders
-const loadReminders = async () => {
-  try {
-    const response = await getMyReminders();
-    const reminderEventIds = new Set(response.map(r => r.eventId));
-    setReminders(reminderEventIds);
-  } catch (err) {
-    console.error("Error loading reminders:", err);
-  }
-};
-
-// 🆕 NEW: Handle reminder toggle
-const handleReminderToggle = async (eventId) => {
-  try {
-    setReminderLoading(prev => ({ ...prev, [eventId]: true }));
-
-    if (reminders.has(eventId)) {
-      // Remove reminder
-      const response = await getMyReminders();
-      const reminder = response.find(r => r.eventId === eventId);
-      if (reminder) {
-        await deleteReminder(reminder.id);
-        setReminders(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(eventId);
-          return newSet;
-        });
-        setSuccess("Reminder removed");
-      }
-    } else {
-      // Add reminder
-      await setReminder(eventId);
-      setReminders(prev => new Set([...prev, eventId]));
-      setSuccess("Reminder set! You'll receive an email 1 day before the event");
+  // 🆕 NEW: Load reminders when registrations load
+  useEffect(() => {
+    if (activePage === "registrations" && userId) {
+      loadReminders();
     }
+  }, [activePage, userId]);
 
-    setTimeout(() => setSuccess(""), 3000);
-  } catch (err) {
-    console.error("Error toggling reminder:", err);
-    setError(err.response?.data?.error || "Failed to update reminder");
-    setTimeout(() => setError(""), 3000);
-  } finally {
-    setReminderLoading(prev => ({ ...prev, [eventId]: false }));
-  }
-};
+  // 🆕 NEW: Load user's reminders
+  const loadReminders = async () => {
+    try {
+      const response = await getMyReminders();
+      const reminderEventIds = new Set(response.map(r => r.eventId));
+      setReminders(reminderEventIds);
+    } catch (err) {
+      console.error("Error loading reminders:", err);
+    }
+  };
 
-// 🆕 NEW: Handle feedback modal open
-const handleOpenFeedbackModal = (event) => {
-  setFeedbackEvent(event);
-  setShowFeedbackModal(true);
-};
+  // 🆕 NEW: Handle reminder toggle
+  const handleReminderToggle = async (eventId) => {
+    try {
+      setReminderLoading(prev => ({ ...prev, [eventId]: true }));
 
-// 🆕 NEW: Handle feedback modal close
-const handleCloseFeedbackModal = () => {
-  setShowFeedbackModal(false);
-  setFeedbackEvent(null);
-};
-
-// 🆕 NEW: Handle feedback success
-const handleFeedbackSuccess = (message) => {
-  setSuccess(message);
-  setTimeout(() => setSuccess(""), 3000);
-  handleCloseFeedbackModal();
-};
-
-// 🆕 NEW: Handle venue map open
-const handleOpenVenueMap = (venueId) => {
-  setSelectedVenueId(venueId);
-  setShowVenueModal(true);
-};
-
-// 🆕 NEW: Handle venue map close
-const handleCloseVenueMap = () => {
-  setShowVenueModal(false);
-  setSelectedVenueId(null);
-};
-
-// 🆕 NEW: Check if event has ended (for feedback)
-const hasEventEnded = (event) => {
-  if (!event.endDate || !event.endTime) return false;
-  const eventEnd = new Date(`${event.endDate}T${event.endTime}`);
-  return eventEnd < new Date();
-};
-
-// 🆕 NEW: Update loadMyRegistrations to use visitor service
-const loadMyRegistrationsUpdated = async () => {
-  try {
-    setLoading(true);
-
-    // Use visitor service instead of old method
-    const registrations = await getVisitorRegistrations();
-
-    const registrationsWithEvents = await Promise.all(
-      registrations.map(async (reg) => {
-        try {
-          const eventResponse = await API.get(`/events/${reg.eventId}`);
-          return {
-            ...reg,
-            event: eventResponse.data,
-            ticketId: reg.ticketId, // From backend response
-            hasTicket: reg.hasTicket // From backend response
-          };
-        } catch (err) {
-          console.error(`Error loading event ${reg.eventId}:`, err);
-          return null;
+      if (reminders.has(eventId)) {
+        // Remove reminder
+        const response = await getMyReminders();
+        const reminder = response.find(r => r.eventId === eventId);
+        if (reminder) {
+          await deleteReminder(reminder.id);
+          setReminders(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(eventId);
+            return newSet;
+          });
+          setSuccess("Reminder removed");
         }
-      })
-    );
+      } else {
+        // Add reminder
+        await setReminder(eventId);
+        setReminders(prev => new Set([...prev, eventId]));
+        setSuccess("Reminder set! You'll receive an email 1 day before the event");
+      }
 
-    setMyRegistrations(registrationsWithEvents.filter(r => r !== null));
-  } catch (err) {
-    console.error("Error loading registrations:", err);
-    setError("Failed to load registrations");
-  } finally {
-    setLoading(false);
-  }
-};
+      setTimeout(() => setSuccess(""), 3000);
+    } catch (err) {
+      console.error("Error toggling reminder:", err);
+      setError(err.response?.data?.error || "Failed to update reminder");
+      setTimeout(() => setError(""), 3000);
+    } finally {
+      setReminderLoading(prev => ({ ...prev, [eventId]: false }));
+    }
+  };
+
+  // 🆕 NEW: Handle feedback modal open
+  const handleOpenFeedbackModal = (event) => {
+    setFeedbackEvent(event);
+    setShowFeedbackModal(true);
+  };
+
+  // 🆕 NEW: Handle feedback modal close
+  const handleCloseFeedbackModal = () => {
+    setShowFeedbackModal(false);
+    setFeedbackEvent(null);
+  };
+
+  // 🆕 NEW: Handle feedback success
+  const handleFeedbackSuccess = (message) => {
+    setSuccess(message);
+    setTimeout(() => setSuccess(""), 3000);
+    handleCloseFeedbackModal();
+  };
+
+  // 🆕 NEW: Handle venue map open
+  const handleOpenVenueMap = (venueId) => {
+    setSelectedVenueId(venueId);
+    setShowVenueModal(true);
+  };
+
+  // 🆕 NEW: Handle venue map close
+  const handleCloseVenueMap = () => {
+    setShowVenueModal(false);
+    setSelectedVenueId(null);
+  };
+
+  // 🆕 NEW: Check if event has ended (for feedback)
+  const hasEventEnded = (event) => {
+    if (!event.endDate || !event.endTime) return false;
+    const eventEnd = new Date(`${event.endDate}T${event.endTime}`);
+    return eventEnd < new Date();
+  };
+
+  // 🆕 NEW: Update loadMyRegistrations to use visitor service
+  const loadMyRegistrationsUpdated = async () => {
+    try {
+      setLoading(true);
+
+
+      // Use visitor service instead of old method
+      const registrations = await getVisitorRegistrations();
+      // console.log("✅ Backend registrations response:", registrations);
+
+      const registrationsWithEvents = await Promise.all(
+        registrations.map(async (reg) => {
+          try {
+            const eventResponse = await API.get(`/events/${reg.eventId}`);
+            return {
+              ...reg,
+              event: eventResponse.data,
+              ticketId: reg.ticketId, // From backend response
+              hasTicket: reg.hasTicket // From backend response
+            };
+          } catch (err) {
+            console.error(`Error loading event ${reg.eventId}:`, err);
+            return null;
+          }
+        })
+      );
+
+      setMyRegistrations(registrationsWithEvents.filter(r => r !== null));
+    } catch (err) {
+      console.error("Error loading registrations:", err);
+      setError("Failed to load registrations");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Registration Modal Handlers
   const handleOpenRegisterModal = (event) => {
+    // 🆕 Safety check: allow registration only for APPROVED events
+    if (event.status && event.status !== "APPROVED") {
+      setError("This event is not available for registration");
+      setTimeout(() => setError(""), 3000);
+      return;
+    }
+
     setRegEvent(event);
     setRegError("");
-    
+
     // Pre-fill form with user data
     setRegistrationForm({
       name: userProfile?.name || "",
       email: userProfile?.email || "",
       phone: userProfile?.mobileNumber || "",
       notes: "",
-      privateCode: ""
+      privateCode: "",
     });
-    
+
     setShowRegisterModal(true);
   };
+
 
   const handleCloseRegisterModal = () => {
     setShowRegisterModal(false);
@@ -513,24 +526,34 @@ const loadMyRegistrationsUpdated = async () => {
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validation
+
+    // 🆕 Final safety check: allow registration only for APPROVED events
+    if (regEvent.status && regEvent.status !== "APPROVED") {
+      setRegError("This event is not available for registration");
+      return;
+    }
+
+    // ===== VALIDATION =====
     if (!registrationForm.name.trim()) {
       setRegError("Name is required");
       return;
     }
+
     if (!registrationForm.email.trim()) {
       setRegError("Email is required");
       return;
     }
-    
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(registrationForm.email)) {
       setRegError("Please enter a valid email address");
       return;
     }
-    
-    if (regEvent.eventType === "PRIVATE" && !registrationForm.privateCode.trim()) {
+
+    if (
+      regEvent.eventType === "PRIVATE" &&
+      !registrationForm.privateCode.trim()
+    ) {
       setRegError("Private code is required for this event");
       return;
     }
@@ -540,22 +563,32 @@ const loadMyRegistrationsUpdated = async () => {
       setRegError("");
 
       await registerForEvent(regEvent.id, registrationForm);
-      
-      setRegisteredEventIds(prev => new Set([...prev, regEvent.id]));
+
+      setRegisteredEventIds((prev) => new Set([...prev, regEvent.id]));
       setSuccess("Successfully registered for the event!");
       setTimeout(() => setSuccess(""), 3000);
-      
+
       handleCloseRegisterModal();
       loadAllEvents();
-      
     } catch (err) {
       console.error("Error registering for event:", err);
-      const errorMsg = err.response?.data?.message || err.message || "Registration failed";
-      setRegError(errorMsg);
+
+      const errorMsg =
+        err.response?.data?.message ||
+        err.message ||
+        "Registration failed";
+
+      // 🆕 Friendly message for approval-related errors
+      if (errorMsg.includes("not available for registration")) {
+        setRegError("This event is no longer available for registration");
+      } else {
+        setRegError(errorMsg);
+      }
     } finally {
       setRegLoading(false);
     }
   };
+
 
   const handleCancelRegistration = async (registrationId, eventId) => {
     if (!window.confirm("Are you sure you want to cancel this registration?")) {
@@ -571,9 +604,9 @@ const loadMyRegistrationsUpdated = async () => {
       });
       setSuccess("Registration cancelled successfully");
       setTimeout(() => setSuccess(""), 3000);
-      
+
       if (activePage === "registrations") {
-        loadMyRegistrations();
+        loadMyRegistrationsUpdated();
       } else {
         loadAllEvents();
       }
@@ -586,12 +619,12 @@ const loadMyRegistrationsUpdated = async () => {
 
   const handleImageUpload = async (file) => {
     if (!file) return;
-    
+
     if (!file.type.startsWith('image/')) {
       setError("Please upload a valid image file");
       return;
     }
-    
+
     if (file.size > 5 * 1024 * 1024) {
       setError("Image size must be less than 5MB");
       return;
@@ -600,11 +633,11 @@ const loadMyRegistrationsUpdated = async () => {
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await API.post('/uploads', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      
+
       setProfileForm(prev => ({ ...prev, imageUrl: response.data.url }));
       setError("");
     } catch (err) {
@@ -617,22 +650,22 @@ const loadMyRegistrationsUpdated = async () => {
     e.preventDefault();
     try {
       setLoading(true);
-      
+
       const response = await API.put("/users/profile", {
         name: profileForm.name,
         mobileNumber: profileForm.mobileNumber,
         profileImage: profileForm.imageUrl
       });
-      
+
       setUserProfile(response.data);
-      
+
       if (passwordForm.currentPassword && passwordForm.newPassword) {
         try {
           await API.put("/users/password", {
             currentPassword: passwordForm.currentPassword,
             newPassword: passwordForm.newPassword
           });
-          
+
           setSuccess("Profile and password updated successfully!");
           setPasswordForm({ currentPassword: "", newPassword: "" });
         } catch (passErr) {
@@ -644,7 +677,7 @@ const loadMyRegistrationsUpdated = async () => {
       } else {
         setSuccess("Profile updated successfully!");
       }
-      
+
       setEditing(false);
       setTimeout(() => setSuccess(""), 3000);
     } catch (err) {
@@ -681,8 +714,8 @@ const loadMyRegistrationsUpdated = async () => {
   };
 
   // ================================================================
-// 🆕 NEW: Calendar Functions - Add after handleRegistrationReset() around line 220
-// ================================================================
+  // 🆕 NEW: Calendar Functions - Add after handleRegistrationReset() around line 220
+  // ================================================================
 
   // 🆕 NEW: Load calendar events when calendar tab is active
   useEffect(() => {
@@ -695,7 +728,7 @@ const loadMyRegistrationsUpdated = async () => {
   const loadCalendarEvents = async () => {
     setCalendarLoading(true);
     setError("");
-    
+
     try {
       const calendarApi = calendarRef.current?.getApi();
       if (!calendarApi) {
@@ -768,7 +801,7 @@ const loadMyRegistrationsUpdated = async () => {
   // 🆕 NEW: Handle calendar event click
   const handleCalendarEventClick = async (clickInfo) => {
     const eventId = clickInfo.event.id;
-    
+
     try {
       const response = await API.get(`/events/${eventId}`);
       setSelectedEvent(response.data);
@@ -785,7 +818,7 @@ const loadMyRegistrationsUpdated = async () => {
       if (direction === "prev") calendarApi.prev();
       else if (direction === "next") calendarApi.next();
       else if (direction === "today") calendarApi.today();
-      
+
       setCurrentDate(calendarApi.getDate());
     }
   };
@@ -803,16 +836,16 @@ const loadMyRegistrationsUpdated = async () => {
   const formatCalendarTitle = () => {
     const options = { year: 'numeric', month: 'long' };
     if (currentView === 'timeGridWeek') {
-      return currentDate.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'short', 
-        day: 'numeric' 
+      return currentDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
       });
     }
     if (currentView === 'timeGridDay') {
-      return currentDate.toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
+      return currentDate.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'long',
         day: 'numeric',
         weekday: 'long'
       });
@@ -839,85 +872,102 @@ const loadMyRegistrationsUpdated = async () => {
   };
 
   // ================================================================
-// FILE: src/pages/VisitorDashboard.jsx - PART 3/5
-// Filter logic and helper functions
-// ================================================================
+  // FILE: src/pages/VisitorDashboard.jsx - PART 3/5
+  // Filter logic and helper functions
+  // ================================================================
 
   // Filter events based on all criteria including registered status (NEW)
   const getFilteredEvents = () => {
     const now = new Date();
-    
-    return allEvents.filter(event => {
-      const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          event.description?.toLowerCase().includes(searchQuery.toLowerCase());
-      
+
+    return allEvents.filter((event) => {
+      // 🆕 Safety: show only APPROVED events (or legacy events without status)
+      const isApproved = !event.status || event.status === "APPROVED";
+      if (!isApproved) return false;
+
+      const matchesSearch =
+        event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        event.description?.toLowerCase().includes(searchQuery.toLowerCase());
+
       const matchesCategory = !categoryFilter || event.category === categoryFilter;
-      
-      const matchesLocation = !locationFilter || 
-                            event.location?.toLowerCase().includes(locationFilter.toLowerCase());
-      
-      const matchesOrganizer = !organizerFilter || 
-                              event.organizerName?.toLowerCase().includes(organizerFilter.toLowerCase());
-      
+
+      const matchesLocation =
+        !locationFilter ||
+        event.location?.toLowerCase().includes(locationFilter.toLowerCase());
+
+      const matchesOrganizer =
+        !organizerFilter ||
+        event.organizerName
+          ?.toLowerCase()
+          .includes(organizerFilter.toLowerCase());
+
       const matchesType = !typeFilter || event.eventType === typeFilter;
-      
-      // Status filter based on startDate/startTime or fallback to date
+
+      // Status filter (Upcoming / Completed)
       const eventDateStr = event.startDate || event.date;
-      const eventTimeStr = event.startTime || '00:00';
+      const eventTimeStr = event.startTime || "00:00";
       const eventDate = new Date(`${eventDateStr}T${eventTimeStr}`);
+
       let matchesStatus = true;
       if (statusFilter === "Upcoming") {
         matchesStatus = eventDate >= now;
       } else if (statusFilter === "Completed") {
         matchesStatus = eventDate < now;
       }
-      
-      // NEW: Registered filter
+
+      // Registered filter
       let matchesRegistered = true;
       if (registeredFilter === "registered") {
         matchesRegistered = registeredEventIds.has(event.id);
       } else if (registeredFilter === "not-registered") {
         matchesRegistered = !registeredEventIds.has(event.id);
       }
-      
-      return matchesSearch && matchesCategory && matchesLocation && 
-             matchesOrganizer && matchesType && matchesStatus && matchesRegistered;
+
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesLocation &&
+        matchesOrganizer &&
+        matchesType &&
+        matchesStatus &&
+        matchesRegistered
+      );
     });
   };
 
   const getFilteredRegistrations = () => {
     const now = new Date();
-    
+
     return myRegistrations.filter(reg => {
       if (!reg.event) return false;
-      
+
       // Use startDate/startTime if available, fallback to date
       const eventDateStr = reg.event.startDate || reg.event.date;
       const eventTimeStr = reg.event.startTime || '00:00';
       const eventDate = new Date(`${eventDateStr}T${eventTimeStr}`);
-      
+
       let matchesStatusFilter = true;
       if (registrationFilter === "upcoming") {
         matchesStatusFilter = eventDate >= now;
       } else if (registrationFilter === "past") {
         matchesStatusFilter = eventDate < now;
       }
-      
-      const matchesEventName = !regEventNameFilter || 
-                              reg.event.title?.toLowerCase().includes(regEventNameFilter.toLowerCase());
-      
+
+      const matchesEventName = !regEventNameFilter ||
+        reg.event.title?.toLowerCase().includes(regEventNameFilter.toLowerCase());
+
       const matchesCategory = !regCategoryFilter || reg.event.category === regCategoryFilter;
-      
-      const matchesLocation = !regLocationFilter || 
-                            reg.event.location?.toLowerCase().includes(regLocationFilter.toLowerCase());
-      
-      const matchesOrganizer = !regOrganizerFilter || 
-                              reg.event.organizerName?.toLowerCase().includes(regOrganizerFilter.toLowerCase());
-      
+
+      const matchesLocation = !regLocationFilter ||
+        reg.event.location?.toLowerCase().includes(regLocationFilter.toLowerCase());
+
+      const matchesOrganizer = !regOrganizerFilter ||
+        reg.event.organizerName?.toLowerCase().includes(regOrganizerFilter.toLowerCase());
+
       const matchesType = !regTypeFilter || reg.event.eventType === regTypeFilter;
-      
-      return matchesStatusFilter && matchesEventName && matchesCategory && 
-             matchesLocation && matchesOrganizer && matchesType;
+
+      return matchesStatusFilter && matchesEventName && matchesCategory &&
+        matchesLocation && matchesOrganizer && matchesType;
     });
   };
 
@@ -925,14 +975,14 @@ const loadMyRegistrationsUpdated = async () => {
   const formatEventDateTime = (event) => {
     const dateStr = event.startDate || event.date;
     const timeStr = event.startTime || event.startTime;
-    
+
     if (!dateStr) return 'N/A';
-    
+
     // If time is available, show both
     if (timeStr) {
       return `${formatDateDDMMYYYY(dateStr)} at ${formatTimeAMPM(timeStr)}`;
     }
-    
+
     // Otherwise just date
     return formatDateDDMMYYYY(dateStr);
   };
@@ -945,7 +995,7 @@ const loadMyRegistrationsUpdated = async () => {
     const eventTimeStr = r.event.startTime || '00:00';
     return new Date(`${eventDateStr}T${eventTimeStr}`) >= today;
   });
-  
+
   const pastRegistrations = myRegistrations.filter(r => {
     if (!r.event) return false;
     const eventDateStr = r.event.startDate || r.event.date;
@@ -975,9 +1025,9 @@ const loadMyRegistrationsUpdated = async () => {
   };
 
   // ================================================================
-// FILE: src/pages/VisitorDashboard.jsx - PART 4/5
-// JSX Render: Layout, Mobile Menu, Events Page
-// ================================================================
+  // FILE: src/pages/VisitorDashboard.jsx - PART 4/5
+  // JSX Render: Layout, Mobile Menu, Events Page
+  // ================================================================
 
   return (
     <div className="vis-visitor-dashboard">
@@ -995,19 +1045,19 @@ const loadMyRegistrationsUpdated = async () => {
 
       {/* Mobile Menu Overlay (NEW) */}
       {isMobileMenuOpen && (
-        <div 
-          className="vis-mobile-overlay" 
+        <div
+          className="vis-mobile-overlay"
           onClick={() => setIsMobileMenuOpen(false)}
           aria-hidden="true"
         />
       )}
 
       {/* Sidebar - becomes mobile menu on small screens (UPDATED) */}
-    {/* // ================================================================
+      {/* // ================================================================
     // 🆕 UPDATED: Sidebar with Calendar button - Replace around line 102-140
     // ================================================================ */}
 
-      <aside 
+      <aside
         ref={mobileMenuRef}
         id="vis-mobile-sidebar"
         className={`vis-sidebar ${isMobileMenuOpen ? 'vis-sidebar-open' : ''}`}
@@ -1030,7 +1080,7 @@ const loadMyRegistrationsUpdated = async () => {
             <Calendar className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>Events</span>
           </button>
-          
+
           <button
             className={`vis-nav-item ${activePage === "registrations" ? "vis-active" : ""}`}
             onClick={() => handleNavigate("registrations")}
@@ -1049,7 +1099,7 @@ const loadMyRegistrationsUpdated = async () => {
             <Calendar className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>Calendar</span>
           </button>
-          
+
           <button
             className={`vis-nav-item ${activePage === "profile" ? "vis-active" : ""}`}
             onClick={() => handleNavigate("profile")}
@@ -1058,9 +1108,9 @@ const loadMyRegistrationsUpdated = async () => {
             <User className="vis-nav-icon" size={18} aria-hidden="true" />
             <span>Profile</span>
           </button>
-          
-          <button 
-            className="vis-nav-item vis-logout" 
+
+          <button
+            className="vis-nav-item vis-logout"
             onClick={handleLogout}
             role="menuitem"
           >
@@ -1114,7 +1164,7 @@ const loadMyRegistrationsUpdated = async () => {
                       onChange={(e) => setSearchQuery(e.target.value)}
                       aria-label="Search events by name"
                     />
-                    
+
                     <select
                       className="vis-filter-select"
                       value={categoryFilter}
@@ -1139,7 +1189,7 @@ const loadMyRegistrationsUpdated = async () => {
                       <option value="Travel">Travel</option>
                       <option value="Environment">Environment</option>
                     </select>
-                    
+
                     <input
                       type="text"
                       className="vis-search-input"
@@ -1148,7 +1198,7 @@ const loadMyRegistrationsUpdated = async () => {
                       onChange={(e) => setLocationFilter(e.target.value)}
                       aria-label="Filter by location"
                     />
-                    
+
                     <input
                       type="text"
                       className="vis-search-input"
@@ -1157,7 +1207,7 @@ const loadMyRegistrationsUpdated = async () => {
                       onChange={(e) => setOrganizerFilter(e.target.value)}
                       aria-label="Filter by organizer name"
                     />
-                    
+
                     <select
                       className="vis-filter-select"
                       value={typeFilter}
@@ -1180,9 +1230,9 @@ const loadMyRegistrationsUpdated = async () => {
                       <option value="registered">Registered</option>
                       <option value="not-registered">Not Registered</option>
                     </select>
-                    
-                    <button 
-                      className="vis-reset-btn-visitor" 
+
+                    <button
+                      className="vis-reset-btn-visitor"
                       onClick={handleReset}
                       aria-label="Reset all filters"
                     >
@@ -1197,17 +1247,23 @@ const loadMyRegistrationsUpdated = async () => {
                       getFilteredEvents().map(event => (
                         <div key={event.id} className="vis-event-card-visitor">
                           <div className="vis-event-image">
-                            <img 
-                              src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
-                              alt={event.title} 
+                            <img
+                              src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]}
+                              alt={event.title}
                             />
-                            <span className={`vis-event-badge ${
-                              registeredEventIds.has(event.id) 
-                                ? 'vis-registered' 
-                                : event.eventType === 'PRIVATE' 
-                                  ? 'vis-private' 
-                                  : 'vis-public'
-                            }`}>
+                            {/* 🆕 NEW: Show approved badge (optional) */}
+                            {event.status === 'APPROVED' && (
+                              <span className="vis-approved-badge">
+                                <CheckCircle size={14} />
+                                Verified
+                              </span>
+                            )}
+                            <span className={`vis-event-badge ${registeredEventIds.has(event.id)
+                              ? 'vis-registered'
+                              : event.eventType === 'PRIVATE'
+                                ? 'vis-private'
+                                : 'vis-public'
+                              }`}>
                               {registeredEventIds.has(event.id) ? (
                                 <>
                                   <CheckCircle size={14} aria-hidden="true" />
@@ -1368,7 +1424,7 @@ const loadMyRegistrationsUpdated = async () => {
                         <option value="Entertainment">Entertainment</option>
                         <option value="Education">Education</option>
                         <option value="Sports">Sports</option>
-                        <option value="Finance">Finance</option>  
+                        <option value="Finance">Finance</option>
                         <option value="Media">Media</option>
                         <option value="Design">Design</option>
                         <option value="Crafts">Crafts</option>
@@ -1406,9 +1462,9 @@ const loadMyRegistrationsUpdated = async () => {
                         <option value="upcoming">Upcoming</option>
                         <option value="past">Past</option>
                       </select>
-      
-                      <button 
-                        className="vis-reset-btn-visitor" 
+
+                      <button
+                        className="vis-reset-btn-visitor"
                         onClick={handleRegistrationReset}
                         aria-label="Reset all filters"
                       >
@@ -1444,12 +1500,12 @@ const loadMyRegistrationsUpdated = async () => {
                               const eventDateStr = reg.event.startDate || reg.event.date;
                               const eventTimeStr = reg.event.startTime || '00:00';
                               const isUpcoming = new Date(`${eventDateStr}T${eventTimeStr}`) >= today;
-                              
+
                               return (
                                 <tr key={reg.id}>
                                   <td>
-                                    <img 
-                                      src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]} 
+                                    <img
+                                      src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]}
                                       alt={`${reg.event.title} event`}
                                       className="vis-event-thumbnail"
                                     />
@@ -1463,9 +1519,8 @@ const loadMyRegistrationsUpdated = async () => {
                                   <td>{reg.event.location}</td>
                                   <td>{reg.event.organizerName}</td>
                                   <td>
-                                    <span className={`vis-type-badge-vis ${
-                                      reg.event.eventType === 'PRIVATE' ? 'vis-private' : 'vis-public'
-                                    }`}>
+                                    <span className={`vis-type-badge-vis ${reg.event.eventType === 'PRIVATE' ? 'vis-private' : 'vis-public'
+                                      }`}>
                                       {reg.event.eventType === 'PRIVATE' ? (
                                         <>
                                           <Lock size={12} aria-hidden="true" />
@@ -1485,55 +1540,55 @@ const loadMyRegistrationsUpdated = async () => {
                                     </span>
                                   </td>
                                   <td>
-                                   <div className="vis-table-actions">
-                                    {/* View Details Button */}
-                                    <button
-                                      className="vis-btn-view"
-                                      onClick={() => setSelectedEvent(reg.event)}
-                                      aria-label={`View details for ${reg.event.title}`}
-                                      title="View Details"
-                                    >
-                                      <Eye size={14} aria-hidden="true" />
-                                      View
-                                    </button>
-
-                                    {/* 🆕 NEW: Download Ticket Button */}
-                                    {reg.hasTicket && reg.ticketId && (
-                                      <TicketDownloadButton
-                                        ticketId={reg.ticketId}
-                                        eventTitle={reg.event.title}
-                                      />
-                                    )}
-
-                                    {/* 🆕 NEW: Venue Map Button */}
-                                    {reg.event.venueId && (
+                                    <div className="vis-table-actions">
+                                      {/* View Details Button */}
                                       <button
                                         className="vis-btn-view"
-                                        onClick={() => handleOpenVenueMap(reg.event.venueId)}
-                                        aria-label="View venue map"
-                                        title="View Venue Map"
+                                        onClick={() => setSelectedEvent(reg.event)}
+                                        aria-label={`View details for ${reg.event.title}`}
+                                        title="View Details"
                                       >
-                                        <MapIcon size={14} aria-hidden="true" />
-                                        Map
+                                        <Eye size={14} aria-hidden="true" />
+                                        View
                                       </button>
-                                    )}
 
-                                    {/* 🆕 NEW: Feedback Button (only after event ends) */}
-                                    {hasEventEnded(reg.event) && (
-                                      <button
-                                        className="vis-btn-view"
-                                        onClick={() => handleOpenFeedbackModal(reg.event)}
-                                        aria-label="Submit feedback"
-                                        title="Submit Feedback"
-                                        style={{ background: "#10b981" }}
-                                      >
-                                        <MessageSquare size={14} aria-hidden="true" />
-                                        Feedback
-                                      </button>
-                                    )}
+                                      {/* 🆕 NEW: Download Ticket Button */}
+                                      {reg.hasTicket && reg.ticketId && (
+                                        <TicketDownloadButton
+                                          ticketId={reg.ticketId}
+                                          eventTitle={reg.event.title}
+                                        />
+                                      )}
 
-                                    {/* 🆕 NEW: Reminder Toggle Button (only for upcoming events) */}
-                                    {isUpcoming && (
+                                      {/* 🆕 NEW: Venue Map Button */}
+                                      {reg.event.venueId && (
+                                        <button
+                                          className="vis-btn-view"
+                                          onClick={() => handleOpenVenueMap(reg.event.venueId)}
+                                          aria-label="View venue map"
+                                          title="View Venue Map"
+                                        >
+                                          <MapIcon size={14} aria-hidden="true" />
+                                          Map
+                                        </button>
+                                      )}
+
+                                      {/* 🆕 NEW: Feedback Button (only after event ends) */}
+                                      {hasEventEnded(reg.event) && (
+                                        <button
+                                          className="vis-btn-view"
+                                          onClick={() => handleOpenFeedbackModal(reg.event)}
+                                          aria-label="Submit feedback"
+                                          title="Submit Feedback"
+                                          style={{ background: "#10b981" }}
+                                        >
+                                          <MessageSquare size={14} aria-hidden="true" />
+                                          Feedback
+                                        </button>
+                                      )}
+
+                                      {/* 🆕 NEW: Reminder Toggle Button (only for upcoming events) */}
+                                      {/* {isUpcoming && (
                                       <button
                                         className="vis-btn-view"
                                         onClick={() => handleReminderToggle(reg.event.id)}
@@ -1551,21 +1606,21 @@ const loadMyRegistrationsUpdated = async () => {
                                           <Bell size={14} aria-hidden="true" />
                                         )}
                                       </button>
-                                    )}
+                                    )} */}
 
-                                    {/* Cancel Registration Button (only for upcoming events) */}
-                                    {isUpcoming && (
-                                      <button
-                                        className="vis-btn-cancel"
-                                        onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
-                                        aria-label={`Cancel registration for ${reg.event.title}`}
-                                        title="Cancel Registration"
-                                      >
-                                        <Trash2 size={14} aria-hidden="true" />
-                                        Cancel
-                                      </button>
-                                    )}
-                                  </div>
+                                      {/* Cancel Registration Button (only for upcoming events) */}
+                                      {isUpcoming && (
+                                        <button
+                                          className="vis-btn-cancel"
+                                          onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
+                                          aria-label={`Cancel registration for ${reg.event.title}`}
+                                          title="Cancel Registration"
+                                        >
+                                          <Trash2 size={14} aria-hidden="true" />
+                                          Cancel
+                                        </button>
+                                      )}
+                                    </div>
                                   </td>
                                 </tr>
                               );
@@ -1580,12 +1635,12 @@ const loadMyRegistrationsUpdated = async () => {
                           const eventDateStr = reg.event.startDate || reg.event.date;
                           const eventTimeStr = reg.event.startTime || '00:00';
                           const isUpcoming = new Date(`${eventDateStr}T${eventTimeStr}`) >= today;
-                          
+
                           return (
                             <div key={reg.id} className="vis-registration-card">
                               <div className="vis-registration-card-image">
-                                <img 
-                                  src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]} 
+                                <img
+                                  src={reg.event.imageUrl || defaultImages[reg.event.category] || defaultImages["Other"]}
                                   alt={reg.event.title}
                                 />
                                 <span className={`vis-status-badge-vis ${isUpcoming ? 'vis-upcoming' : 'vis-past'}`}>
@@ -1601,60 +1656,60 @@ const loadMyRegistrationsUpdated = async () => {
                                   <p><MapPin size={14} /> {reg.event.location}</p>
                                   <p><UserCheck size={14} /> {reg.event.organizerName}</p>
                                 </div>
-                               <div className="vis-registration-card-actions">
-  <button
-    className="vis-btn vis-btn-secondary"
-    onClick={() => setSelectedEvent(reg.event)}
-  >
-    <Eye size={16} /> Details
-  </button>
+                                <div className="vis-registration-card-actions">
+                                  <button
+                                    className="vis-btn vis-btn-secondary"
+                                    onClick={() => setSelectedEvent(reg.event)}
+                                  >
+                                    <Eye size={16} /> Details
+                                  </button>
 
-  {reg.hasTicket && reg.ticketId && (
-    <TicketDownloadButton
-      ticketId={reg.ticketId}
-      eventTitle={reg.event.title}
-    />
-  )}
+                                  {reg.hasTicket && reg.ticketId && (
+                                    <TicketDownloadButton
+                                      ticketId={reg.ticketId}
+                                      eventTitle={reg.event.title}
+                                    />
+                                  )}
 
-  {reg.event.venueId && (
-    <button
-      className="vis-btn vis-btn-secondary"
-      onClick={() => handleOpenVenueMap(reg.event.venueId)}
-    >
-      <MapIcon size={16} /> Map
-    </button>
-  )}
+                                  {reg.event.venueId && (
+                                    <button
+                                      className="vis-btn vis-btn-secondary"
+                                      onClick={() => handleOpenVenueMap(reg.event.venueId)}
+                                    >
+                                      <MapIcon size={16} /> Map
+                                    </button>
+                                  )}
 
-  {hasEventEnded(reg.event) && (
-    <button
-      className="vis-btn vis-btn-primary-visitor"
-      style={{ background: "#10b981" }}
-      onClick={() => handleOpenFeedbackModal(reg.event)}
-    >
-      <MessageSquare size={16} /> Feedback
-    </button>
-  )}
+                                  {hasEventEnded(reg.event) && (
+                                    <button
+                                      className="vis-btn vis-btn-primary-visitor"
+                                      style={{ background: "#10b981" }}
+                                      onClick={() => handleOpenFeedbackModal(reg.event)}
+                                    >
+                                      <MessageSquare size={16} /> Feedback
+                                    </button>
+                                  )}
 
-  {isUpcoming && (
-    <button
-      className="vis-btn vis-btn-secondary"
-      onClick={() => handleReminderToggle(reg.event.id)}
-      disabled={reminderLoading[reg.event.id]}
-      style={{ background: reminders.has(reg.event.id) ? "#f59e0b" : "#667eea", color: "#fff" }}
-    >
-      {reminders.has(reg.event.id) ? <BellOff size={16} /> : <Bell size={16} />}
-    </button>
-  )}
+                                  {isUpcoming && (
+                                    <button
+                                      className="vis-btn vis-btn-secondary"
+                                      onClick={() => handleReminderToggle(reg.event.id)}
+                                      disabled={reminderLoading[reg.event.id]}
+                                      style={{ background: reminders.has(reg.event.id) ? "#f59e0b" : "#667eea", color: "#fff" }}
+                                    >
+                                      {reminders.has(reg.event.id) ? <BellOff size={16} /> : <Bell size={16} />}
+                                    </button>
+                                  )}
 
-  {isUpcoming && (
-    <button
-      className="vis-btn vis-btn-cancel"
-      onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
-    >
-      <Trash2 size={16} /> Cancel
-    </button>
-  )}
-</div>
+                                  {isUpcoming && (
+                                    <button
+                                      className="vis-btn vis-btn-cancel"
+                                      onClick={() => handleCancelRegistration(reg.id, reg.event.id)}
+                                    >
+                                      <Trash2 size={16} /> Cancel
+                                    </button>
+                                  )}
+                                </div>
 
                               </div>
                             </div>
@@ -1681,9 +1736,9 @@ const loadMyRegistrationsUpdated = async () => {
                     {!editing ? (
                       <div className="vis-profile-view-card">
                         <div className="vis-profile-avatar-wrapper">
-                          <img 
-                            src={profileForm.imageUrl || userProfile.imageUrl || "/src/assets/EZ-logo1.png"} 
-                            alt="Profile" 
+                          <img
+                            src={profileForm.imageUrl || userProfile.imageUrl || "/src/assets/EZ-logo1.png"}
+                            alt="Profile"
                             className="vis-profile-avatar"
                           />
                         </div>
@@ -1707,8 +1762,8 @@ const loadMyRegistrationsUpdated = async () => {
                         <div className="vis-form-group vis-full-width">
                           <label className="vis-form-label">Profile Image</label>
                           <div className="vis-image-upload-area">
-                            <input 
-                              type="file" 
+                            <input
+                              type="file"
                               accept="image/*"
                               onChange={(e) => {
                                 const file = e.target.files[0];
@@ -1736,12 +1791,12 @@ const loadMyRegistrationsUpdated = async () => {
                               type="text"
                               name="name"
                               value={profileForm.name}
-                              onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                              onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
                               className="vis-form-input"
                               required
                             />
                           </div>
-                          
+
                           <div className="vis-form-col">
                             <label className="vis-form-label">Email (Cannot be changed)</label>
                             <input
@@ -1760,12 +1815,12 @@ const loadMyRegistrationsUpdated = async () => {
                               type="tel"
                               name="mobileNumber"
                               value={profileForm.mobileNumber || ""}
-                              onChange={(e) => setProfileForm({...profileForm, mobileNumber: e.target.value})}
+                              onChange={(e) => setProfileForm({ ...profileForm, mobileNumber: e.target.value })}
                               placeholder="+91 9876543210"
                               className="vis-form-input"
                             />
                           </div>
-                          
+
                           <div className="vis-form-col">
                             <label className="vis-form-label">Role</label>
                             <input
@@ -1779,7 +1834,7 @@ const loadMyRegistrationsUpdated = async () => {
 
                         <div className="vis-password-section">
                           <p className="vis-section-subtitle">Leave empty to keep your current password</p>
-                          
+
                           <div className="vis-form-row">
                             <div className="vis-form-col">
                               <label className="vis-form-label">Current Password</label>
@@ -1787,26 +1842,26 @@ const loadMyRegistrationsUpdated = async () => {
                                 type="password"
                                 name="currentPassword"
                                 value={passwordForm.currentPassword}
-                                onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                                 placeholder="Enter current password"
                                 className="vis-form-input"
                               />
                             </div>
-                            
+
                             <div className="vis-form-col">
                               <label className="vis-form-label">New Password</label>
                               <input
                                 type="password"
                                 name="newPassword"
                                 value={passwordForm.newPassword}
-                                onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                                onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                                 placeholder="Enter new password (min 6 characters)"
                                 className="vis-form-input"
                               />
                             </div>
                           </div>
                         </div>
-                        
+
                         <div className="vis-form-actions">
                           <button type="submit" className="vis-btn vis-btn-primary-visitor" disabled={loading}>
                             {loading ? "Saving..." : "Save Changes"}
@@ -1846,30 +1901,30 @@ const loadMyRegistrationsUpdated = async () => {
                     {/* Calendar Toolbar */}
                     <div className="vis-cal-toolbar">
                       <div className="vis-cal-toolbar-nav">
-                        <button 
+                        <button
                           className="vis-cal-btn vis-cal-btn-icon"
                           onClick={() => handleCalendarNavigate('prev')}
                           title="Previous"
                         >
                           <ChevronLeft size={20} />
                         </button>
-                        
-                        <button 
+
+                        <button
                           className="vis-cal-btn vis-cal-btn-today"
                           onClick={() => handleCalendarNavigate('today')}
                         >
                           <Calendar size={18} />
                           Today
                         </button>
-                        
-                        <button 
+
+                        <button
                           className="vis-cal-btn vis-cal-btn-icon"
                           onClick={() => handleCalendarNavigate('next')}
                           title="Next"
                         >
                           <ChevronRight size={20} />
                         </button>
-                        
+
                         <h2 className="vis-cal-toolbar-title">{formatCalendarTitle()}</h2>
                       </div>
 
@@ -1957,8 +2012,8 @@ const loadMyRegistrationsUpdated = async () => {
                       <div className="vis-no-calendar-events">
                         <Calendar size={48} aria-hidden="true" />
                         <p>You have no registered events</p>
-                        <button 
-                          className="vis-btn vis-btn-primary-visitor" 
+                        <button
+                          className="vis-btn vis-btn-primary-visitor"
                           onClick={() => handleNavigate("events")}
                         >
                           Browse Events
@@ -1972,7 +2027,7 @@ const loadMyRegistrationsUpdated = async () => {
           )}
         </div>
       </main>
-          
+
       {/* Event Details Modal (UPDATED with date/time display) */}
       {selectedEvent && (
         <div className="vis-modal-visitor-overlay" onClick={() => setSelectedEvent(null)}>
@@ -1981,10 +2036,10 @@ const loadMyRegistrationsUpdated = async () => {
               <X size={24} />
             </button> */}
             <div className="vis-modal-visitor-header">
-              <img 
-                src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]} 
-                alt={selectedEvent.title} 
-                className="vis-modal-visitor-image" 
+              <img
+                src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]}
+                alt={selectedEvent.title}
+                className="vis-modal-visitor-image"
               />
               <h2 id="event-details-title">{selectedEvent.title}</h2>
             </div>
@@ -2039,7 +2094,7 @@ const loadMyRegistrationsUpdated = async () => {
             <div className="vis-modal-visitor-header">
               <h2 id="register-modal-title">Register for {regEvent.title}</h2>
             </div>
-            
+
             <form onSubmit={handleRegisterSubmit}>
               <div className="vis-modal-visitor-body">
                 {regError && (
@@ -2047,7 +2102,7 @@ const loadMyRegistrationsUpdated = async () => {
                     {regError}
                   </div>
                 )}
-                
+
                 <div className="vis-form-group">
                   <label className="vis-form-label">Name *</label>
                   <input
@@ -2137,31 +2192,31 @@ const loadMyRegistrationsUpdated = async () => {
       )}
 
       {showFeedbackModal && feedbackEvent && (
-      <div 
-        className="vis-modal-visitor-overlay" 
-        onClick={handleCloseFeedbackModal}
-      >
-        <div 
-          className="vis-modal-visitor-content" 
-          onClick={(e) => e.stopPropagation()}
-          style={{ maxWidth: "600px" }}
+        <div
+          className="vis-modal-visitor-overlay"
+          onClick={handleCloseFeedbackModal}
         >
-          <FeedbackForm
-            event={feedbackEvent}
-            onClose={handleCloseFeedbackModal}
-            onSuccess={handleFeedbackSuccess}
-          />
+          <div
+            className="vis-modal-visitor-content"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "600px" }}
+          >
+            <FeedbackForm
+              event={feedbackEvent}
+              onClose={handleCloseFeedbackModal}
+              onSuccess={handleFeedbackSuccess}
+            />
+          </div>
         </div>
-      </div>
-    )}
+      )}
 
-    {/* 🆕 NEW: Venue Map Modal */}
-    {showVenueModal && selectedVenueId && (
-      <VenueMapViewer
-        venueId={selectedVenueId}
-        onClose={handleCloseVenueMap}
-      />
-    )}
+      {/* 🆕 NEW: Venue Map Modal */}
+      {showVenueModal && selectedVenueId && (
+        <VenueMapViewer
+          venueId={selectedVenueId}
+          onClose={handleCloseVenueMap}
+        />
+      )}
     </div>
   );
 }

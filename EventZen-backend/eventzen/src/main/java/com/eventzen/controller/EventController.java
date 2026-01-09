@@ -1,6 +1,7 @@
 // ================================================================
-// FILE: EventController.java - FIXED
-// Changed ALL @PreAuthorize to use hasRole() instead of hasAuthority()
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/controller/EventController.java
+// 🆕 FIXED: Resubmit endpoint path changed to match frontend
+// Changed from /events/{eventId}/resubmit to /organizer/events/{eventId}/resubmit
 // ================================================================
 
 package com.eventzen.controller;
@@ -14,6 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -30,8 +33,11 @@ import com.eventzen.dto.request.VisitorRegistrationRequest;
 import com.eventzen.dto.response.EventCalendarResponse;
 import com.eventzen.dto.response.EventResponse;
 import com.eventzen.dto.response.RegistrationResponse;
+import com.eventzen.entity.EventStatus;
 import com.eventzen.service.EventService;
 import com.eventzen.service.impl.EventServiceImpl;
+import com.eventzen.entity.User;
+import com.eventzen.repository.UserRepository;
 
 import jakarta.validation.Valid;
 
@@ -45,12 +51,16 @@ public class EventController {
     @Autowired
     private EventServiceImpl eventServiceImpl;
 
+    @Autowired
+    private UserRepository userRepository;
+
     // ===== PUBLIC ENDPOINTS =====
 
     @GetMapping
     public ResponseEntity<List<EventResponse>> getAllEvents() {
-        System.out.println("Fetching all public events");
-        List<EventResponse> events = eventService.getAllEvents();
+        System.out.println("Fetching all APPROVED public events");
+
+        List<EventResponse> events = eventService.getApprovedEvents();
         return ResponseEntity.ok(events);
     }
 
@@ -70,6 +80,19 @@ public class EventController {
         System.out.println("Fetching events for organizer ID: " + organizerId);
         List<EventResponse> events = eventService.getEventsByOrganizer(organizerId);
         return ResponseEntity.ok(events);
+    }
+
+    @GetMapping("/organizer/{organizerId}/public")
+    public ResponseEntity<List<EventResponse>> getApprovedEventsByOrganizer(@PathVariable Long organizerId) {
+        System.out.println("Fetching APPROVED events for organizer ID: " + organizerId);
+
+        try {
+            List<EventResponse> events = eventServiceImpl.getApprovedEventsByOrganizer(organizerId);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.err.println("Error fetching approved events: " + e.getMessage());
+            return ResponseEntity.internalServerError().build();
+        }
     }
 
     // ===== ORGANIZER DASHBOARD ENDPOINTS =====
@@ -148,6 +171,7 @@ public class EventController {
 
             System.out.println("Creating event: " + request.getTitle());
             EventResponse response = eventService.createEvent(request);
+            System.out.println("✅ Event created with status: " + response.getStatus());
             return ResponseEntity.status(201).body(response);
         } catch (Exception e) {
             System.out.println("Error creating event: " + e.getMessage());
@@ -221,12 +245,8 @@ public class EventController {
         }
     }
 
-    // ===== 🆕 NEW: ORGANIZER CALENDAR ENDPOINT =====
+    // ===== 🆕 ORGANIZER CALENDAR ENDPOINT =====
 
-    /**
-     * Get events for organizer calendar view
-     * Filtered by current organizer's JWT token
-     */
     @GetMapping("/organizer/calendar")
     @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getEventsForOrganizerCalendar(
@@ -247,12 +267,50 @@ public class EventController {
         }
     }
 
-    // ===== 🆕 NEW: VISITOR CALENDAR ENDPOINT =====
+    // ===== 🆕 FIXED: RESUBMIT ENDPOINT =====
+    // ⚠️ REMOVED - This endpoint should be in OrganizerController.java
+    // See separate OrganizerController artifact for the correct implementation
+    // try
 
-    /**
-     * Get events for visitor calendar view
-     * Returns only events that the authenticated visitor is registered for
-     */
+    // {
+    // ===== 🆕 FIXED: RESUBMIT ENDPOINT =====
+    // ⚠️ REMOVED from EventController - Now in OrganizerController.java
+
+    @GetMapping("/my-events/status/{status}")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public ResponseEntity<?> getMyEventsByStatus(@PathVariable String status) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            EventStatus eventStatus = EventStatus.valueOf(status.toUpperCase());
+
+            List<EventResponse> events = eventService.getOrganizerEventsByStatus(currentUserId, eventStatus);
+            return ResponseEntity.ok(events);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid status. Use PENDING, APPROVED, or REJECTED"));
+        } catch (Exception e) {
+            System.err.println("Error fetching events by status: " + e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ===== 🆕 VISITOR CALENDAR ENDPOINT =====
+
+    private Long getCurrentUserId() throws Exception {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new Exception("User not authenticated");
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new Exception("User not found"));
+
+        return user.getId();
+    }
+
     @GetMapping("/visitor/calendar/events")
     @PreAuthorize("hasRole('VISITOR')")
     public ResponseEntity<List<EventCalendarResponse>> getEventsForVisitorCalendar(
@@ -307,7 +365,6 @@ public class EventController {
         }
     }
 
-    // 🆕 FIXED: Calendar endpoint - Get events by date range with filters
     @GetMapping("/admin/calendar")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<EventResponse>> getEventsForCalendar(
@@ -328,7 +385,6 @@ public class EventController {
         }
     }
 
-    // 🆕 FIXED: Get all unique categories
     @GetMapping("/admin/categories")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<String>> getAllCategories() {
@@ -340,7 +396,6 @@ public class EventController {
         }
     }
 
-    // 🆕 FIXED: Get all unique cities
     @GetMapping("/admin/cities")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<String>> getAllCities() {
@@ -363,6 +418,11 @@ public class EventController {
             System.out.println("=== VISITOR REGISTRATION REQUEST ===");
             System.out.println("Event ID: " + eventId);
 
+            if (!eventService.isEventApproved(eventId)) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "This event is not available for registration"));
+            }
+
             if (bindingResult.hasErrors()) {
                 Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
                 return ResponseEntity.badRequest().body(errors);
@@ -375,6 +435,10 @@ public class EventController {
         } catch (Exception e) {
             System.err.println("Registration error: " + e.getMessage());
 
+            if (e.getMessage().contains("not available for registration")) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "This event is not available for registration"));
+            }
             if (e.getMessage().contains("Private code is not correct")) {
                 return ResponseEntity.status(403).body(Map.of("message", "Invalid private code"));
             }
@@ -392,3 +456,7 @@ public class EventController {
         }
     }
 }
+
+// ================================================================
+// END OF FILE - EventController.java - COMPLETE
+// ================================================================

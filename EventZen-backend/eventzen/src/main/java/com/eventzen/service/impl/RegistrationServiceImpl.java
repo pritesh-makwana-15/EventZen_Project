@@ -32,7 +32,6 @@ public class RegistrationServiceImpl implements RegistrationService {
     @Autowired
     private EventRepository eventRepository;
 
-    // 🆕 NEW: Ticket auto-generation support
     @Autowired
     private TicketService ticketService;
 
@@ -107,15 +106,16 @@ public class RegistrationServiceImpl implements RegistrationService {
         event.setCurrentAttendees(currentAttendees + 1);
         eventRepository.save(event);
 
-        // 🆕 Step 9: Auto-generate ticket (non-blocking)
+        // Step 9: Auto-generate ticket (non-blocking)
         try {
             ticketService.generateTicket(saved);
-            System.out.println("Ticket generated for registration ID: " + saved.getId());
+            System.out.println("✅ Ticket generated for registration ID: " + saved.getId());
         } catch (Exception e) {
-            System.err.println("Ticket generation failed: " + e.getMessage());
+            System.err.println("⚠️ Ticket generation failed: " + e.getMessage());
+            // Don't fail registration if ticket generation fails
         }
 
-        System.out.println("Registration successful - Status: " + saved.getStatus()
+        System.out.println("✅ Registration successful - Status: " + saved.getStatus()
                 + " - Attendees: " + event.getCurrentAttendees() + "/" + maxAttendees);
         System.out.println("=== REGISTRATION END ===");
 
@@ -170,6 +170,7 @@ public class RegistrationServiceImpl implements RegistrationService {
             eventRepository.save(event);
         }
 
+        System.out.println("✅ Registration cancelled");
         System.out.println("=== CANCELLATION END ===");
     }
 
@@ -181,12 +182,27 @@ public class RegistrationServiceImpl implements RegistrationService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * 🆕 UPDATED: Map Registration to Response with hasTicket field
+     */
     private RegistrationResponse mapToResponse(Registration registration) {
+        // Check if ticket exists for this registration
+        boolean hasTicket = ticketService.hasTicket(registration.getId());
+
+        // Get visitor details
+        User visitor = registration.getVisitor();
+
         return new RegistrationResponse(
                 registration.getId(),
                 registration.getEvent().getId(),
-                registration.getVisitor().getId(),
+                visitor.getId(),
+                visitor.getName(),
+                visitor.getEmail(),
+                registration.getPhone(),
                 registration.getStatus(),
-                registration.getRegisteredAt());
+                registration.getRegisteredAt(),
+                registration.getNotes(),
+                hasTicket // 🆕 NEW: Include ticket availability
+        );
     }
 }

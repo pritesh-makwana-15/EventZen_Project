@@ -4,6 +4,9 @@ import API from "../services/api";
 import "../styles/Organizer Dashboard/OrganizerDashboard.css";
 // import OrganizerCalendarPage from "./organizer/OrganizerCalendarPage";
 import OrganizerCalendarPage from "./OrganizerCalendarPage";
+import { getActiveVenues } from "../services/api";
+import { resubmitEvent } from "../services/organizer";
+
 import {
   Calendar,
   Users,
@@ -16,10 +19,9 @@ import {
   Save,
   Loader,
   Eye,
-  Filter,
+  
   RotateCcw,
-  Upload,
-  CircleX,
+  RefreshCw, AlertCircle,
   ChartBarStacked,
   ImagePlus,
   Menu,
@@ -27,7 +29,7 @@ import {
   MapPin,
   CalendarDays,
   TrendingUp,
-  Award
+  
 } from "lucide-react";
 
 // 🆕 Import Analytics Components
@@ -37,17 +39,17 @@ import { PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer, LineChart, L
 import {
   formatDateDDMMYYYY,
   formatTimeAMPM,
-  formatDateTimeAMPM,
+  
   validateDateTime,
   getTomorrowDate,
-  isUpcomingEvent,
+  
   parseLocation
 } from "../utils/dateTime";
 
 import ViewRegistrations from "../pages/organizer/ViewRegistrations";
 import TicketPreviewModal from "../components/organizer/TicketPreviewModal";
 import VenueMapPreview from "../components/organizer/VenueMapPreview";
-import { Users, Download, FileText, MapPin } from "lucide-react";
+import {  Download, FileText } from "lucide-react";
 
 // ============ Toast Notification Component ============
 function Toast({ message, type, onClose }) {
@@ -317,7 +319,11 @@ function AnalyticsDashboard({ organizerId }) {
 }
 
 // ============ MyEvents Component ============
-function MyEvents({ onEditEvent }) {
+function MyEvents({ onEditEvent, 
+  setShowRegistrations, 
+  setShowTicketPreview, 
+  handleExportCSV,
+setShowVenueMap  }) {
   const [events, setEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   
@@ -327,6 +333,7 @@ function MyEvents({ onEditEvent }) {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [timelineFilter, setTimelineFilter] = useState("all"); // ← ADD THIS NEW LINE
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -334,14 +341,31 @@ function MyEvents({ onEditEvent }) {
   const [showModal, setShowModal] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  // 🆕 NEW: Add resubmit handler
+  const handleResubmit = async (eventId) => {
+  if (!window.confirm("Resubmit this event for admin review?")) return;
+
+  try {
+    setLoading(true);
+    await resubmitEvent(eventId);
+    alert("Event resubmitted for admin review!");
+    await fetchMyEvents();
+  } catch (err) {
+    setError(err.response?.data?.message || "Failed to resubmit event");
+  } finally {
+    setLoading(false);
+  }
+};
+
+  
+
   useEffect(() => {
     fetchMyEvents();
   }, []);
 
   useEffect(() => {
-    filterEvents();
-  }, [events, searchName, searchLocation, categoryFilter, typeFilter, statusFilter]);
-
+  filterEvents();
+}, [events, searchName, searchLocation, categoryFilter, typeFilter, statusFilter, timelineFilter]); // ← ADD timelineFilter
   const fetchMyEvents = async () => {
     try {
       setLoading(true);
@@ -381,12 +405,19 @@ function MyEvents({ onEditEvent }) {
     }
 
     if (statusFilter !== "all") {
-      if (statusFilter === "upcoming") {
+      filtered = filtered.filter(event => 
+        event.status?.toUpperCase() === statusFilter.toUpperCase()
+      );
+    }
+
+   // Timeline filter (Upcoming/Completed)
+    if (timelineFilter !== "all") {
+      if (timelineFilter === "upcoming") {
         filtered = filtered.filter(event => {
           const eventStart = new Date(`${event.startDate}T${event.startTime || '00:00'}`);
           return eventStart > now;
         });
-      } else if (statusFilter === "completed") {
+      } else if (timelineFilter === "completed") {
         filtered = filtered.filter(event => {
           const eventEnd = new Date(`${event.endDate || event.startDate}T${event.endTime || '23:59'}`);
           return eventEnd <= now;
@@ -438,6 +469,7 @@ function MyEvents({ onEditEvent }) {
     setCategoryFilter("all");
     setTypeFilter("all");
     setStatusFilter("all");
+    setTimelineFilter("all");  // ← ADD THIS LINE
   };
 
   const defaultImages = {
@@ -527,6 +559,20 @@ function MyEvents({ onEditEvent }) {
 
           <div className="org-filter-container">
             <select 
+              value={statusFilter} 
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="org-filter-select"
+              aria-label="Filter by status"
+            >
+              <option value="all">All Status</option>
+              <option value="pending">Pending Review</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div className="org-filter-container">
+            <select 
               value={typeFilter} 
               onChange={(e) => setTypeFilter(e.target.value)}
               className="org-filter-select"
@@ -539,17 +585,17 @@ function MyEvents({ onEditEvent }) {
           </div>
 
           <div className="org-filter-container">
-            <select 
-              value={statusFilter} 
-              onChange={(e) => setStatusFilter(e.target.value)}
+            <select
+              value={timelineFilter}
+              onChange={(e) => setTimelineFilter(e.target.value)}
               className="org-filter-select"
-              aria-label="Filter by status"
             >
-              <option value="all">All Status</option>
+              <option value="all">All Events</option>
               <option value="upcoming">Upcoming</option>
               <option value="completed">Completed</option>
             </select>
           </div>
+
 
           <div className="org-filter-container">
             <button 
@@ -586,12 +632,11 @@ function MyEvents({ onEditEvent }) {
                   <th scope="col">Title</th>
                   <th scope="col">Start Date</th>
                   <th scope="col">End Date</th>
-                  {/* <th scope="col">Start Time</th>
-                  <th scope="col">End Time</th> */}
                   <th scope="col">Category</th>
                   <th scope="col">Type</th>
                   <th scope="col">Attendees</th>
                   <th scope="col">Status</th>
+                  <th scope="col">Approval</th>
                   <th scope="col">Actions</th>
                 </tr>
               </thead>  
@@ -628,59 +673,121 @@ function MyEvents({ onEditEvent }) {
                         </span>
                       </td>
                       <td>
+                        <span className={`org-status-badge org-status-${event.status?.toLowerCase() || 'approved'}`}>
+                          {event.status === 'PENDING' && '⏳ Pending'}
+                          {event.status === 'APPROVED' && '✅ Approved'}
+                          {event.status === 'REJECTED' && '❌ Rejected'}
+                          {!event.status && '✅ Approved'}
+                        </span>
+                      </td>
+                      <td>
                         <div className="org-action-buttons">
-                          {/* ADD these buttons in the <td> with className="org-action-buttons" */}
-                          <button 
-                            className="org-action-btn org-btn-view"
-                            onClick={() => setShowRegistrations(event)}
-                          >
-                            <Users size={14} />
-                            Registrations
-                          </button>
 
-                          <button 
-                            className="org-action-btn org-btn-export"
-                            onClick={() => handleExportCSV(event.id, event.title)}
-                          >
-                            <Download size={14} />
-                            Export CSV
-                          </button>
-
-                          <button 
-                            className="org-action-btn org-btn-ticket"
-                            onClick={() => setShowTicketPreview(event)}
-                          >
-                            <FileText size={14} />
-                            Preview
-                          </button>
-                          {isUpcoming ? (
+                          {/* ===== REJECTED EVENT ACTIONS ===== */}
+                          {event.status === "REJECTED" && (
                             <>
-                              <button 
+                              <button
+                                className="org-action-btn org-btn-warning"
+                                onClick={() =>
+                                  alert(
+                                    `Rejection Reason:\n\n${
+                                      event.rejectionReason || "No reason provided"
+                                    }`
+                                  )
+                                }
+                                title="View rejection reason"
+                              >
+                                <AlertCircle size={14} />
+                                View Reason
+                              </button>
+
+                              <button
+                                className="org-action-btn org-btn-resubmit"
+                                onClick={() => handleResubmit(event.id)}
+                                title="Resubmit for review"
+                              >
+                                <RefreshCw size={14} />
+                                Resubmit
+                              </button>
+                            </>
+                          )}
+
+                          {/* ===== PENDING INFO ===== */}
+                          {event.status === "PENDING" && (
+                            <span className="org-pending-info">
+                              <Clock size={14} />
+                              Awaiting Admin Approval
+                            </span>
+                          )}
+
+                          {/* ===== COMMON ACTIONS (APPROVED / PENDING) ===== */}
+                          {(event.status === "APPROVED" || event.status === "PENDING" || !event.status) && (
+                            <>
+                              <button
+                                className="org-action-btn org-btn-view"
+                                onClick={() => setShowRegistrations(event)}
+                              >
+                                <Users size={14} />
+                                Registrations
+                              </button>
+
+                              <button
+                                className="org-action-btn org-btn-export"
+                                onClick={() => handleExportCSV(event.id, event.title)}
+                              >
+                                <Download size={14} />
+                                Export CSV
+                              </button>
+
+                              <button
+                                className="org-action-btn org-btn-ticket"
+                                onClick={() => setShowTicketPreview(event)}
+                              >
+                                <FileText size={14} />
+                                Preview
+                              </button>
+
+                              <button
+                                className="org-action-btn org-btn-map"
+                                onClick={() => setShowVenueMap(event.venueId || event.id)}
+                                disabled={!event.venueId}
+                                title={!event.venueId ? "No venue assigned" : "View venue map"}
+                              >
+                                <MapPin size={14} />
+                                Venue Map
+                              </button>
+
+                              <button
+                                className="org-action-btn org-btn-view"
+                                onClick={() => handleViewDetails(event)}
+                              >
+                                <Eye size={14} />
+                                View
+                              </button>
+                            </>
+                          )}
+
+                          {/* ===== EDIT / DELETE (ONLY UPCOMING + APPROVED) ===== */}
+                          {isUpcoming && event.status === "APPROVED" && (
+                            <>
+                              <button
                                 className="org-action-btn org-btn-edit"
                                 onClick={() => onEditEvent(event)}
-                                aria-label={`Edit ${event.title}`}
                               >
                                 <Edit size={14} />
                                 Edit
                               </button>
-                              <button 
+
+                              <button
                                 className="org-action-btn org-btn-delete"
                                 onClick={() => setDeleteConfirm(event)}
-                                aria-label={`Delete ${event.title}`}
                               >
                                 <Trash2 size={14} />
                                 Delete
                               </button>
                             </>
-                          ) : null}
-                          <button 
-                            className="org-action-btn org-btn-view"
-                            onClick={() => handleViewDetails(event)}
-                            aria-label={`View details for ${event.title}`}
-                          >
-                            <Eye size={14} />
-                            View
-                          </button>
+                          )}
+
                         </div>
                       </td>
                     </tr>
@@ -691,89 +798,159 @@ function MyEvents({ onEditEvent }) {
           </div>
 
           {/* 🆕 Mobile Card View */}
-          <div className="org-events-cards">
-            {filteredEvents.map((event) => {
-              const eventStart = new Date(`${event.startDate}T${event.startTime || '00:00'}`);
-              const isUpcoming = eventStart > new Date();
-              return (
-                <div key={event.id} className="org-event-card">
-                  <img 
-                    src={event.imageUrl || defaultImages[event.category] || defaultImages["Other"]} 
-                    alt={`${event.title} event`}
-                    className="org-event-card-image"
-                  />
-                  <div className="org-event-card-content">
-                    <h3 className="org-event-card-title">{event.title}</h3>
-                    
-                    <div className="org-event-card-details">
-                      <div className="org-event-card-detail">
-                        <CalendarDays size={16} />
-                        <span>Start: {formatDateDDMMYYYY(event.startDate)}</span>
-                      </div>
-                      <div className="org-event-card-detail">
-                        <CalendarDays size={16} />
-                        <span>End: {formatDateDDMMYYYY(event.endDate || event.startDate)}</span>
-                      </div>
-                      <div className="org-event-card-detail">
-                        <Clock size={16} />
-                        <span>{formatTimeAMPM(event.startTime || '00:00')}</span>
-                      </div>
-                      <div className="org-event-card-detail">
-                        <Clock size={16} />
-                        <span>{formatTimeAMPM(event.endTime || '23:59')}</span>
-                      </div>
-                      <div className="org-event-card-detail">
-                        <MapPin size={16} />
-                        <span>{event.location || 'No location'}</span>
-                      </div>
-                      <div className="org-event-card-detail">
-                        <Users size={16} />
-                        <span>{event.currentAttendees || 0}/{event.maxAttendees || 0}</span>
-                      </div>
+         <div className="org-events-cards">
+          {filteredEvents.map((event) => {
+            const eventStart = new Date(
+              `${event.startDate}T${event.startTime || "00:00"}`
+            );
+            const isUpcoming = eventStart > new Date();
+
+            return (
+              <div key={event.id} className="org-event-card">
+                {/* ===== IMAGE ===== */}
+                <img
+                  src={
+                    event.imageUrl ||
+                    defaultImages[event.category] ||
+                    defaultImages["Other"]
+                  }
+                  alt={`${event.title} event`}
+                  className="org-event-card-image"
+                />
+
+                {/* ===== STATUS OVERLAY ===== */}
+                <div className="org-card-status-overlay">
+                  <span
+                    className={`org-status-badge org-status-${
+                      event.status?.toLowerCase() || "approved"
+                    }`}
+                  >
+                    {event.status === "PENDING" && "⏳ Pending"}
+                    {event.status === "APPROVED" && "✅ Approved"}
+                    {event.status === "REJECTED" && "❌ Rejected"}
+                    {!event.status && "✅ Approved"}
+                  </span>
+                </div>
+
+                <div className="org-event-card-content">
+                  <h3 className="org-event-card-title">{event.title}</h3>
+
+                  {/* ===== EVENT DETAILS ===== */}
+                  <div className="org-event-card-details">
+                    <div className="org-event-card-detail">
+                      <CalendarDays size={16} />
+                      <span>Start: {formatDateDDMMYYYY(event.startDate)}</span>
                     </div>
 
-                    <div className="org-event-card-badges">
-                      <span className="org-category-badge">{event.category}</span>
-                      <span className={`org-type-badge org-type-${event.eventType?.toLowerCase()}`}>
-                        {event.eventType || 'PUBLIC'}
-                      </span>
-                      <span className={`org-status-badge org-status-${isUpcoming ? 'upcoming' : 'completed'}`}>
-                        {isUpcoming ? 'Upcoming' : 'Completed'}
+                    <div className="org-event-card-detail">
+                      <CalendarDays size={16} />
+                      <span>
+                        End: {formatDateDDMMYYYY(event.endDate || event.startDate)}
                       </span>
                     </div>
 
-                    <div className="org-event-card-actions">
-                      {isUpcoming && (
-                        <>
-                          <button 
-                            className="org-action-btn org-btn-edit"
-                            onClick={() => onEditEvent(event)}
-                          >
-                            <Edit size={14} />
-                            Edit
-                          </button>
-                          <button 
-                            className="org-action-btn org-btn-delete"
-                            onClick={() => setDeleteConfirm(event)}
-                          >
-                            <Trash2 size={14} />
-                            Delete
-                          </button>
-                        </>
-                      )}
-                      <button 
-                        className="org-action-btn org-btn-view"
-                        onClick={() => handleViewDetails(event)}
-                      >
-                        <Eye size={14} />
-                        View
-                      </button>
+                    <div className="org-event-card-detail">
+                      <Clock size={16} />
+                      <span>{formatTimeAMPM(event.startTime || "00:00")}</span>
+                    </div>
+
+                    <div className="org-event-card-detail">
+                      <Clock size={16} />
+                      <span>{formatTimeAMPM(event.endTime || "23:59")}</span>
+                    </div>
+
+                    <div className="org-event-card-detail">
+                      <MapPin size={16} />
+                      <span>{event.location || "No location"}</span>
+                    </div>
+
+                    <div className="org-event-card-detail">
+                      <Users size={16} />
+                      <span>
+                        {event.currentAttendees || 0}/{event.maxAttendees || 0}
+                      </span>
                     </div>
                   </div>
+
+                  {/* ===== BADGES ===== */}
+                  <div className="org-event-card-badges">
+                    <span className="org-category-badge">{event.category}</span>
+
+                    <span
+                      className={`org-type-badge org-type-${event.eventType?.toLowerCase()}`}
+                    >
+                      {event.eventType || "PUBLIC"}
+                    </span>
+
+                    <span
+                      className={`org-status-badge org-status-${
+                        isUpcoming ? "upcoming" : "completed"
+                      }`}
+                    >
+                      {isUpcoming ? "Upcoming" : "Completed"}
+                    </span>
+                  </div>
+
+                  {/* ===== REJECTION NOTICE ===== */}
+                  {event.status === "REJECTED" && event.rejectionReason && (
+                    <div className="org-rejection-notice">
+                      <AlertCircle size={16} />
+                      <div>
+                        <strong>Rejected</strong>
+                        <p>{event.rejectionReason}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ===== ACTIONS ===== */}
+                 <div className="org-event-card-actions">
+                    {/* Resubmit only for rejected */}
+                    {event.status === "REJECTED" && (
+                      <button
+                        className="org-action-btn org-btn-resubmit"
+                        onClick={() => handleResubmit(event.id)}
+                      >
+                        <RefreshCw size={16} />
+                        Resubmit
+                      </button>
+                    )}
+
+                    {/* Edit / Delete only for upcoming + approved */}
+                    {isUpcoming && event.status === "APPROVED" && (
+                      <>
+                        <button
+                          className="org-action-btn org-btn-edit"
+                          onClick={() => onEditEvent(event)}
+                        >
+                          <Edit size={14} />
+                          Edit
+                        </button>
+
+                        <button
+                          className="org-action-btn org-btn-delete"
+                          onClick={() => setDeleteConfirm(event)}
+                        >
+                          <Trash2 size={14} />
+                          Delete
+                        </button>
+                      </>
+                    )}
+
+                    {/* View always available */}
+                    <button
+                      className="org-action-btn org-btn-view"
+                      onClick={() => handleViewDetails(event)}
+                    >
+                      <Eye size={14} />
+                      View
+                    </button>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })}
+        </div>
+
         </>
       )}
 
@@ -802,86 +979,180 @@ function MyEvents({ onEditEvent }) {
         </div>
       )}
 
-      {showModal && selectedEvent && (
-        <div className="org-modal-overlay" onClick={handleCloseModal} role="dialog" aria-modal="true">
-          <div className="org-modal-content" onClick={(e) => e.stopPropagation()}>
-            <button
-              className="org-modal-close"
-              onClick={handleCloseModal}
-              aria-label="Close modal"
+     {showModal && selectedEvent && (
+          <div
+            className="org-modal-overlay"
+            onClick={handleCloseModal}
+            role="dialog"
+            aria-modal="true"
+          >
+            <div
+              className="org-modal-content"
+              onClick={(e) => e.stopPropagation()}
             >
-              <X size={20} />
-            </button>
+              {/* ===== CLOSE BUTTON ===== */}
+              <button
+                className="org-modal-close"
+                onClick={handleCloseModal}
+                aria-label="Close modal"
+              >
+                <X size={20} />
+              </button>
 
-            <div className="org-modal-header">
-              <img
-                src={selectedEvent.imageUrl || defaultImages[selectedEvent.category] || defaultImages["Other"]}
-                alt={`${selectedEvent.title} event`}
-                className="org-modal-image"
-              />
-              <h2>{selectedEvent.title}</h2>
-              <span className="org-category-badge">{selectedEvent.category}</span>
-            </div>
+              {/* ===== HEADER ===== */}
+              <div className="org-modal-header">
+                <img
+                  src={
+                    selectedEvent.imageUrl ||
+                    defaultImages[selectedEvent.category] ||
+                    defaultImages["Other"]
+                  }
+                  alt={`${selectedEvent.title} event`}
+                  className="org-modal-image"
+                />
+                <h2>{selectedEvent.title}</h2>
+                <span className="org-category-badge">
+                  {selectedEvent.category}
+                </span>
+              </div>
 
-            <div className="org-modal-body">
-              <div className="org-event-info">
-                <p><strong>Description:</strong> {selectedEvent.description}</p>
-                
-                {/* 🆕 Updated Date/Time Display */}
-                <p>
-                  <strong>Start:</strong> {formatDateDDMMYYYY(selectedEvent.startDate)} at {formatTimeAMPM(selectedEvent.startTime || '00:00')}
-                </p>
-                <p>
-                  <strong>End:</strong> {formatDateDDMMYYYY(selectedEvent.endDate || selectedEvent.startDate)} at {formatTimeAMPM(selectedEvent.endTime || '23:59')}
-                </p>
-                
-                <p><strong>Location:</strong> {selectedEvent.location || "Not specified"}</p>
-                <p>
-                  <strong>Type:</strong>
-                  <span className={`org-type-badge org-type-${selectedEvent.eventType?.toLowerCase()}`}>
-                    {selectedEvent.eventType || "PUBLIC"}
-                  </span>
-                </p>
-
-                {selectedEvent.eventType === "PRIVATE" && selectedEvent.privateCode && (
+              {/* ===== BODY ===== */}
+              <div className="org-modal-body">
+                <div className="org-event-info">
                   <p>
-                    <strong>Private Code:</strong>
-                    <span className="org-private-code">{selectedEvent.privateCode}</span>
+                    <strong>Description:</strong> {selectedEvent.description}
                   </p>
-                )}
 
-                <p>
-                  <strong>Attendees:</strong> {selectedEvent.currentAttendees || 0} /{" "}
-                  {selectedEvent.maxAttendees || "Unlimited"}
-                </p>
+                  {/* Date / Time */}
+                  <p>
+                    <strong>Start:</strong>{" "}
+                    {formatDateDDMMYYYY(selectedEvent.startDate)} at{" "}
+                    {formatTimeAMPM(selectedEvent.startTime || "00:00")}
+                  </p>
+                  <p>
+                    <strong>End:</strong>{" "}
+                    {formatDateDDMMYYYY(
+                      selectedEvent.endDate || selectedEvent.startDate
+                    )}{" "}
+                    at {formatTimeAMPM(selectedEvent.endTime || "23:59")}
+                  </p>
 
-                <p>
-                  <strong>Status:</strong>
-                  <span
-                    className={`org-status-badge org-status-${
-                      new Date(`${selectedEvent.startDate}T${selectedEvent.startTime || '00:00'}`) > new Date() ? "upcoming" : "completed"
-                    }`}
-                  >
-                    {new Date(`${selectedEvent.startDate}T${selectedEvent.startTime || '00:00'}`) > new Date() ? "Upcoming" : "Completed"}
-                  </span>
-                </p>
+                  <p>
+                    <strong>Location:</strong>{" "}
+                    {selectedEvent.location || "Not specified"}
+                  </p>
+
+                  <p>
+                    <strong>Type:</strong>{" "}
+                    <span
+                      className={`org-type-badge org-type-${selectedEvent.eventType?.toLowerCase()}`}
+                    >
+                      {selectedEvent.eventType || "PUBLIC"}
+                    </span>
+                  </p>
+
+                  {/* Private Code */}
+                  {selectedEvent.eventType === "PRIVATE" &&
+                    selectedEvent.privateCode && (
+                      <p>
+                        <strong>Private Code:</strong>{" "}
+                        <span className="org-private-code">
+                          {selectedEvent.privateCode}
+                        </span>
+                      </p>
+                    )}
+
+                  <p>
+                    <strong>Attendees:</strong>{" "}
+                    {selectedEvent.currentAttendees || 0} /{" "}
+                    {selectedEvent.maxAttendees || "Unlimited"}
+                  </p>
+
+                  {/* ===== EVENT TIMELINE STATUS ===== */}
+                  <p>
+                    <strong>Schedule:</strong>{" "}
+                    <span
+                      className={`org-status-badge org-status-${
+                        new Date(
+                          `${selectedEvent.startDate}T${
+                            selectedEvent.startTime || "00:00"
+                          }`
+                        ) > new Date()
+                          ? "upcoming"
+                          : "completed"
+                      }`}
+                    >
+                      {new Date(
+                        `${selectedEvent.startDate}T${
+                          selectedEvent.startTime || "00:00"
+                        }`
+                      ) > new Date()
+                        ? "Upcoming"
+                        : "Completed"}
+                    </span>
+                  </p>
+
+                  {/* ===== APPROVAL STATUS ===== */}
+                  <p>
+                    <strong>Approval Status:</strong>{" "}
+                    <span
+                      className={`org-status-badge org-status-${
+                        selectedEvent.status?.toLowerCase() || "approved"
+                      }`}
+                    >
+                      {selectedEvent.status === "PENDING" &&
+                        "⏳ Pending Admin Approval"}
+                      {selectedEvent.status === "APPROVED" && "✅ Approved"}
+                      {selectedEvent.status === "REJECTED" && "❌ Rejected"}
+                      {!selectedEvent.status && "✅ Approved"}
+                    </span>
+                  </p>
+
+                  {/* ===== REJECTION DETAILS ===== */}
+                  {selectedEvent.status === "REJECTED" &&
+                    selectedEvent.rejectionReason && (
+                      <div className="org-rejection-detail">
+                        <strong>Rejection Reason:</strong>
+                        <p className="org-rejection-text">
+                          {selectedEvent.rejectionReason}
+                        </p>
+
+                        <button
+                          className="org-action-btn org-btn-resubmit"
+                          onClick={() => {
+                            handleCloseModal();
+                            handleResubmit(selectedEvent.id);
+                          }}
+                        >
+                          <RefreshCw size={16} />
+                          Resubmit Event
+                        </button>
+                      </div>
+                    )}
+                </div>
+              </div>
+
+              {/* ===== FOOTER ===== */}
+              <div className="org-modal-footer">
+                <button
+                  className="org-btn-close"
+                  onClick={handleCloseModal}
+                >
+                  Close
+                </button>
               </div>
             </div>
-
-            <div className="org-modal-footer">
-              <button className="org-btn-close" onClick={handleCloseModal}>
-                Close
-              </button>
-            </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
   );
 }
 
 // ============ CreateEventForm Component ============
 function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
+  const [venues, setVenues] = useState([]);           // ← Move here
+  const [selectedVenue, setSelectedVenue] = useState(null);  // ← Move here
+  const [venueLoading, setVenueLoading] = useState(false);   // ← Move here
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -896,7 +1167,8 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
     imageUrl: "",
     maxAttendees: "",
     eventType: "PUBLIC",
-    privateCode: ""
+    privateCode: "",
+    venueId: null  // ✅ ADD THIS LINE
   });
 
   const [loading, setLoading] = useState(false);
@@ -965,6 +1237,54 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
       }
     }
   }, [editingEvent]);
+
+  // ADD THIS NEW useEffect:
+  useEffect(() => {
+    fetchVenues();  // ← Fetch venues when component loads
+  }, []);
+
+  const fetchVenues = async () => {
+    try {
+      setVenueLoading(true);
+      const response = await getActiveVenues();
+      setVenues(response);
+    } catch (err) {
+      console.error("Error fetching venues:", err);
+      setError("Failed to load venues");
+    } finally {
+      setVenueLoading(false);
+    }
+  };
+
+  const handleVenueSelect = (venueId) => {
+  if (!venueId) {
+    setSelectedVenue(null);
+    setFormData(prev => ({
+      ...prev,
+      venueId: null,
+      address: "",
+      city: "",
+      state: ""
+    }));
+    return;
+  }
+
+  const venue = venues.find(v => v.id === parseInt(venueId));
+  if (venue) {
+    setSelectedVenue(venue);
+    
+    // Parse location: "address, city, state"
+    const locationParts = venue.location?.split(", ") || [];
+    
+    setFormData(prev => ({
+      ...prev,
+      venueId: venue.id,
+      address: locationParts[0] || venue.address || "",
+      city: venue.city || locationParts[locationParts.length - 2] || "",
+      state: venue.state || locationParts[locationParts.length - 1] || ""
+    }));
+  }
+};
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -1127,12 +1447,15 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
         endDate: formData.endDate,
         startTime: formData.startTime,
         endTime: formData.endTime,
-        location: location,
+        state: formData.state,        // ✅ ADD
+        city: formData.city,          // ✅ ADD
+        address: formData.address,    // ✅ ADD
         category: formData.category,
         imageUrl: formData.imageUrl || defaultImages[formData.category] || defaultImages["Other"],
         maxAttendees: formData.maxAttendees ? parseInt(formData.maxAttendees) : null,
         eventType: formData.eventType,
-        privateCode: formData.eventType === "PRIVATE" ? formData.privateCode : null
+        privateCode: formData.eventType === "PRIVATE" ? formData.privateCode : null,
+        venueId: formData.venueId || null  // ✅ ADD THIS LINE
       };
 
       if (editingEvent) {
@@ -1250,6 +1573,46 @@ function CreateEventForm({ editingEvent, onCancel, onSuccess }) {
           {fieldErrors.description && (
             <span className="org-error-message" role="alert">{fieldErrors.description}</span>
           )}
+        </div>
+
+        {/* 🆕 VENUE SELECTION - ADD THIS SECTION */}
+        <div className="org-form-group">
+          <label className="org-form-label">
+            Select Venue (Optional)
+            {venueLoading && <span className="org-loading-inline"> Loading...</span>}
+          </label>
+          
+          <select
+            name="venueId"
+            value={formData.venueId || ""}
+            onChange={(e) => handleVenueSelect(e.target.value)}
+            className="org-form-input"
+            disabled={venueLoading}
+            aria-label="Select venue"
+          >
+            <option value="">No Venue (Enter address manually)</option>
+            {venues.map((venue) => (
+              <option key={venue.id} value={venue.id}>
+                {venue.name} - {venue.location} (Capacity: {venue.capacity})
+              </option>
+            ))}
+          </select>
+          
+          {selectedVenue && (
+            <div className="org-venue-info-preview">
+              <p className="org-venue-info-title">✓ Selected Venue Details:</p>
+              <p><strong>Name:</strong> {selectedVenue.name}</p>
+              <p><strong>Location:</strong> {selectedVenue.location}</p>
+              <p><strong>Capacity:</strong> {selectedVenue.capacity} people</p>
+              {selectedVenue.amenities && (
+                <p><strong>Amenities:</strong> {selectedVenue.amenities}</p>
+              )}
+            </div>
+          )}
+          
+          <small className="org-form-hint">
+            Select a venue to auto-fill address details, or leave empty to enter manually
+          </small>
         </div>
 
         <div className="org-form-group">
@@ -1973,7 +2336,13 @@ export default function OrganizerDashboard() {
 
       <main className="org-dashboard-main" role="main">
         {activePage === "myEvents" && (
-          <MyEvents onEditEvent={handleEditEvent} />
+          <MyEvents
+            onEditEvent={handleEditEvent}
+            setShowRegistrations={setShowRegistrations}
+            setShowTicketPreview={setShowTicketPreview}
+            handleExportCSV={handleExportCSV}
+            setShowVenueMap={setShowVenueMap}  
+          />
         )}
         
         {activePage === "createEvent" && (
@@ -1999,6 +2368,32 @@ export default function OrganizerDashboard() {
           />
         )}
       </main>
+
+      {/* ================= MODALS ================= */}
+
+      {showRegistrations && (
+        <ViewRegistrations
+          eventId={showRegistrations.id}
+          eventTitle={showRegistrations.title}
+          onClose={() => setShowRegistrations(null)}
+        />
+      )}
+
+      {showTicketPreview && (
+        <TicketPreviewModal
+          eventId={showTicketPreview.id}
+          eventTitle={showTicketPreview.title}
+          onClose={() => setShowTicketPreview(null)}
+        />
+      )}
+
+      {showVenueMap && (
+        <VenueMapPreview
+          venueId={showVenueMap}
+          onClose={() => setShowVenueMap(null)}
+        />
+      )}
+
     </div>
   );
 }

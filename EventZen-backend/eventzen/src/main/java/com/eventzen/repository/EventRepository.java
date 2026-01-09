@@ -16,6 +16,7 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.eventzen.entity.Event;
+import com.eventzen.entity.EventStatus;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
@@ -109,6 +110,7 @@ public interface EventRepository extends JpaRepository<Event, Long> {
          * Find all events for a venue
          */
         List<Event> findByVenue_Id(Long venueId);
+
         long countByVenue_Id(Long venueId);
 
         @Query("SELECT e FROM Event e WHERE e.venue.id = :venueId " +
@@ -175,6 +177,104 @@ public interface EventRepository extends JpaRepository<Event, Long> {
         @Modifying
         @Query("DELETE FROM Event e WHERE e.organizerId = :organizerId")
         void deleteByOrganizerId(@Param("organizerId") Long organizerId);
+
+        /**
+         * Find all events with specific status
+         * Used by: Admin to view pending/rejected events
+         */
+        List<Event> findByStatus(EventStatus status);
+
+        /**
+         * Find all events with status, ordered by creation date (newest first)
+         * Used by: Admin pending events page
+         */
+        List<Event> findByStatusOrderByCreatedAtDesc(EventStatus status);
+
+        /**
+         * Find events by organizer and status
+         * Used by: Organizer to see their pending/rejected events
+         */
+        List<Event> findByOrganizerIdAndStatus(Long organizerId, EventStatus status);
+
+        /**
+         * Find events by organizer and status, ordered by date
+         * Used by: Organizer dashboard filtering
+         */
+        List<Event> findByOrganizerIdAndStatusOrderByStartDateDesc(Long organizerId, EventStatus status);
+
+        /**
+         * Find only APPROVED events (for public/visitor view)
+         * Used by: Visitor dashboard, public event listings
+         */
+        @Query("SELECT e FROM Event e WHERE e.status = 'APPROVED' AND e.isActive = true ORDER BY e.startDate DESC")
+        List<Event> findApprovedEvents();
+
+        /**
+         * Find approved events by category
+         * Used by: Visitor filtering
+         */
+        @Query("SELECT e FROM Event e WHERE e.status = 'APPROVED' AND e.category = :category AND e.isActive = true ORDER BY e.startDate DESC")
+        List<Event> findApprovedEventsByCategory(@Param("category") String category);
+
+        /**
+         * Find approved PUBLIC events only
+         * Used by: Public event page (no login required)
+         */
+        @Query("SELECT e FROM Event e WHERE e.status = 'APPROVED' AND e.eventType = 'PUBLIC' AND e.isActive = true ORDER BY e.startDate DESC")
+        List<Event> findApprovedPublicEvents();
+
+        /**
+         * Count pending events
+         * Used by: Admin dashboard stats
+         */
+        long countByStatus(EventStatus status);
+
+        /**
+         * Count pending events for specific organizer
+         * Used by: Organizer dashboard stats
+         */
+        long countByOrganizerIdAndStatus(Long organizerId, EventStatus status);
+
+        /**
+         * Find approved events by organizer (for public view of organizer's events)
+         * Used by: Public organizer profile page
+         */
+        @Query("SELECT e FROM Event e WHERE e.organizerId = :organizerId AND e.status = 'APPROVED' AND e.isActive = true ORDER BY e.startDate DESC")
+        List<Event> findApprovedEventsByOrganizer(@Param("organizerId") Long organizerId);
+
+        /**
+         * Find approved upcoming events
+         * Used by: Homepage, visitor dashboard
+         */
+        @Query("SELECT e FROM Event e WHERE e.status = 'APPROVED' AND e.startDate >= :currentDate AND e.isActive = true ORDER BY e.startDate ASC")
+        List<Event> findApprovedUpcomingEvents(@Param("currentDate") LocalDate currentDate);
+
+        /**
+         * Check if event exists and is approved
+         * Used by: Registration validation
+         */
+        @Query("SELECT CASE WHEN COUNT(e) > 0 THEN true ELSE false END FROM Event e WHERE e.id = :eventId AND e.status = 'APPROVED'")
+        boolean existsByIdAndApproved(@Param("eventId") Long eventId);
+
+        // ================================================================
+        // 🔧 OPTIONAL: Update existing methods to consider status
+        // ================================================================
+
+        /**
+         * Update your existing findByIsActiveTrueOrderByStartDateDesc to only show
+         * approved
+         * OLD: List<Event> findByIsActiveTrueOrderByStartDateDesc();
+         * NEW: (add this query method)
+         */
+        @Query("SELECT e FROM Event e WHERE e.isActive = true AND e.status = 'APPROVED' ORDER BY e.startDate DESC")
+        List<Event> findActiveApprovedEvents();
+
+        /**
+         * Update findPublicEvents to only show approved
+         * OLD: @Query("SELECT e FROM Event e WHERE e.eventType = 'PUBLIC' AND
+         * e.isActive = true ORDER BY e.startDate DESC")
+         * NEW: (already added above as findApprovedPublicEvents)
+         */
 }
 
 // ================================================================

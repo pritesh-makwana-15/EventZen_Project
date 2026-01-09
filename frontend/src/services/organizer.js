@@ -1,7 +1,9 @@
 // src/services/organizer.js
 import API from "./api";
 
-// ===== ORGANIZER DASHBOARD SERVICES =====
+// =====================================================
+// ORGANIZER DASHBOARD SERVICES
+// =====================================================
 
 /**
  * Get current organizer's events (for dashboard)
@@ -35,6 +37,26 @@ export const deleteEvent = async (eventId) => {
 };
 
 /**
+ * Resubmit rejected event for admin approval
+ */
+export const resubmitEvent = async (eventId) => {
+  const { data } = await API.post(`/organizer/events/${eventId}/resubmit`);
+  return data;
+};
+
+/**
+ * Get organizer events by status (PENDING / APPROVED / REJECTED)
+ */
+export const getEventsByStatus = async (status) => {
+  const { data } = await API.get(`/organizer/events/status/${status}`);
+  return data;
+};
+
+// =====================================================
+// USER PROFILE SERVICES
+// =====================================================
+
+/**
  * Get current user's profile
  */
 export const getProfile = async () => {
@@ -50,7 +72,9 @@ export const updateProfile = async (profileData) => {
   return data;
 };
 
-// ===== ENHANCED EVENTS SERVICES =====
+// =====================================================
+// EVENTS (PUBLIC / VISITOR SIDE)
+// =====================================================
 
 /**
  * Get all public events (for visitors)
@@ -76,20 +100,22 @@ export const getEventsByOrganizer = async (organizerId) => {
   return data;
 };
 
-// ===== AUTHENTICATION SERVICES =====
+// =====================================================
+// AUTHENTICATION SERVICES
+// =====================================================
 
 /**
  * Login user
  */
 export const login = async (credentials) => {
   const { data } = await API.post("/auth/login", credentials);
-  
+
   if (data.token) {
     localStorage.setItem("token", data.token);
     localStorage.setItem("role", data.role);
     localStorage.setItem("email", data.email);
   }
-  
+
   return data;
 };
 
@@ -101,11 +127,39 @@ export const register = async (userData) => {
   return data;
 };
 
-/** 
+/**
  * Logout user
  */
 export const logout = () => {
   localStorage.removeItem("token");
-  localStorage.removeItem("role");  
+  localStorage.removeItem("role");
   localStorage.removeItem("email");
+};
+
+// =====================================================
+// DEFAULT EXPORT (OPTIONAL – for grouped imports)
+// =====================================================
+
+export default {
+  // Organizer
+  getMyEvents,
+  createEvent,
+  updateEvent,
+  deleteEvent,
+  resubmitEvent,
+  getEventsByStatus,
+
+  // Profile
+  getProfile,
+  updateProfile,
+
+  // Events
+  getAllEvents,
+  getEventById,
+  getEventsByOrganizer,
+
+  // Auth
+  login,
+  register,
+  logout,
 };

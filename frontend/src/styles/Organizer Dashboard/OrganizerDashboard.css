@@ -2930,3 +2930,256 @@ button:disabled {
   background: #ccc;
   transform: none;
 }
+
+/* ===== Status Badges ===== */
+.org-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.org-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+.org-status-approved {
+  background: #d1fae5;
+  color: #065f46;
+  border: 1px solid #10b981;
+}
+
+.org-status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+  border: 1px solid #ef4444;
+}
+
+/* ===== Pending Info ===== */
+.org-pending-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+/* ===== Rejection Notice (Card View) ===== */
+.org-rejection-notice {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+.org-rejection-notice svg {
+  flex-shrink: 0;
+  color: #dc2626;
+  margin-top: 0.25rem;
+}
+
+.org-rejection-notice strong {
+  display: block;
+  color: #991b1b;
+  margin-bottom: 0.25rem;
+  font-size: 0.9rem;
+}
+
+.org-rejection-notice p {
+  color: #7f1d1d;
+  margin: 0;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* ===== Rejection Detail (Modal View) ===== */
+.org-rejection-detail {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+}
+
+.org-rejection-detail strong {
+  display: block;
+  color: #991b1b;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.org-rejection-text {
+  color: #7f1d1d;
+  margin: 0 0 1rem 0;
+  padding: 0.75rem;
+  background: white;
+  border-radius: 6px;
+  line-height: 1.6;
+  font-size: 0.9rem;
+}
+
+/* ===== Resubmit Button ===== */
+.org-btn-resubmit {
+  background: #667eea;
+  color: white;
+}
+
+.org-btn-resubmit:hover:not(:disabled) {
+  background: #5568d3;
+}
+
+/* ===== Warning Button ===== */
+.org-btn-warning {
+  background: #f59e0b;
+  color: white;
+}
+
+.org-btn-warning:hover:not(:disabled) {
+  background: #d97706;
+}
+
+/* ===== Card Status Overlay ===== */
+.org-card-status-overlay {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  z-index: 10;
+}
+
+.org-event-card {
+  position: relative;
+}
+
+/* ===== Status Badge in Modal ===== */
+.org-event-info .org-status-badge {
+  margin-left: 0.5rem;
+  vertical-align: middle;
+}
+
+/* ===== Table Status Cell ===== */
+.org-events-table td .org-status-badge {
+  display: inline-flex;
+}
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 768px) {
+  .org-status-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  
+  .org-rejection-notice {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .org-card-status-overlay {
+    top: 0.5rem;
+    right: 0.5rem;
+  }
+}
+
+/* ===== Animation for Pending Badge ===== */
+.org-status-pending {
+  animation: pending-pulse 2s ease-in-out infinite;
+}
+
+@keyframes pending-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+/* ===== Disabled State for Pending/Rejected Events ===== */
+.org-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ===== Status Filter Highlight ===== */
+.org-filter-select[value="pending"] {
+  border-color: #fbbf24;
+}
+
+.org-filter-select[value="rejected"] {
+  border-color: #ef4444;
+}
+
+.org-filter-select[value="approved"] {
+  border-color: #10b981;
+}
+
+/* ============ 🆕 REQUIRED CSS - Add to OrganizerDashboard.css ============ */
+
+.org-status-badge.org-status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.org-status-badge.org-status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.org-pending-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #f59e0b;
+  font-weight: 500;
+}
+
+.org-btn-resubmit {
+  background: #10b981 !important;
+  color: white !important;
+}
+
+.org-btn-resubmit:hover {
+  background: #059669 !important;
+}
+
+.org-btn-warning {
+  background: #f59e0b !important;
+  color: white !important;
+}
+
+.org-rejection-detail {
+  margin-top: 15px;
+  padding: 15px;
+  background: #fef2f2;
+  border-left: 4px solid #ef4444;
+  border-radius: 8px;
+}
+
+.org-rejection-text {
+  margin: 10px 0;
+  color: #7f1d1d;
+  font-size: 14px;
+}
+
+.org-rejection-notice {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: #fef2f2;
+  border-left: 3px solid #ef4444;
+  border-radius: 6px;
+  margin: 10px 0;
+}

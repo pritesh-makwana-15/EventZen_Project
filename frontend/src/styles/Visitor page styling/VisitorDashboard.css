@@ -1109,6 +1109,12 @@
   transform: translateY(-2px);
 }
 
+.vis-countdown-compact{
+      display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+}
 /* ============================================ */
 /* MODALS */
 /* ============================================ */
@@ -1542,6 +1548,23 @@
   color: #666;
   font-size: 16px;
   margin: 0;
+}
+
+.vis-approved-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: rgba(16, 185, 129, 0.95);
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
 }
 
 /* ================================================================

@@ -58,20 +58,26 @@ public class SecurityConfig {
                             // ✅ Allow register & login
                             .requestMatchers("/api/auth/**").permitAll()
 
+                            // 🆕 NEW: Visitor ticket endpoints - VISITOR only
+                            .requestMatchers("/api/visitor/registrations/*/ticket/**")
+                            .hasAuthority("ROLE_VISITOR")
+
                             // ✅ CRITICAL FIX: Allow VISITOR to register for events
-                            // This MUST come BEFORE /api/events/** pattern
                             .requestMatchers(HttpMethod.POST, "/api/events/*/register")
-                            .authenticated() // Any authenticated user (VISITOR, ORGANIZER, ADMIN)
+                            .authenticated()
 
                             // ✅ Public GET access to events
                             .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
 
-                            // ✅ 🆕 NEW: Organizer Calendar endpoint - ORGANIZER only
+                            // ✅ Organizer Calendar endpoint - ORGANIZER only
                             .requestMatchers(HttpMethod.GET, "/api/events/organizer/calendar")
                             .hasAuthority("ROLE_ORGANIZER")
 
+                            // ✅ Organizer ticket preview - ORGANIZER only
+                            .requestMatchers("/api/organizer/events/*/ticket/preview")
+                            .hasAuthority("ROLE_ORGANIZER")
+
                             // ✅ Event CRUD - ORGANIZER/ADMIN only
-                            // NOTE: hasAuthority() expects "ROLE_" prefix
                             .requestMatchers(HttpMethod.POST, "/api/events")
                             .hasAnyAuthority("ROLE_ADMIN", "ROLE_ORGANIZER")
                             .requestMatchers(HttpMethod.PUT, "/api/events/**")
@@ -87,7 +93,6 @@ public class SecurityConfig {
                             .requestMatchers("/api/users/**").authenticated()
 
                             // ✅ Admin endpoints - ADMIN only
-                            // NOTE: hasAuthority() expects "ROLE_" prefix
                             .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
                             .requestMatchers("/api/events/admin/**").hasAuthority("ROLE_ADMIN")
 
@@ -98,9 +103,9 @@ public class SecurityConfig {
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         System.out.println("✅ Security configured");
-        System.out.println("✅ /api/events/*/register → AUTHENTICATED (VISITOR allowed)");
-        System.out.println("✅ /api/events/organizer/calendar → ROLE_ORGANIZER only");
-        System.out.println("✅ /api/admin/** → ROLE_ADMIN only");
+        System.out.println("✅ /api/visitor/registrations/*/ticket/** → ROLE_VISITOR");
+        System.out.println("✅ /api/organizer/events/*/ticket/preview → ROLE_ORGANIZER");
+        System.out.println("✅ All other existing routes preserved");
         return http.build();
     }
 

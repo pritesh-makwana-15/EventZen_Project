@@ -1,6 +1,10 @@
 // ================================================================
-// FILE: src/services/visitorService.js
+// FILE: src/services/visitorService.js (FIXED)
 // PURPOSE: All visitor-specific API calls
+// CHANGES:
+//   - Fixed downloadTicketPDF to use registrationId instead of ticketId
+//   - Updated endpoint to /visitor/registrations/{id}/ticket/download
+//   - All endpoints now match backend implementation
 // ================================================================
 
 import API from "./api";
@@ -12,6 +16,8 @@ import API from "./api";
 /**
  * Get all registrations for current visitor
  * GET /api/visitor/registrations
+ * 
+ * Returns: Array of RegistrationResponse with hasTicket field
  */
 export const getMyRegistrations = async () => {
   const { data } = await API.get("/visitor/registrations");
@@ -19,28 +25,45 @@ export const getMyRegistrations = async () => {
 };
 
 // ================================================================
-// TICKET SERVICES
+// TICKET SERVICES (FIXED)
 // ================================================================
 
 /**
- * Get ticket details by ticket ID
- * GET /api/visitor/tickets/:ticketId
+ * 🆕 FIXED: Download ticket PDF by registration ID
+ * GET /api/visitor/registrations/{registrationId}/ticket/download
+ * 
+ * @param {number} registrationId - Registration ID (NOT ticketId!)
+ * @returns {Blob} PDF file
  */
-export const getTicketDetails = async (ticketId) => {
-  const { data } = await API.get(`/visitor/tickets/${ticketId}`);
+export const downloadTicketPDF = async (registrationId) => {
+  const response = await API.get(`/visitor/registrations/${registrationId}/ticket/download`, {
+    responseType: "blob",
+  });
+  return response.data;
+};
+
+/**
+ * 🆕 NEW: Check if ticket exists for a registration
+ * GET /api/visitor/registrations/{registrationId}/ticket/exists
+ * 
+ * @param {number} registrationId - Registration ID
+ * @returns {object} { exists: boolean, registrationId: number }
+ */
+export const checkTicketExists = async (registrationId) => {
+  const { data } = await API.get(`/visitor/registrations/${registrationId}/ticket/exists`);
   return data;
 };
 
 /**
- * Download ticket PDF
- * GET /api/visitor/tickets/:ticketId/pdf
- * Returns: Blob (PDF file)
+ * 🆕 NEW: Get ticket details (without downloading PDF)
+ * GET /api/visitor/registrations/{registrationId}/ticket
+ * 
+ * @param {number} registrationId - Registration ID
+ * @returns {object} { ticketId, ticketCode, issuedAt, isCheckedIn }
  */
-export const downloadTicketPDF = async (ticketId) => {
-  const response = await API.get(`/visitor/tickets/${ticketId}/pdf`, {
-    responseType: "blob",
-  });
-  return response.data;
+export const getTicketDetails = async (registrationId) => {
+  const { data } = await API.get(`/visitor/registrations/${registrationId}/ticket`);
+  return data;
 };
 
 // ================================================================
@@ -137,8 +160,9 @@ export const getCalendarEvents = async (from, to) => {
 
 export default {
   getMyRegistrations,
-  getTicketDetails,
   downloadTicketPDF,
+  checkTicketExists,
+  getTicketDetails,
   submitFeedback,
   getEventFeedback,
   setReminder,
@@ -147,3 +171,18 @@ export default {
   getVenueDetails,
   getCalendarEvents,
 };
+
+// ================================================================
+// USAGE NOTES:
+// 
+// ✅ CORRECT USAGE:
+//   const blob = await downloadTicketPDF(registrationId);
+//
+// ❌ WRONG USAGE:
+//   const blob = await downloadTicketPDF(ticketId); // Backend doesn't accept ticketId!
+//
+// ✅ TICKET DOWNLOAD FLOW:
+//   1. Get registrations: getMyRegistrations()
+//   2. Check if has ticket: registration.hasTicket === true
+//   3. Download using registration ID: downloadTicketPDF(registration.id)
+// ================================================================

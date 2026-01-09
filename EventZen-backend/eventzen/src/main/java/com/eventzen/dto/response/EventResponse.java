@@ -1,6 +1,7 @@
 // ================================================================
 // FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/dto/response/EventResponse.java
-// 🆕 UPDATED: Added venue fields + separate start/end date & time
+// 🆕 COMPLETE UPDATED FILE - Added status and rejectionReason fields
+// Merged with existing venue fields and all utility methods
 // ================================================================
 
 package com.eventzen.dto.response;
@@ -10,6 +11,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 
+import com.eventzen.entity.EventStatus;
 import com.fasterxml.jackson.annotation.JsonFormat;
 
 public class EventResponse {
@@ -47,7 +49,7 @@ public class EventResponse {
     private String eventType;
     private String privateCode;
 
-    // 🆕 Venue details (NEW)
+    // 🆕 Venue details
     private Long venueId;
     private String venueName;
     private String venueAddress;
@@ -57,6 +59,10 @@ public class EventResponse {
 
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime updatedAt;
+
+    // 🆕 FIXED: Added status and rejection reason fields (EventStatus type)
+    private EventStatus status;
+    private String rejectionReason;
 
     // ====================
     // Constructors
@@ -88,7 +94,9 @@ public class EventResponse {
             String venueName,
             String venueAddress,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt) {
+            LocalDateTime updatedAt,
+            EventStatus status,
+            String rejectionReason) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -112,6 +120,8 @@ public class EventResponse {
         this.venueAddress = venueAddress;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.status = status;
+        this.rejectionReason = rejectionReason;
     }
 
     // ====================
@@ -303,6 +313,39 @@ public class EventResponse {
         this.updatedAt = updatedAt;
     }
 
+    // 🆕 FIXED: Status and rejection reason getters/setters
+    public EventStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EventStatus status) {
+        this.status = status;
+    }
+
+    public String getRejectionReason() {
+        return rejectionReason;
+    }
+
+    public void setRejectionReason(String rejectionReason) {
+        this.rejectionReason = rejectionReason;
+    }
+
+    // ====================
+    // Status Helper Methods
+    // ====================
+
+    public boolean isPending() {
+        return EventStatus.PENDING.equals(status);
+    }
+
+    public boolean isApproved() {
+        return EventStatus.APPROVED.equals(status);
+    }
+
+    public boolean isRejected() {
+        return EventStatus.REJECTED.equals(status);
+    }
+
     // ====================
     // Utility Methods
     // ====================
@@ -348,7 +391,8 @@ public class EventResponse {
     }
 
     /**
-     * Create public-safe response (removes privateCode)
+     * Create public-safe response (removes privateCode and sensitive organizer
+     * info)
      */
     public EventResponse createPublicVersion() {
         EventResponse e = new EventResponse();
@@ -374,6 +418,8 @@ public class EventResponse {
         e.setVenueAddress(venueAddress);
         e.setCreatedAt(createdAt);
         e.setUpdatedAt(updatedAt);
+        e.setStatus(status);
+        // Note: rejectionReason intentionally not included in public version
         return e;
     }
 
@@ -390,6 +436,14 @@ public class EventResponse {
                 ", category='" + category + '\'' +
                 ", eventType='" + eventType + '\'' +
                 ", isActive=" + isActive +
+                ", status=" + status +
+                ", rejectionReason='" + rejectionReason + '\'' +
+                ", organizerId=" + organizerId +
+                ", organizerName='" + organizerName + '\'' +
                 '}';
     }
 }
+
+// ================================================================
+// END OF FILE - EventResponse.java - COMPLETE AND UPDATED
+// ================================================================

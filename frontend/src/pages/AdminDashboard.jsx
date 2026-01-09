@@ -25,7 +25,8 @@ import {
   Menu,
   Building2,
   MessageSquare,
-  Download
+  Download,
+  Clock,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import "../styles/Admin Dashborad/AdminDashboard.css";
@@ -45,7 +46,8 @@ import {
   exportUsersPdf,
   exportRegistrationsCsv,
   exportRegistrationsPdf,
-  downloadFile
+  downloadFile,
+  getApprovalStats
 } from "../services/adminService";
 import { logout } from "../services/api";
 import AdminAnalyticsPage from "../pages/AdminAnalyticsPage";
@@ -55,6 +57,7 @@ import {
   sortEventsByDateTime,
   getEventStatus 
 } from "../utils/dateTime";
+import PendingEvents from "./admin/PendingEvents";
 
 // ================================================================
 // 🆕 NEW: Export Buttons Component
@@ -137,6 +140,22 @@ const AdminDashboard = () => {
 
   // Organizer filter from Analytics/Organizers page
   const [organizerFilter, setOrganizerFilter] = useState(null);
+
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Add this useEffect to load pending count
+  useEffect(() => {
+    loadPendingCount();
+  }, []);
+
+  const loadPendingCount = async () => {
+    try {
+      const stats = await getApprovalStats(); // Import from adminService
+      setPendingCount(stats.pending);
+    } catch (err) {
+      console.error("Error loading pending count:", err);
+    }
+  };
 
   // Filter states for Events
   const [filters, setFilters] = useState({
@@ -659,6 +678,22 @@ const AdminDashboard = () => {
           <div className="ad-nav-btn-content">
             <span>Visitors</span>
             <span className="ad-nav-count">{visitors.length}</span>
+          </div>
+        </button>
+
+        <button
+          className={`ad-nav-btn ${activeSection === "pending-events" ? "ad-active" : ""}`}
+          onClick={() => {
+            setActiveSection("pending-events");
+            setSidebarOpen(false);
+          }}
+          aria-label="View Pending Events"
+        >
+          <Clock size={20} />
+          <div className="ad-nav-btn-content">
+            <span>Pending Events</span>
+            {/* Optional: Show count badge */}
+            {/* <span className="ad-nav-count ad-pending-badge">{pendingCount}</span> */}
           </div>
         </button>
 
@@ -1698,6 +1733,8 @@ const AdminDashboard = () => {
         return renderOrganizers();
       case "events":
         return renderEvents();
+       case "pending-events":
+        return <PendingEvents />;
       case "create-organizer":
         return renderCreateOrganizer();
       case "profile":
