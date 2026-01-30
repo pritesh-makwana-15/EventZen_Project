@@ -1,11 +1,13 @@
-// RegistrationServiceImpl.java (REPLACE)
 package com.eventzen.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.eventzen.dto.request.RegistrationRequest;
 import com.eventzen.dto.response.RegistrationResponse;
 import com.eventzen.entity.Event;
@@ -16,101 +18,191 @@ import com.eventzen.repository.EventRepository;
 import com.eventzen.repository.RegistrationRepository;
 import com.eventzen.repository.UserRepository;
 import com.eventzen.service.RegistrationService;
+import com.eventzen.service.TicketService;
 
 @Service
 public class RegistrationServiceImpl implements RegistrationService {
 
-        @Autowired
-        private RegistrationRepository registrationRepository;
+    @Autowired
+    private RegistrationRepository registrationRepository;
 
-        @Autowired
-        private UserRepository userRepository;
+    @Autowired
+    private UserRepository userRepository;
 
-        @Autowired
-        private EventRepository eventRepository;
+    @Autowired
+    private EventRepository eventRepository;
 
-        @Override
-        public RegistrationResponse registerForEvent(RegistrationRequest request) throws Exception {
-                User visitor = userRepository.findById(request.getVisitorId())
-                                .orElseThrow(() -> new Exception("Visitor not found"));
-                Event event = eventRepository.findById(request.getEventId())
-                                .orElseThrow(() -> new Exception("Event not found"));
+    @Autowired
+    private TicketService ticketService;
 
-                if (registrationRepository.existsByVisitorAndEvent(visitor, event)) {
-                        throw new Exception("User is already registered for this event");
-                }
+    @Override
+    @Transactional
+    public RegistrationResponse registerForEvent(RegistrationRequest request) throws Exception {
+        System.out.println("=== REGISTRATION START ===");
+        System.out.println("Visitor ID: " + request.getVisitorId());
+        System.out.println("Event ID: " + request.getEventId());
+        System.out.println("Provided Private Code: " + request.getPrivateCode());
 
-                if (event.getMaxAttendees() != null &&
-                                event.getCurrentAttendees() != null &&
-                                event.getCurrentAttendees() >= event.getMaxAttendees()) {
-                        throw new Exception("Event has reached maximum capacity");
-                }
+        // Step 1: Fetch visitor
+        User visitor = userRepository.findById(request.getVisitorId())
+                .orElseThrow(() -> new Exception("Visitor not found"));
 
-                Registration registration = new Registration();
-                registration.setVisitor(visitor);
-                registration.setEvent(event);
-                registration.setStatus(RegistrationStatus.CONFIRMED);
-                registration.setRegisteredAt(LocalDateTime.now());
+        // Step 2: Fetch event
+        Event event = eventRepository.findById(request.getEventId())
+                .orElseThrow(() -> new Exception("Event not found"));
 
-                if (event.getCurrentAttendees() == null) {
-                        event.setCurrentAttendees(1);
-                } else {
-                        event.setCurrentAttendees(event.getCurrentAttendees() + 1);
-                }
-                eventRepository.save(event);
+        System.out.println("Event Type: " + event.getEventType());
+        System.out.println("Event Private Code: " + event.getPrivateCode());
 
-                Registration saved = registrationRepository.save(registration);
-                return mapToResponse(saved);
+        // Step 3: Validate event is active
+        if (event.getIsActive() == null || !event.getIsActive()) {
+            throw new Exception("This event is no longer active");
         }
 
-        @Override
-        public List<RegistrationResponse> getRegistrationsByVisitor(Long visitorId) throws Exception {
-                User visitor = userRepository.findById(visitorId)
-                                .orElseThrow(() -> new Exception("Visitor not found"));
-                return registrationRepository.findByVisitor(visitor)
-                                .stream().map(this::mapToResponse).collect(Collectors.toList());
+        // Step 4: PRIVATE EVENT CODE VALIDATION
+        if ("PRIVATE".equalsIgnoreCase(event.getEventType())) {
+            String providedCode = request.getPrivateCode();
+            String actualCode = event.getPrivateCode();
+
+            if (providedCode == null || providedCode.trim().isEmpty()) {
+                throw new Exception("Private code is required for this event");
+            }
+
+            if (!providedCode.trim().equals(actualCode)) {
+                throw new Exception("Private code is not correct");
+            }
         }
 
-        @Override
-        public List<RegistrationResponse> getRegistrationsByEvent(Long eventId) throws Exception {
-                Event event = eventRepository.findById(eventId)
-                                .orElseThrow(() -> new Exception("Event not found"));
-                return registrationRepository.findByEvent(event)
-                                .stream().map(this::mapToResponse).collect(Collectors.toList());
+        // Step 5: Prevent duplicate registrations (except CANCELLED)
+        boolean alreadyRegistered = registrationRepository.findByVisitor(visitor)
+                .stream()
+                .anyMatch(reg -> reg.getEvent().getId().equals(event.getId())
+                        && reg.getStatus() != RegistrationStatus.CANCELLED);
+
+        if (alreadyRegistered) {
+            throw new Exception("You are already registered for this event");
         }
 
-        @Override
-        public void cancelRegistration(Long registrationId) throws Exception {
-                Registration registration = registrationRepository.findById(registrationId)
-                                .orElseThrow(() -> new Exception("Registration not found"));
+        // Step 6: Capacity check
+        Integer maxAttendees = event.getMaxAttendees();
+        Integer currentAttendees = event.getCurrentAttendees() != null
+                ? event.getCurrentAttendees()
+                : 0;
 
-                registration.setStatus(RegistrationStatus.CANCELLED);
-                registrationRepository.save(registration);
-
-                Event event = registration.getEvent();
-                if (event.getCurrentAttendees() != null && event.getCurrentAttendees() > 0) {
-                        event.setCurrentAttendees(event.getCurrentAttendees() - 1);
-                        eventRepository.save(event);
-                }
+        if (maxAttendees != null && currentAttendees >= maxAttendees) {
+            throw new Exception("Registration closed - maximum attendees reached");
         }
 
-        @Override
-        public List<RegistrationResponse> getAllRegistrations() {
-                return registrationRepository.findAll()
-                                .stream()
-                                .map(this::mapToResponse)
-                                .collect(Collectors.toList());
+        // Step 7: Create registration
+        Registration registration = new Registration();
+        registration.setVisitor(visitor);
+        registration.setEvent(event);
+        registration.setStatus(RegistrationStatus.CONFIRMED);
+        registration.setRegisteredAt(LocalDateTime.now());
+
+        Registration saved = registrationRepository.save(registration);
+
+        // Step 8: Update attendee count
+        event.setCurrentAttendees(currentAttendees + 1);
+        eventRepository.save(event);
+
+        // Step 9: Auto-generate ticket (non-blocking)
+        try {
+            ticketService.generateTicket(saved);
+            System.out.println("✅ Ticket generated for registration ID: " + saved.getId());
+        } catch (Exception e) {
+            System.err.println("⚠️ Ticket generation failed: " + e.getMessage());
+            // Don't fail registration if ticket generation fails
         }
 
-        private RegistrationResponse mapToResponse(Registration registration) {
-                RegistrationResponse response = new RegistrationResponse();
-                response.setId(registration.getId());
-                response.setEventId(registration.getEvent().getId());
-                response.setEventTitle(registration.getEvent().getTitle());
-                response.setVisitorId(registration.getVisitor().getId());
-                response.setVisitorName(registration.getVisitor().getName());
-                response.setStatus(registration.getStatus());
-                response.setRegisteredAt(registration.getRegisteredAt());
-                return response;
+        System.out.println("✅ Registration successful - Status: " + saved.getStatus()
+                + " - Attendees: " + event.getCurrentAttendees() + "/" + maxAttendees);
+        System.out.println("=== REGISTRATION END ===");
+
+        return mapToResponse(saved);
+    }
+
+    @Override
+    public List<RegistrationResponse> getRegistrationsByVisitor(Long visitorId) throws Exception {
+        User visitor = userRepository.findById(visitorId)
+                .orElseThrow(() -> new Exception("Visitor not found"));
+
+        return registrationRepository.findByVisitor(visitor)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RegistrationResponse> getRegistrationsByEvent(Long eventId) throws Exception {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new Exception("Event not found"));
+
+        return registrationRepository.findByEvent(event)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public void cancelRegistration(Long registrationId) throws Exception {
+        System.out.println("=== CANCELLATION START ===");
+
+        Registration registration = registrationRepository.findById(registrationId)
+                .orElseThrow(() -> new Exception("Registration not found"));
+
+        if (registration.getStatus() == RegistrationStatus.CANCELLED) {
+            throw new Exception("Registration is already cancelled");
         }
+
+        Event event = registration.getEvent();
+        Integer currentAttendees = event.getCurrentAttendees() != null
+                ? event.getCurrentAttendees()
+                : 0;
+
+        registration.setStatus(RegistrationStatus.CANCELLED);
+        registration.setUpdatedAt(LocalDateTime.now());
+        registrationRepository.save(registration);
+
+        if (currentAttendees > 0) {
+            event.setCurrentAttendees(currentAttendees - 1);
+            eventRepository.save(event);
+        }
+
+        System.out.println("✅ Registration cancelled");
+        System.out.println("=== CANCELLATION END ===");
+    }
+
+    @Override
+    public List<RegistrationResponse> getAllRegistrations() {
+        return registrationRepository.findAll()
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 🆕 UPDATED: Map Registration to Response with hasTicket field
+     */
+    private RegistrationResponse mapToResponse(Registration registration) {
+        // Check if ticket exists for this registration
+        boolean hasTicket = ticketService.hasTicket(registration.getId());
+
+        // Get visitor details
+        User visitor = registration.getVisitor();
+
+        return new RegistrationResponse(
+                registration.getId(),
+                registration.getEvent().getId(),
+                visitor.getId(),
+                visitor.getName(),
+                visitor.getEmail(),
+                registration.getPhone(),
+                registration.getStatus(),
+                registration.getRegisteredAt(),
+                registration.getNotes(),
+                hasTicket // 🆕 NEW: Include ticket availability
+        );
+    }
 }

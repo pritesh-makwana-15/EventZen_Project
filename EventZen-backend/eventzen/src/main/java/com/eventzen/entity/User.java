@@ -22,26 +22,27 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class User {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
+
     @Column(nullable = false, length = 255)
     private String name;
-    
+
     @Column(nullable = false, unique = true, length = 255)
     private String email;
-    
+
     @Column(nullable = false, length = 255)
     private String password;
-    
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role = Role.VISITOR;
-    
+
     @Column(name = "mobile_number", length = 15)
     private String mobileNumber;
+<<<<<<< HEAD
     
     @Column(name = "phone", length = 15)
     private String phone;
@@ -58,6 +59,10 @@ public class User {
     @Column(name = "updated_at") 
     private LocalDateTime updatedAt;
     
+=======
+
+    // 🔧 Fixed: Use LONGTEXT for image URLs (supports base64 images)
+>>>>>>> 2nd-eventzen-repo
     @Column(name = "image_url", columnDefinition = "LONGTEXT")
     private String imageUrl;
     

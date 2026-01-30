@@ -1,4 +1,3 @@
-// JwtAuthenticationFilter.java (REPLACE)
 package com.eventzen.security;
 
 import java.io.IOException;
@@ -38,16 +37,21 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String role = jwtService.getRoleFromToken(token);
 
                 if (email != null && role != null) {
-                    GrantedAuthority authority = new SimpleGrantedAuthority(role);
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(email,
-                            null, Collections.singletonList(authority));
+                    // ✅ FIX: Add "ROLE_" prefix to match Spring Security convention
+                    // Token has "ORGANIZER" → Authority becomes "ROLE_ORGANIZER"
+                    GrantedAuthority authority = new SimpleGrantedAuthority("ROLE_" + role);
+
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            email, null, Collections.singletonList(authority));
 
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                    System.out.println("✅ Authenticated: " + email + " with authority: ROLE_" + role);
                 }
             }
         } catch (Exception ex) {
-            System.out.println("JWT filter error: " + ex.getMessage());
+            System.out.println("❌ JWT filter error: " + ex.getMessage());
         }
 
         filterChain.doFilter(request, response);

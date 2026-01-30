@@ -1,0 +1,206 @@
+/* ================================================================
+   FILE 3: src/styles/Admin Dashboard/Feedback.css
+   ================================================================ */
+
+.feedback-container {
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.feedback-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.feedback-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.filter-btn {
+  padding: 10px 20px;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.filter-btn:hover,
+.filter-btn.active {
+  background: #667eea;
+  color: white;
+  border-color: #667eea;
+}
+
+.feedback-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.feedback-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s;
+}
+
+.feedback-card.flagged {
+  border: 2px solid #ef4444;
+}
+
+.feedback-card.reviewed {
+  opacity: 0.7;
+}
+
+.feedback-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.feedback-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+.feedback-user h4 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.event-title {
+  color: #7f8c8d;
+  font-size: 14px;
+  margin: 4px 0 0 0;
+}
+
+.feedback-rating {
+  display: flex;
+  gap: 4px;
+}
+
+.star-filled {
+  color: #fbbf24;
+}
+
+.star-empty {
+  color: #e5e7eb;
+}
+
+.feedback-body p {
+  color: #2c3e50;
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+
+.feedback-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.feedback-badges {
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  padding: 6px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.badge-reviewed {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.badge-flagged {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.feedback-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-check {
+  background: #10b981;
+  color: white;
+}
+
+.btn-check:hover {
+  background: #059669;
+}
+
+.btn-flag {
+  background: #f59e0b;
+  color: white;
+}
+
+.btn-flag:hover {
+  background: #d97706;
+}
+
+.no-feedback {
+  text-align: center;
+  padding: 80px 20px;
+  background: white;
+  border-radius: 12px;
+  color: #7f8c8d;
+}
+
+@media (max-width: 768px) {
+  .venue-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .conflict-events {
+    grid-template-columns: 1fr;
+  }
+
+  .conflict-vs {
+    text-align: center;
+  }
+}

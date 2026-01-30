@@ -6,12 +6,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.eventzen.dto.request.UpdatePasswordRequest;
 import com.eventzen.dto.request.UpdateProfileRequest;
 import com.eventzen.dto.response.UserProfileResponse;
 import com.eventzen.entity.User;
@@ -24,12 +26,19 @@ public class UserController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
     @GetMapping("/profile")
-    @PreAuthorize("hasAnyAuthority('ORGANIZER', 'VISITOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'VISITOR', 'ADMIN')")  // ✅ FIXED: Changed to hasAnyRole
     public ResponseEntity<UserProfileResponse> getCurrentUserProfile() {
         try {
+            System.out.println("Fetching current user profile");
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
+            
+            System.out.println("🔍 User authorities: " + authentication.getAuthorities());
 
             User user = userRepository.findByEmail(email)
                     .orElseThrow(() -> new Exception("User not found"));
@@ -38,7 +47,7 @@ public class UserController {
                     user.getId(),
                     user.getName(),
                     user.getEmail(),
-                    user.getRole().getName(),
+                    user.getRole().name(),
                     user.getMobileNumber(),
                     user.getImageUrl());
 
@@ -49,9 +58,11 @@ public class UserController {
     }
 
     @PutMapping("/profile")
-    @PreAuthorize("hasAnyAuthority('ORGANIZER', 'VISITOR', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'VISITOR', 'ADMIN')")  // ✅ FIXED
     public ResponseEntity<UserProfileResponse> updateProfile(@RequestBody UpdateProfileRequest request) {
         try {
+            System.out.println("Updating user profile");
+
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             String email = authentication.getName();
 
@@ -79,13 +90,54 @@ public class UserController {
                     updatedUser.getId(),
                     updatedUser.getName(),
                     updatedUser.getEmail(),
-                    updatedUser.getRole().getName(),
+                    updatedUser.getRole().name(),
                     updatedUser.getMobileNumber(),
                     updatedUser.getImageUrl());
 
             return ResponseEntity.ok(profile);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @PutMapping("/password")
+    @PreAuthorize("hasAnyRole('ORGANIZER', 'VISITOR', 'ADMIN')")  // ✅ FIXED
+    public ResponseEntity<?> updatePassword(@RequestBody UpdatePasswordRequest request) {
+        try {
+            System.out.println("🔐 Password change request received");
+
+            if (request.getCurrentPassword() == null || request.getCurrentPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Current password is required");
+            }
+
+            if (request.getNewPassword() == null || request.getNewPassword().trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("New password is required");
+            }
+
+            if (request.getNewPassword().length() < 6) {
+                return ResponseEntity.badRequest().body("New password must be at least 6 characters");
+            }
+
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            String email = authentication.getName();
+
+            User user = userRepository.findByEmail(email)
+                    .orElseThrow(() -> new Exception("User not found"));
+
+            if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+                System.out.println("❌ Current password does not match");
+                return ResponseEntity.badRequest().body("Current password is incorrect");
+            }
+
+            user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+            userRepository.save(user);
+
+            System.out.println("✅ Password updated successfully for user: " + email);
+            return ResponseEntity.ok().body("Password updated successfully");
+
+        } catch (Exception e) {
+            System.out.println("❌ Error updating password: " + e.getMessage());
+            return ResponseEntity.badRequest().body("Failed to update password: " + e.getMessage());
         }
     }
 }

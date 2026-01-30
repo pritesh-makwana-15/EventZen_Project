@@ -1,12 +1,21 @@
+// ================================================================
+// FILE: EventZen-backend/eventzen/src/main/java/com/eventzen/controller/EventController.java
+// 🆕 FIXED: Resubmit endpoint path changed to match frontend
+// Changed from /events/{eventId}/resubmit to /organizer/events/{eventId}/resubmit
+// ================================================================
+
 package com.eventzen.controller;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,12 +24,19 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.eventzen.dto.request.EventRequest;
+import com.eventzen.dto.request.VisitorRegistrationRequest;
+import com.eventzen.dto.response.EventCalendarResponse;
 import com.eventzen.dto.response.EventResponse;
+import com.eventzen.dto.response.RegistrationResponse;
+import com.eventzen.entity.EventStatus;
 import com.eventzen.service.EventService;
 import com.eventzen.service.impl.EventServiceImpl;
+import com.eventzen.entity.User;
+import com.eventzen.repository.UserRepository;
 
 import jakarta.validation.Valid;
 
@@ -34,21 +50,19 @@ public class EventController {
     @Autowired
     private EventServiceImpl eventServiceImpl;
 
+    @Autowired
+    private UserRepository userRepository;
+
     // ===== PUBLIC ENDPOINTS =====
 
-    /**
-     * Get all public events (for visitors)
-     */
     @GetMapping
     public ResponseEntity<List<EventResponse>> getAllEvents() {
-        System.out.println("Fetching all public events");
-        List<EventResponse> events = eventService.getAllEvents();
+        System.out.println("Fetching all APPROVED public events");
+
+        List<EventResponse> events = eventService.getApprovedEvents();
         return ResponseEntity.ok(events);
     }
 
-    /**
-     * Get single event by ID (public)
-     */
     @GetMapping("/{id}")
     public ResponseEntity<EventResponse> getEvent(@PathVariable Long id) {
         try {
@@ -60,9 +74,6 @@ public class EventController {
         }
     }
 
-    /**
-     * Get events by specific organizer (public)
-     */
     @GetMapping("/organizer/{organizerId}")
     public ResponseEntity<List<EventResponse>> getEventsByOrganizer(@PathVariable Long organizerId) {
         System.out.println("Fetching events for organizer ID: " + organizerId);
@@ -70,11 +81,42 @@ public class EventController {
         return ResponseEntity.ok(events);
     }
 
+    // ===== NEW ORGANIZER DASHBOARD ENDPOINTS =====
+
     /**
-     * Get current organizer's events (for dashboard)
+     * Get current organizer's upcoming events
      */
-    @GetMapping("/my-events")
+    @GetMapping("/organizer/{organizerId}/upcoming")
     @PreAuthorize("hasAuthority('ORGANIZER')")
+    public ResponseEntity<List<EventResponse>> getUpcomingEvents(@PathVariable Long organizerId) {
+        try {
+            System.out.println("Fetching upcoming events for organizer: " + organizerId);
+            List<EventResponse> events = eventServiceImpl.getUpcomingEventsByOrganizer(organizerId);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.out.println("Error fetching upcoming events: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    /**
+     * Get current organizer's past events
+     */
+    @GetMapping("/organizer/{organizerId}/past")
+    @PreAuthorize("hasAuthority('ORGANIZER')")
+    public ResponseEntity<List<EventResponse>> getPastEvents(@PathVariable Long organizerId) {
+        try {
+            System.out.println("Fetching past events for organizer: " + organizerId);
+            List<EventResponse> events = eventServiceImpl.getPastEventsByOrganizer(organizerId);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.out.println("Error fetching past events: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/my-events")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<List<EventResponse>> getMyEvents() {
         try {
             System.out.println("Fetching events for current organizer");
@@ -88,11 +130,8 @@ public class EventController {
 
     // ===== ORGANIZER CRUD ENDPOINTS =====
 
-    /**
-     * Create new event (ORGANIZER only)
-     */
     @PostMapping
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<?> createEvent(@Valid @RequestBody EventRequest request, BindingResult bindingResult) {
         try {
             if (bindingResult.hasErrors()) {
@@ -100,9 +139,9 @@ public class EventController {
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            // Fixed: Use LocalDateTime instead of LocalDate for comparison
-            if (request.getDate().isBefore(LocalDateTime.now())) {
-                return ResponseEntity.badRequest().body(Map.of("date", "Date must be in the future"));
+            // Additional business validation
+            if (request.getDate().isBefore(LocalDate.now())) {
+                return ResponseEntity.badRequest().body(Map.of("date", "Date must be today or later"));
             }
 
             if ("PRIVATE".equalsIgnoreCase(request.getEventType()) &&
@@ -113,6 +152,7 @@ public class EventController {
 
             System.out.println("Creating event: " + request.getTitle());
             EventResponse response = eventService.createEvent(request);
+            System.out.println("✅ Event created with status: " + response.getStatus());
             return ResponseEntity.status(201).body(response);
         } catch (Exception e) {
             System.out.println("Error creating event: " + e.getMessage());
@@ -120,11 +160,8 @@ public class EventController {
         }
     }
 
-    /**
-     * Update event (ORGANIZER only - can only update own events)
-     */
     @PutMapping("/{id}")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<?> updateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request,
             BindingResult bindingResult) {
         try {
@@ -133,9 +170,9 @@ public class EventController {
                 return ResponseEntity.badRequest().body(errors);
             }
 
-            // Fixed: Use LocalDateTime instead of LocalDate for comparison
-            if (request.getDate().isBefore(LocalDateTime.now())) {
-                return ResponseEntity.badRequest().body(Map.of("date", "Date must be in the future"));
+            // Additional business validation
+            if (request.getDate().isBefore(LocalDate.now())) {
+                return ResponseEntity.badRequest().body(Map.of("date", "Date must be today or later"));
             }
 
             if ("PRIVATE".equalsIgnoreCase(request.getEventType()) &&
@@ -159,16 +196,13 @@ public class EventController {
         }
     }
 
-    /**
-     * Delete/Cancel event (ORGANIZER only - can only delete own events)
-     */
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAuthority('ORGANIZER')")
+    @PreAuthorize("hasRole('ORGANIZER')")
     public ResponseEntity<?> deleteEvent(@PathVariable Long id) {
         try {
             System.out.println("Deleting event ID: " + id);
             eventService.deleteEvent(id);
-            return ResponseEntity.noContent().build(); // 204 No Content
+            return ResponseEntity.noContent().build();
         } catch (Exception e) {
             System.out.println("Error deleting event: " + e.getMessage());
             if (e.getMessage().contains("You can only delete your own events")) {
@@ -181,13 +215,97 @@ public class EventController {
         }
     }
 
+    // ===== 🆕 ORGANIZER CALENDAR ENDPOINT =====
+
+    @GetMapping("/organizer/calendar")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public ResponseEntity<List<EventResponse>> getEventsForOrganizerCalendar(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) Long organizerId,
+            @RequestParam(required = false) String category) {
+        try {
+            System.out.println("📅 Organizer Calendar request: " + startDate + " to " + endDate);
+
+            List<EventResponse> events = eventServiceImpl.getEventsForOrganizerCalendar(
+                    startDate, endDate, organizerId, category);
+
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.out.println("Error fetching organizer calendar events: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // ===== 🆕 FIXED: RESUBMIT ENDPOINT =====
+    // ⚠️ REMOVED - This endpoint should be in OrganizerController.java
+    // See separate OrganizerController artifact for the correct implementation
+    // try
+
+    // {
+    // ===== 🆕 FIXED: RESUBMIT ENDPOINT =====
+    // ⚠️ REMOVED from EventController - Now in OrganizerController.java
+
+    @GetMapping("/my-events/status/{status}")
+    @PreAuthorize("hasRole('ORGANIZER')")
+    public ResponseEntity<?> getMyEventsByStatus(@PathVariable String status) {
+        try {
+            Long currentUserId = getCurrentUserId();
+            EventStatus eventStatus = EventStatus.valueOf(status.toUpperCase());
+
+            List<EventResponse> events = eventService.getOrganizerEventsByStatus(currentUserId, eventStatus);
+            return ResponseEntity.ok(events);
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Invalid status. Use PENDING, APPROVED, or REJECTED"));
+        } catch (Exception e) {
+            System.err.println("Error fetching events by status: " + e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    // ===== 🆕 VISITOR CALENDAR ENDPOINT =====
+
+    private Long getCurrentUserId() throws Exception {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new Exception("User not authenticated");
+        }
+
+        String email = auth.getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new Exception("User not found"));
+
+        return user.getId();
+    }
+
+    @GetMapping("/visitor/calendar/events")
+    @PreAuthorize("hasRole('VISITOR')")
+    public ResponseEntity<List<EventCalendarResponse>> getEventsForVisitorCalendar(
+            @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String from,
+            @RequestParam(required = true) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) String to) {
+        try {
+            System.out.println("📅 Visitor Calendar request: " + from + " to " + to);
+
+            LocalDate startDate = LocalDate.parse(from);
+            LocalDate endDate = LocalDate.parse(to);
+
+            List<EventCalendarResponse> events = eventServiceImpl.getEventsForVisitorCalendar(
+                    startDate, endDate);
+
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.out.println("Error fetching visitor calendar events: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // ===== ADMIN ENDPOINTS =====
 
-    /**
-     * Admin can delete any event
-     */
     @DeleteMapping("/admin/{id}")
-    @PreAuthorize("hasAuthority('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<Void> adminDeleteEvent(@PathVariable Long id) {
         try {
             eventService.deleteEvent(id);
@@ -197,4 +315,118 @@ public class EventController {
             return ResponseEntity.notFound().build();
         }
     }
+
+    @PutMapping("/admin/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<?> adminUpdateEvent(@PathVariable Long id, @Valid @RequestBody EventRequest request,
+            BindingResult bindingResult) {
+        try {
+            if (bindingResult.hasErrors()) {
+                Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
+                return ResponseEntity.badRequest().body(errors);
+            }
+
+            System.out.println("Admin updating event ID: " + id);
+            EventResponse response = eventServiceImpl.adminUpdateEvent(id, request);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            System.out.println("Admin update error: " + e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/admin/calendar")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<EventResponse>> getEventsForCalendar(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String city,
+            @RequestParam(required = false) Long organizerId,
+            @RequestParam(required = false) String eventType) {
+        try {
+            System.out.println("📅 Calendar request: " + startDate + " to " + endDate);
+            List<EventResponse> events = eventServiceImpl.getEventsForCalendar(
+                    startDate, endDate, category, city, organizerId, eventType);
+            return ResponseEntity.ok(events);
+        } catch (Exception e) {
+            System.out.println("Error fetching calendar events: " + e.getMessage());
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/admin/categories")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<String>> getAllCategories() {
+        try {
+            List<String> categories = eventServiceImpl.getAllCategories();
+            return ResponseEntity.ok(categories);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    @GetMapping("/admin/cities")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<String>> getAllCities() {
+        try {
+            List<String> cities = eventServiceImpl.getAllCities();
+            return ResponseEntity.ok(cities);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
+    // ===== VISITOR REGISTRATION ENDPOINT =====
+
+    @PostMapping("/{eventId}/register")
+    public ResponseEntity<?> registerVisitorForEvent(
+            @PathVariable Long eventId,
+            @Valid @RequestBody VisitorRegistrationRequest request,
+            BindingResult bindingResult) {
+        try {
+            System.out.println("=== VISITOR REGISTRATION REQUEST ===");
+            System.out.println("Event ID: " + eventId);
+
+            if (!eventService.isEventApproved(eventId)) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "This event is not available for registration"));
+            }
+
+            if (bindingResult.hasErrors()) {
+                Map<String, String> errors = eventServiceImpl.processValidationErrors(bindingResult);
+                return ResponseEntity.badRequest().body(errors);
+            }
+
+            RegistrationResponse response = eventServiceImpl.registerVisitorForEvent(eventId, request);
+            System.out.println("Registration successful!");
+            return ResponseEntity.status(201).body(response);
+
+        } catch (Exception e) {
+            System.err.println("Registration error: " + e.getMessage());
+
+            if (e.getMessage().contains("not available for registration")) {
+                return ResponseEntity.status(403)
+                        .body(Map.of("message", "This event is not available for registration"));
+            }
+            if (e.getMessage().contains("Private code is not correct")) {
+                return ResponseEntity.status(403).body(Map.of("message", "Invalid private code"));
+            }
+            if (e.getMessage().contains("already registered")) {
+                return ResponseEntity.status(409).body(Map.of("message", "You are already registered for this event"));
+            }
+            if (e.getMessage().contains("maximum attendees reached")) {
+                return ResponseEntity.status(409).body(Map.of("message", "Event is full - registration closed"));
+            }
+            if (e.getMessage().contains("not found")) {
+                return ResponseEntity.status(404).body(Map.of("message", "Event not found"));
+            }
+
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
 }
+
+// ================================================================
+// END OF FILE - EventController.java - COMPLETE
+// ================================================================

@@ -21,7 +21,7 @@
     <properties>
         <java.version>17</java.version>
     </properties>
-
+ 
     <dependencies>
         <!-- Spring Boot Starters -->
         <dependency>
@@ -84,6 +84,68 @@
             <artifactId>jjwt-jackson</artifactId> <!-- for JSON serializer -->
             <version>0.11.5</version>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- OpenCSV for CSV Export (FREE) -->
+        <dependency>
+            <groupId>com.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>5.9</version>
+        </dependency>
+
+        <!-- Apache PDFBox for PDF Export (FREE) -->
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>2.0.29</version>
+        </dependency>
+
+        <!-- Jackson for JSON handling (usually already included in Spring Boot) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itextpdf</artifactId>
+            <version>5.5.13.2</version> <!-- or the latest version -->
+        </dependency>
+
+        <!-- ================================================================
+            Add these dependencies to your pom.xml if not already present
+            ================================================================ -->
+
+        <!-- QR Code Generation (ZXing) -->
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>core</artifactId>
+            <version>3.5.1</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.google.zxing</groupId>
+            <artifactId>javase</artifactId>
+            <version>3.5.1</version>
+        </dependency>
+
+        <!-- PDF Generation (iText) - Already exists in your TicketController -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itextpdf</artifactId>
+            <version>5.5.13.3</version>
+        </dependency>
+
+        <!-- Email Support (Optional - for sending reminder emails) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- Validation -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
     </dependencies>

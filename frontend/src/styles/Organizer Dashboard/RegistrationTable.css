@@ -1,0 +1,172 @@
+/* ================================================================
+   FILE 2: RegistrationTable.css
+   Location: D:\EventZen-frontend\src\styles\Organizer Dashboard\RegistrationTable.css
+   ================================================================ */
+
+.registration-table-wrapper {
+  width: 100%;
+}
+
+/* Desktop Table */
+.registration-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.registration-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+}
+
+.registration-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.registration-table tbody tr {
+  transition: all 0.2s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.registration-table tbody tr:hover {
+  background: #f8f9ff;
+}
+
+.registration-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.registration-table td {
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #2c3e50;
+}
+
+.reg-id {
+  font-weight: 700;
+  color: #667eea;
+}
+
+.visitor-name {
+  font-weight: 600;
+}
+
+.visitor-email {
+  color: #7f8c8d;
+}
+
+.visitor-phone {
+  font-family: monospace;
+}
+
+.reg-date {
+  font-size: 13px;
+  color: #7f8c8d;
+}
+
+/* Status Badges */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.status-confirmed {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+}
+
+.status-cancelled {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+}
+
+.status-pending {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #78350f;
+}
+
+/* Mobile Cards (Hidden by default) */
+.registration-cards {
+  display: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  /* Hide table, show cards */
+  .registration-table {
+    display: none;
+  }
+
+  .registration-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .registration-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+  }
+
+  .registration-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .card-id {
+    font-weight: 700;
+    color: #667eea;
+    font-size: 16px;
+  }
+
+  .card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+  }
+
+  .field-label {
+    font-weight: 600;
+    color: #7f8c8d;
+  }
+
+  .field-value {
+    color: #2c3e50;
+    text-align: right;
+  }
+}

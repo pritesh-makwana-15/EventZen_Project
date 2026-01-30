@@ -1,0 +1,162 @@
+/* ================================================================
+   FILE 3: VenueSelector.css
+   Location: D:\EventZen-frontend\src\styles\Organizer Dashboard\VenueSelector.css
+   ================================================================ */
+
+.venue-selector-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.venue-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.checking-spinner {
+  animation: spin 1s linear infinite;
+  color: #667eea;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.venue-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fff5f5;
+  color: #ff6b6b;
+  border-radius: 8px;
+  font-size: 13px;
+  border-left: 4px solid #ff6b6b;
+}
+
+.venue-select {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.3s ease;
+  background: #f8f9fa;
+  cursor: pointer;
+}
+
+.venue-select:focus {
+  outline: none;
+  border-color: #667eea;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.venue-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.venue-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #f0f4ff;
+  border-radius: 8px;
+  color: #667eea;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.checking-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: #fffbeb;
+  border-radius: 8px;
+  color: #f59e0b;
+  font-size: 13px;
+}
+
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
+/* Availability Messages */
+.availability-message {
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  animation: slideDown 0.3s ease;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.availability-message.available {
+  background: linear-gradient(135deg, #d1fae5, #a7f3d0);
+  color: #065f46;
+  border-left: 4px solid #10b981;
+}
+
+.availability-message.unavailable {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+  color: #991b1b;
+  border-left: 4px solid #ef4444;
+}
+
+.conflicts-list {
+  margin-top: 8px;
+}
+
+.conflicts-list p {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.conflicts-list ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.conflicts-list li {
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.venue-warning {
+  padding: 10px 12px;
+  background: #fff5f5;
+  color: #dc2626;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  border-left: 4px solid #dc2626;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .venue-select {
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+}

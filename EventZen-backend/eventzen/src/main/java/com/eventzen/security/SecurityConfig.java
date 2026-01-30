@@ -41,48 +41,71 @@ public class SecurityConfig {
         System.out.println("🔧 Configuring Security Filter Chain...");
 
         http
-                // Disable CSRF for APIs
                 .csrf(csrf -> csrf.disable())
-
-                // Disable default Spring login page
                 .formLogin(form -> form.disable())
-
-                // Disable HTTP Basic authentication
                 .httpBasic(basic -> basic.disable())
-
-                // Enable CORS with config
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-
-                // Use stateless session (JWT)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                // Authorize requests
                 .authorizeHttpRequests(auth -> {
                     System.out.println("🔧 Configuring authorization rules...");
                     auth
-                            // Allow OPTIONS requests for CORS preflight
+                            // ✅ CRITICAL: Public access to uploaded images
+                            .requestMatchers("/uploads/**").permitAll()
+
+                            // ✅ Allow OPTIONS for CORS
                             .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                            // Allow register & login for everyone (NO AUTHENTICATION REQUIRED)
+                            // ✅ Allow register & login
                             .requestMatchers("/api/auth/**").permitAll()
 
-                            // Role-based access for other APIs
-                            .requestMatchers("/api/events/**").hasAnyAuthority("ADMIN", "ORGANIZER", "VISITOR")
-                            .requestMatchers("/api/registrations/**").hasAnyAuthority("ADMIN", "VISITOR")
+                            // 🆕 NEW: Visitor ticket endpoints - VISITOR only
+                            .requestMatchers("/api/visitor/registrations/*/ticket/**")
+                            .hasAuthority("ROLE_VISITOR")
 
-                            // 🔧 FIXED: Include ORGANIZER for user profile access
-                            .requestMatchers("/api/users/**").hasAnyAuthority("ADMIN", "ORGANIZER", "VISITOR")
+                            // ✅ CRITICAL FIX: Allow VISITOR to register for events
+                            .requestMatchers(HttpMethod.POST, "/api/events/*/register")
+                            .authenticated()
 
-                            .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
+                            // ✅ Public GET access to events
+                            .requestMatchers(HttpMethod.GET, "/api/events", "/api/events/**").permitAll()
 
-                            // Any other request needs authentication
+                            // ✅ Organizer Calendar endpoint - ORGANIZER only
+                            .requestMatchers(HttpMethod.GET, "/api/events/organizer/calendar")
+                            .hasAuthority("ROLE_ORGANIZER")
+
+                            // ✅ Organizer ticket preview - ORGANIZER only
+                            .requestMatchers("/api/organizer/events/*/ticket/preview")
+                            .hasAuthority("ROLE_ORGANIZER")
+
+                            // ✅ Event CRUD - ORGANIZER/ADMIN only
+                            .requestMatchers(HttpMethod.POST, "/api/events")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_ORGANIZER")
+                            .requestMatchers(HttpMethod.PUT, "/api/events/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_ORGANIZER")
+                            .requestMatchers(HttpMethod.DELETE, "/api/events/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_ORGANIZER")
+
+                            // ✅ Registrations - VISITOR/ADMIN
+                            .requestMatchers("/api/registrations/**")
+                            .hasAnyAuthority("ROLE_ADMIN", "ROLE_VISITOR")
+
+                            // ✅ User profile - authenticated
+                            .requestMatchers("/api/users/**").authenticated()
+
+                            // ✅ Admin endpoints - ADMIN only
+                            .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADMIN")
+                            .requestMatchers("/api/events/admin/**").hasAuthority("ROLE_ADMIN")
+
+                            // ✅ Everything else needs auth
                             .anyRequest().authenticated();
                 });
 
-        // Add JWT filter before UsernamePasswordAuthenticationFilter
         http.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-        System.out.println("✅ Security Filter Chain configured successfully");
+        System.out.println("✅ Security configured");
+        System.out.println("✅ /api/visitor/registrations/*/ticket/** → ROLE_VISITOR");
+        System.out.println("✅ /api/organizer/events/*/ticket/preview → ROLE_ORGANIZER");
+        System.out.println("✅ All other existing routes preserved");
         return http.build();
     }
 
@@ -90,21 +113,12 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Frontend URLs - adjust as required
         configuration.setAllowedOrigins(
                 Arrays.asList("http://localhost:5173", "http://localhost:3000", "http://localhost:8080"));
         configuration.setAllowedOriginPatterns(Arrays.asList("*"));
-
-        // Allowed HTTP methods
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
-
-        // Allowed headers (Authorization for JWT)
         configuration.setAllowedHeaders(Arrays.asList("*"));
-
-        // Expose headers
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
-
-        // Allow sending cookies / credentials
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

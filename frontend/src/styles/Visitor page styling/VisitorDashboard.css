@@ -1,0 +1,2073 @@
+/* ================================================================
+ * FILE: src/styles/Visitor page styling/VisitorDashboard.css - PART 1/5
+ * CHANGES: Added mobile menu styles, responsive utilities, icon alignment
+ * All classes prefixed with vis-
+ * ================================================================ */
+
+.vis-visitor-dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f7fa;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  position: relative;
+}
+
+/* ============================================ */
+/* MOBILE MENU BUTTON (NEW) */
+/* ============================================ */
+.vis-mobile-menu-button {
+  display: none; /* Hidden on desktop */
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  z-index: 1100;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.vis-mobile-menu-button:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.vis-mobile-menu-button:focus {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
+/* Mobile Overlay (NEW) */
+.vis-mobile-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+/* ============================================ */
+/* SIDEBAR / MOBILE MENU */
+/* ============================================ */
+.vis-sidebar {
+  width: 191px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 10px;
+  position: fixed;
+  height: 100vh;
+  overflow-y: auto;
+  box-shadow: 2px 0 7px rgba(0, 0, 0, 0.1);
+  z-index: 1001;
+  transition: transform 0.3s ease;
+}
+
+.vis-sidebar .vis-logo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 29px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.vis-sidebar .vis-logo-img {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+}
+
+.vis-sidebar .vis-logo-text {
+  font-size: 25px;
+  font-weight: bold;
+}
+
+.vis-nav-menu-visitor {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.vis-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 11px;
+  background: rgba(43, 47, 255, 0.5);
+  border: none;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: left;
+  width: 100%;
+  border-radius: 6px;
+}
+
+.vis-nav-item:hover {
+  background: rgba(43, 47, 255, 0.7);
+  transform: translateX(3px);
+}
+
+.vis-nav-item:focus {
+  outline: 2px solid rgba(255, 255, 255, 0.5);
+  outline-offset: 2px;
+}
+
+.vis-nav-item.vis-active {
+  background: rgba(43, 47, 255, 0.7);
+  box-shadow: 0 3px 11px rgba(0, 0, 0, 0.1);
+}
+
+.vis-nav-icon {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.vis-nav-item.vis-logout {
+  margin-top: auto;
+  background: rgba(255, 13, 0, 0.5);
+}
+
+.vis-nav-item.vis-logout:hover {
+  background: rgba(255, 59, 48, 1);
+}
+
+/* ============================================ */
+/* MAIN CONTENT AREA */
+/* ============================================ */
+.vis-main-content {
+  margin-left: 191px;
+  flex: 1;
+  padding: 22px;
+  width: calc(100% - 191px);
+}
+
+.vis-content-wrapper {
+  background: white;
+  border-radius: 8px;
+  padding: 22px;
+  box-shadow: 0 1px 7px rgba(0, 0, 0, 0.05);
+}
+
+.vis-page-header {
+  margin-bottom: 22px;
+}
+
+.vis-page-header h1 {
+  font-size: 23px;
+  color: #333;
+  margin: 0 0 6px 0;
+  font-weight: 700;
+}
+
+.vis-subtitle {
+  color: #666;
+  font-size: 12px;
+  margin: 0;
+}
+
+/* ============================================ */
+/* ALERTS */
+/* ============================================ */
+.vis-alert {
+  padding: 11px 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  font-weight: 500;
+  animation: vis-slideDown 0.3s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.vis-alert.vis-error {
+  background: #fee;
+  color: #c33;
+  border-left: 3px solid #c33;
+}
+
+.vis-alert.vis-success {
+  background: #efe;
+  color: #3c3;
+  border-left: 3px solid #3c3;
+}
+
+.vis-alert-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  padding: 0;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+@keyframes vis-slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ============================================ */
+/* LOADING STATE */
+/* ============================================ */
+.vis-loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 74px 15px;
+}
+
+.vis-spinner {
+  width: 37px;
+  height: 37px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  animation: vis-spin 1s linear infinite;
+}
+
+@keyframes vis-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ============================================ */
+/* FILTERS BAR */
+/* ============================================ */
+.vis-filters-bar {
+  display: flex;
+  gap: 11px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.vis-search-input,
+.vis-filter-select {
+  flex: 1;
+  min-width: 132px;
+  padding: 8px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 15px;
+  transition: border-color 0.3s;
+}
+
+.vis-search-input:focus,
+.vis-filter-select:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.vis-reset-btn-visitor {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 22px;
+  background: #667eeae0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s;
+  white-space: nowrap;
+  font-size: 15px;
+}
+
+.vis-reset-btn-visitor:hover {
+  background: #667eea;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.vis-reset-btn-visitor:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+/* ================================================================
+ * FILE: src/styles/Visitor page styling/VisitorDashboard.css - PART 2/5
+ * Events grid, event cards, and badges
+ * ================================================================ */
+
+/* ============================================ */
+/* EVENTS GRID */
+/* ============================================ */
+.vis-events-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 19px;
+}
+
+.vis-event-card-visitor {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 11px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+  border: 1px solid #f0f0f0;
+}
+
+.vis-event-card-visitor:hover {
+  transform: translateY(-4px);
+  box-shadow: 0px 7px 19px rgba(0, 0, 0, 0.15);
+}
+
+.vis-event-image {
+  position: relative;
+  height: 147px;
+  overflow: hidden;
+}
+
+.vis-event-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vis-event-badge {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  padding: 4px 11px;
+  border-radius: 15px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.vis-event-badge.vis-public {
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.vis-event-badge.vis-private {
+  background: linear-gradient(135deg, #ff9800 0%, #ff5722 100%);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.vis-event-badge.vis-registered {
+  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+  color: white;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+}
+
+.vis-event-details-visitor {
+  padding: 15px;
+}
+
+.vis-event-details-visitor h3 {
+  font-size: 20px;
+  margin: 0 0 7px 0;
+  color: #333;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.vis-event-category {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #667eea;
+  color: white;
+  padding: 4px 11px;
+  border-radius: 15px;
+  font-size: 13px;
+  margin-bottom: 11px;
+  font-weight: 600;
+}
+
+.vis-event-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  margin-bottom: 11px;
+}
+
+.vis-event-date,
+.vis-event-time,
+.vis-event-location,
+.vis-event-organizer,
+.vis-event-capacity {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vis-event-thumbnail {
+  width: 60px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.vis-event-actions {
+  display: flex;
+  gap: 7px;
+  margin-top: 11px;
+}
+
+/* ============================================ */
+/* BUTTONS */
+/* ============================================ */
+.vis-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.vis-btn-primary-visitor,
+.vis-btn-secondary,
+.vis-btn-registered {
+  flex: 1;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.vis-btn-primary-visitor {
+  background: #667eea;
+  color: white;
+}
+
+.vis-btn-primary-visitor:hover:not(:disabled) {
+  background: #5568d3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
+.vis-btn-primary-visitor:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.vis-btn-primary-visitor:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vis-btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.vis-btn-secondary:hover {
+  background: #e0e0e0;
+  transform: translateY(-1px);
+}
+
+.vis-btn-secondary:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.vis-btn-registered {
+  background: #4caf50;
+  color: white;
+  cursor: default;
+}
+
+.vis-btn-view,
+.vis-btn-cancel {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  transition: all 0.3s;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.vis-btn-view {
+  background: #667eea;
+  color: white;
+}
+
+.vis-btn-view:hover {
+  background: #5568d3;
+  transform: translateY(-1px);
+}
+
+.vis-btn-view:focus {
+  outline: 2px solid #667eea;
+  outline-offset: 2px;
+}
+
+.vis-btn-cancel {
+  background: #ff5252;
+  color: white;
+}
+
+.vis-btn-cancel:hover {
+  background: #ff1744;
+  transform: translateY(-1px);
+}
+
+.vis-btn-cancel:focus {
+  outline: 2px solid #ff5252;
+  outline-offset: 2px;
+}
+
+/* ============================================ */
+/* NO EVENTS/REGISTRATIONS STATE */
+/* ============================================ */
+.vis-no-events,
+.vis-no-registrations {
+  text-align: center;
+  padding: 44px 15px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.vis-no-events p,
+.vis-no-registrations p {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+}
+
+.vis-no-events svg,
+.vis-no-registrations svg {
+  color: #667eea;
+  opacity: 0.5;
+}
+
+/* ================================================================
+ * FILE: src/styles/Visitor page styling/VisitorDashboard.css - PART 3/5
+ * My Registrations page, stats cards, tables, and mobile card view
+ * ================================================================ */
+
+/* ============================================ */
+/* STATS CARDS */
+/* ============================================ */
+.vis-stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(147px, 1fr));
+  gap: 15px;
+  margin-bottom: 22px;
+  margin-top: 15px;
+}
+
+.vis-stat-card-visitor {
+  background: white;
+  padding: 12px;
+  border-radius: 8px;
+  box-shadow: 0 3px 11px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  border: 2px solid #667eea;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.vis-stat-icon {
+  color: #667eea;
+}
+
+.vis-stat-info {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  align-items: center;
+  text-align: left;
+}
+
+.vis-stat-card-visitor h3 {
+  font-size: 26px;
+  color: #667eea;
+  margin: 0;
+  font-weight: 700;
+}
+
+.vis-stat-card-visitor p {
+  color: #666;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ============================================ */
+/* REGISTRATIONS FILTERS */
+/* ============================================ */
+.vis-registrations-filters-section {
+  margin-bottom: 15px;
+}
+
+/* ============================================ */
+/* REGISTRATIONS TABLE (Desktop) */
+/* ============================================ */
+.vis-registrations-table {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 11px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+}
+
+.vis-registrations-table table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 900px; /* Increased for new columns */
+}
+
+.vis-registrations-table th {
+  background: #667eea;
+  color: white;
+  padding: 15px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.vis-registrations-table td {
+  padding: 8px;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+  color: #2e3e53;
+  vertical-align: middle;
+}
+
+.vis-registrations-table tr:last-child td {
+  border-bottom: none;
+}
+
+.vis-registrations-table tr:hover {
+  background: #f9f9f9;
+}
+
+.vis-table-actions {
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+/* ============================================ */
+/* REGISTRATION CARDS (Mobile - NEW) */
+/* ============================================ */
+.vis-registrations-cards {
+  display: none; /* Hidden by default, shown on mobile */
+  flex-direction: column;
+  gap: 15px;
+}
+
+.vis-registration-card {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 11px rgba(0, 0, 0, 0.08);
+  border: 1px solid #f0f0f0;
+}
+
+.vis-registration-card-image {
+  position: relative;
+  height: 120px;
+  overflow: hidden;
+}
+
+.vis-registration-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vis-registration-card-image .vis-status-badge-vis {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+}
+
+.vis-registration-card-content {
+  padding: 15px;
+}
+
+.vis-registration-card-content h3 {
+  font-size: 18px;
+  margin: 0 0 10px 0;
+  color: #333;
+  font-weight: 700;
+}
+
+.vis-registration-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.vis-registration-card-details p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 14px;
+}
+
+.vis-registration-card-details svg {
+  flex-shrink: 0;
+  color: #667eea;
+}
+
+.vis-registration-card-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.vis-registration-card-actions .vis-btn {
+  flex: 1;
+}
+
+/* ============================================ */
+/* TYPE & STATUS BADGES */
+/* ============================================ */
+.vis-type-badge-vis {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.vis-type-badge-vis.vis-public {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.vis-type-badge-vis.vis-private {
+  background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+  color: #e65100;
+  border: 1px solid #ffb74d;
+}
+
+.vis-status-badge-vis {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 11px;
+  border-radius: 15px;
+  line-height: 1;
+  letter-spacing: 0.4px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.vis-status-badge-vis.vis-upcoming {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #78350f;
+  border-color: #fbbf24;
+}
+
+.vis-status-badge-vis.vis-past {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border-color: #10b981;
+}
+
+/* ============================================ */
+/* DESKTOP/MOBILE DISPLAY UTILITIES (NEW) */
+/* ============================================ */
+.vis-desktop-only {
+  display: block;
+}
+
+.vis-mobile-only {
+  display: none;
+}
+
+/* ================================================================
+ * FILE: src/styles/Visitor page styling/VisitorDashboard.css - PART 4/5
+ * Profile section and modal styles
+ * ================================================================ */
+
+/* ============================================ */
+/* PROFILE SECTION */
+/* ============================================ */
+.vis-profile-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.vis-profile-view-card {
+  background: #fff;
+  padding: 37px;
+  border-radius: 15px;
+  text-align: center;
+  box-shadow: 0 3px 11px rgba(0, 0, 0, 0.08);
+}
+
+.vis-profile-avatar-wrapper {
+  margin-bottom: 19px;
+}
+
+.vis-profile-avatar {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 4px solid #667eea;
+  box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+}
+
+.vis-profile-details {
+  margin-bottom: 22px;
+}
+
+.vis-profile-name {
+  font-size: 21px;
+  color: #2c3e50;
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+
+.vis-profile-email {
+  font-size: 12px;
+  color: #7f8c8d;
+  margin-bottom: 11px;
+}
+
+.vis-role-badge {
+  display: inline-block;
+  padding: 6px 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border-radius: 19px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3);
+}
+
+.vis-profile-meta {
+  margin-top: 19px;
+  padding-top: 19px;
+  border-top: 2px solid #f0f0f0;
+}
+
+.vis-meta-item {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+}
+
+.vis-meta-label {
+  font-weight: 600;
+  color: #7f8c8d;
+}
+
+.vis-meta-value {
+  color: #2c3e50;
+}
+
+/* ============================================ */
+/* PROFILE EDIT FORM */
+/* ============================================ */
+.vis-profile-edit-form {
+  width: 100%;
+}
+
+.vis-form-group {
+  margin-bottom: 18px;
+  text-align: left;
+}
+
+.vis-form-group.vis-full-width {
+  width: 100%;
+}
+
+.vis-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 2px;
+}
+
+.vis-form-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.vis-form-label {
+  display: block;
+  font-weight: 600;
+  color: #2c3e50;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.vis-form-input,
+.vis-form-textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.vis-form-input:focus,
+.vis-form-textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.vis-form-input.vis-disabled {
+  background: #f5f5f5;
+  cursor: not-allowed;
+  color: #999;
+}
+
+.vis-form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.vis-password-section {
+  margin-top: 10px;
+}
+
+.vis-section-subtitle {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin: 0 0 5px 0;
+  font-style: italic;
+}
+
+.vis-image-upload-area {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  align-items: flex-start;
+  position: relative;
+}
+
+.vis-file-input {
+  display: none;
+}
+
+.vis-upload-label {
+  display: flex;
+  align-items: center;
+  padding: 5px 5px;
+  justify-content: center;
+  background: #667eeab8;
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-weight: 600;
+  text-align: center;
+  transition: all 0.3s;
+  font-size: 17px;
+  position: absolute;
+  top: 80px;
+  left: 67px;
+}
+
+.vis-upload-label:hover {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.vis-image-preview {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 4px solid #667eea;
+  box-shadow: 0 3px 11px rgba(0, 0, 0, 0.1);
+}
+
+.vis-image-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vis-form-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 5px;
+  justify-content: flex-start;
+}
+
+.vis-form-actions .vis-btn {
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  border: none;
+  font-size: 15px;
+}
+
+.vis-form-actions .vis-btn-primary-visitor {
+  background: #667eea;
+  color: white;
+  flex: 1;
+  max-width: 180px;
+}
+
+.vis-form-actions .vis-btn-primary-visitor:hover:not(:disabled) {
+  background: #5568d3;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.vis-form-actions .vis-btn-primary-visitor:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.vis-form-actions .vis-btn-secondary {
+  background: #f0f0f0;
+  color: #333;
+  flex: 1;
+  max-width: 180px;
+}
+
+.vis-form-actions .vis-btn-secondary:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+}
+
+.vis-countdown-compact{
+      display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 10px;
+}
+/* ============================================ */
+/* MODALS */
+/* ============================================ */
+.vis-modal-visitor-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 15px;
+}
+
+.vis-modal-visitor-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 515px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: vis-modalSlideIn 0.3s ease;
+  position: relative;
+}
+
+.vis-modal-visitor-content.vis-registration-modal {
+  max-width: 515px;
+}
+
+@keyframes vis-modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-37px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vis-modal-visitor-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+  color: white;
+  z-index: 1;
+  line-height: 1;
+  padding: 0;
+}
+
+.vis-modal-visitor-close:hover {
+  background: rgba(0, 0, 0, 0.7);
+  transform: rotate(90deg);
+}
+
+.vis-modal-visitor-close:focus {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+.vis-event-close {
+  padding: 3px 10px;
+  color: #333;
+  border-radius: 10px;
+  border: 2px solid #f0f0f0;
+  flex: 1;
+  max-width: 147px;
+  font-size: 20px;
+  color: #6366f1;
+  transition: all 0.3s;
+  background: white;
+}
+
+.vis-event-close:hover {
+  background: #6366f1;
+  color: white;
+}
+
+.vis-modal-visitor-header {
+  position: relative;
+}
+
+.vis-modal-visitor-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;  
+  border-radius: 12px 12px 0 0;
+}
+
+.vis-modal-visitor-header h2 {
+  padding: 15px 22px 7px;
+  margin: 0;
+  font-size: 21px;
+  color: #333;
+  font-weight: 700;
+}
+
+.vis-modal-visitor-body {
+  padding: 0 22px 15px;
+}
+
+.vis-modal-visitor-info {
+  background: #f9f9f9;
+  padding: 15px;
+  border-radius: 7px;
+  margin-bottom: 15px;
+}
+
+.vis-modal-visitor-info p {
+  margin: 7px 0;
+  color: #666;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vis-modal-visitor-info strong {
+  color: #333;
+  margin-right: 6px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vis-modal-visitor-description h3 {
+  font-size: 20px;
+  color: #333;
+  margin-bottom: 7px;
+  font-weight: 700;
+}
+
+.vis-modal-visitor-description p {
+  color: #666;
+  line-height: 1.6;
+  font-size: 15px;
+}
+
+.vis-modal-visitor-footer {
+  padding: 15px 22px;
+  border-top: 1px solid #f0f0f0;
+  display: flex;
+  gap: 11px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.vis-modal-visitor-footer .vis-btn-primary-visitor,
+.vis-modal-visitor-footer .vis-btn-secondary {
+  padding: 10px 22px;
+  width: auto;
+  flex: none;
+}
+
+/* Registration Form Error */
+.vis-reg-error-message {
+  background: #fee;
+  color: #c33;
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-bottom: 15px;
+  border-left: 3px solid #c33;
+  font-size: 14px;
+  font-weight: 500;
+  animation: vis-slideDown 0.3s ease;
+}
+
+/* ================================================================
+ * 🆕 NEW: CALENDAR STYLES - Add before media queries (around line 800)
+ * ================================================================ */
+
+/* Calendar Page Container */
+.vis-calendar-page {
+  width: 100%;
+}
+
+.vis-calendar-container {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-top: 20px;
+}
+
+/* Calendar Toolbar */
+.vis-cal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.vis-cal-toolbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.vis-cal-toolbar-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-left: 16px;
+}
+
+.vis-cal-toolbar-views {
+  display: flex;
+  gap: 8px;
+  background: #fff;
+  padding: 4px;
+  border-radius: 8px;
+  border: 2px solid #e2e8f0;
+}
+
+/* Calendar Buttons */
+.vis-cal-btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  color: #334155;
+  border: 2px solid #e2e8f0;
+}
+
+.vis-cal-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border-color: #667eea;
+  color: #667eea;
+}
+
+.vis-cal-btn-icon {
+  padding: 8px;
+  width: 40px;
+  height: 40px;
+  justify-content: center;
+}
+
+.vis-cal-btn-today {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+}
+
+.vis-cal-btn-today:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6a3d91 100%);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.vis-cal-btn-view {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  color: #64748b;
+}
+
+.vis-cal-btn-view:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+  transform: none;
+  box-shadow: none;
+}
+
+.vis-cal-btn-view.vis-cal-active {
+  background: #667eea;
+  color: #fff;
+  box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+}
+
+/* Calendar Loading */
+.vis-cal-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 40px;
+  color: #64748b;
+}
+
+.vis-cal-loading p {
+  margin-top: 16px;
+  font-size: 16px;
+  font-weight: 500;
+}
+
+/* Calendar Wrapper */
+.vis-calendar-wrapper {
+  margin-top: 20px;
+  min-height: 600px;
+}
+
+/* FullCalendar Overrides for Visitor */
+.vis-calendar-wrapper .fc {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.vis-calendar-wrapper .fc .fc-col-header-cell {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 12px 8px;
+  border: none;
+}
+
+.vis-calendar-wrapper .fc .fc-daygrid-day {
+  background: #fff;
+  transition: background 0.2s;
+}
+
+.vis-calendar-wrapper .fc .fc-daygrid-day:hover {
+  background: #f8fafc;
+}
+
+.vis-calendar-wrapper .fc .fc-daygrid-day-number {
+  padding: 8px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.vis-calendar-wrapper .fc .fc-day-today {
+  background: #eef2ff !important;
+}
+
+.vis-calendar-wrapper .fc .fc-day-today .fc-daygrid-day-number {
+  background: #667eea;
+  color: #fff;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Calendar Events */
+.vis-cal-event {
+  border: none;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin: 2px 0;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.vis-cal-event:hover {
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+}
+
+.vis-cal-event-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.vis-cal-event-time {
+  font-size: 11px;
+  opacity: 0.9;
+  font-weight: 700;
+}
+
+.vis-cal-event-title {
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+
+/* Calendar Event Status */
+.vis-cal-event.cal-event-upcoming {
+  opacity: 1;
+}
+
+.vis-cal-event.cal-event-completed {
+  opacity: 0.7;
+}
+
+/* Calendar Empty State */
+.vis-no-calendar-events {
+  text-align: center;
+  padding: 80px 20px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.vis-no-calendar-events svg {
+  color: #667eea;
+  opacity: 0.5;
+}
+
+.vis-no-calendar-events p {
+  color: #666;
+  font-size: 16px;
+  margin: 0;
+}
+
+.vis-approved-badge {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.5rem;
+  background: rgba(16, 185, 129, 0.95);
+  color: white;
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+}
+
+/* ================================================================
+ * CALENDAR RESPONSIVE STYLES
+ * ================================================================ */
+
+@media (max-width: 991px) {
+  .vis-cal-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vis-cal-toolbar-nav {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .vis-cal-toolbar-title {
+    margin-left: 0;
+    text-align: center;
+    margin-top: 8px;
+  }
+
+  .vis-cal-toolbar-views {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .vis-calendar-container {
+    padding: 12px;
+  }
+
+  .vis-cal-toolbar {
+    padding: 16px;
+  }
+
+  .vis-cal-toolbar-title {
+    font-size: 18px;
+  }
+
+  .vis-cal-btn {
+    padding: 8px 14px;
+    font-size: 13px;
+  }
+
+  .vis-calendar-wrapper {
+    min-height: 400px;
+  }
+
+  .vis-cal-event-title {
+    font-size: 11px;
+  }
+
+  .vis-cal-event-time {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 575px) {
+  .vis-calendar-container {
+    padding: 8px;
+    border-radius: 8px;
+  }
+
+  .vis-cal-toolbar {
+    padding: 12px;
+  }
+
+  .vis-cal-toolbar-nav {
+    gap: 8px;
+  }
+
+  .vis-cal-btn-icon {
+    width: 36px;
+    height: 36px;
+    padding: 6px;
+  }
+
+  .vis-cal-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+
+  .vis-cal-toolbar-title {
+    font-size: 16px;
+  }
+}
+
+/* ================================================================
+ * FILE: src/styles/Visitor page styling/VisitorDashboard.css - PART 5/5
+ * Responsive media queries for all breakpoints
+ * ================================================================ */
+
+/* ============================================ */
+/* LARGE DEVICES (992px - 1199px) */
+/* ============================================ */
+@media (max-width: 1199px) {
+  .vis-events-grid {
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  }
+}
+
+/* ============================================ */
+/* MEDIUM DEVICES (768px - 991px) */
+/* ============================================ */
+@media (max-width: 991px) {
+  .vis-sidebar {
+    width: 160px;
+  }
+  
+  .vis-main-content {
+    margin-left: 160px;
+    width: calc(100% - 160px);
+    padding: 18px;
+  }
+  
+  .vis-content-wrapper {
+    padding: 18px;
+  }
+  
+  .vis-events-grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+  
+  .vis-filters-bar {
+    gap: 8px;
+  }
+  
+  .vis-form-row {
+    gap: 15px;
+  }
+}
+
+/* ============================================ */
+/* SMALL DEVICES (576px - 767px) */
+/* ============================================ */
+@media (max-width: 767px) {
+  .vis-sidebar {
+    width: 140px;
+  }
+  
+  .vis-main-content {
+    margin-left: 140px;
+    width: calc(100% - 140px);
+    padding: 15px;
+  }
+  
+  .vis-content-wrapper {
+    padding: 15px;
+  }
+  
+  .vis-filters-bar {
+    flex-direction: column;
+  }
+  
+  .vis-search-input,
+  .vis-filter-select {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .vis-reset-btn-visitor {
+    width: 100%;
+  }
+  
+  .vis-events-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .vis-stats-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Show mobile card view, hide table */
+  .vis-desktop-only {
+    display: none;
+  }
+  
+  .vis-mobile-only {
+    display: flex;
+  }
+  
+  .vis-registrations-table {
+    overflow-x: auto;
+  }
+  
+  .vis-profile-view-card,
+  .vis-profile-edit-form {
+    padding: 22px 15px;
+  }
+  
+  .vis-form-row {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+  
+  .vis-form-actions {
+    flex-direction: column;
+  }
+  
+  .vis-form-actions .vis-btn-primary-visitor,
+  .vis-form-actions .vis-btn-secondary {
+    max-width: 100%;
+  }
+  
+  .vis-profile-container {
+    max-width: 100%;
+  }
+
+  .vis-modal-visitor-content {
+    max-width: 95%;
+  }
+
+  .vis-modal-visitor-content.vis-registration-modal {
+    max-width: 95%;
+  }
+}
+
+/* ============================================ */
+/* EXTRA SMALL DEVICES (Up to 575px) */
+/* ============================================ */
+@media (max-width: 575px) {
+  /* Show mobile menu button */
+  .vis-mobile-menu-button {
+    display: flex;
+  }
+  
+  .vis-mobile-overlay {
+    display: block;
+  }
+  
+  /* Transform sidebar to mobile menu */
+  .vis-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+    z-index: 1001;
+  }
+  
+  .vis-sidebar.vis-sidebar-open {
+    transform: translateX(0);
+  }
+  
+  /* Adjust main content for full width */
+  .vis-main-content {
+    margin-left: 0;
+    width: 100%;
+    padding: 70px 11px 11px; /* Extra top padding for menu button */
+  }
+  
+  .vis-content-wrapper {
+    padding: 11px;
+  }
+  
+  .vis-page-header h1 {
+    font-size: 20px;
+  }
+  
+  .vis-subtitle {
+    font-size: 12px;
+  }
+  
+  .vis-event-details-visitor h3 {
+    font-size: 16px;
+  }
+  
+  .vis-event-info-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .vis-stats-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .vis-stat-card-visitor {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  .vis-stat-info {
+    flex-direction: column;
+    text-align: center;
+  }
+  
+  /* Card view optimizations */
+  .vis-registration-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .vis-registration-card-image {
+    height: 140px;
+  }
+  
+  .vis-registration-card-content {
+    padding: 12px;
+  }
+  
+  .vis-registration-card-content h3 {
+    font-size: 16px;
+  }
+  
+  .vis-registration-card-details p {
+    font-size: 13px;
+  }
+  
+  /* Modal adjustments */
+  .vis-modal-visitor-content,
+  .vis-modal-visitor-content.vis-registration-modal {
+    margin: 7px;
+    max-width: calc(100% - 14px);
+    max-height: 95vh;
+  }
+  
+  .vis-modal-visitor-header h2 {
+    font-size: 18px;
+    padding: 11px 15px 7px;
+  }
+  
+  .vis-modal-visitor-body,
+  .vis-modal-visitor-footer {
+    padding: 11px 15px;
+  }
+  
+  .vis-modal-visitor-image {
+    height: 160px;
+  }
+  
+  .vis-modal-visitor-close {
+    top: 10px;
+    right: 10px;
+    width: 32px;
+    height: 32px;
+  }
+
+  .vis-modal-visitor-footer {
+    flex-direction: column;
+  }
+
+  .vis-modal-visitor-footer .vis-btn-primary-visitor,
+  .vis-modal-visitor-footer .vis-btn-secondary,
+  .vis-modal-visitor-footer .vis-event-close {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  /* Profile adjustments */
+  .vis-profile-avatar {
+    width: 90px;
+    height: 90px;
+  }
+  
+  .vis-profile-name {
+    font-size: 19px;
+  }
+  
+  .vis-image-preview {
+    width: 90px;
+    height: 90px;
+  }
+  
+  .vis-upload-label {
+    top: 65px;
+    left: 55px;
+  }
+  
+  .vis-profile-edit-form {
+    padding: 20px 15px;
+  }
+  
+  .vis-form-label {
+    font-size: 13px;
+  }
+  
+  .vis-form-input,
+  .vis-form-textarea {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  
+  .vis-form-actions .vis-btn {
+    padding: 11px 20px;
+    font-size: 14px;
+  }
+  
+  /* Filter adjustments */
+  .vis-filters-bar {
+    gap: 8px;
+  }
+  
+  .vis-search-input,
+  .vis-filter-select {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+  
+  .vis-reset-btn-visitor {
+    font-size: 14px;
+    padding: 10px 18px;
+  }
+  
+  /* Button adjustments */
+  .vis-event-actions {
+    flex-direction: column;
+  }
+  
+  .vis-event-actions .vis-btn {
+    width: 100%;
+  }
+  
+  /* Registration error */
+  .vis-reg-error-message {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+  
+  /* Alert adjustments */
+  .vis-alert {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+}
+
+/* ============================================ */
+/* VERY SMALL DEVICES (Up to 400px) */
+/* ============================================ */
+@media (max-width: 400px) {
+  .vis-mobile-menu-button {
+    top: 10px;
+    left: 10px;
+    width: 40px;
+    height: 40px;
+  }
+  
+  .vis-main-content {
+    padding: 60px 8px 8px;
+  }
+  
+  .vis-sidebar {
+    width: 260px;
+  }
+  
+  .vis-page-header h1 {
+    font-size: 18px;
+  }
+  
+  .vis-event-card-visitor {
+    border-radius: 6px;
+  }
+  
+  .vis-event-details-visitor {
+    padding: 12px;
+  }
+  
+  .vis-event-details-visitor h3 {
+    font-size: 15px;
+  }
+  
+  .vis-modal-visitor-content {
+    margin: 5px;
+    max-width: calc(100% - 10px);
+  }
+  
+  .vis-profile-view-card {
+    padding: 20px 12px;
+  }
+  
+  .vis-stat-card-visitor h3 {
+    font-size: 22px;
+  }
+  
+  .vis-stat-card-visitor p {
+    font-size: 13px;
+  }
+}
+
+/* ============================================ */
+/* PRINT STYLES */
+/* ============================================ */
+@media print {
+  .vis-sidebar,
+  .vis-mobile-menu-button,
+  .vis-mobile-overlay,
+  .vis-filters-bar,
+  .vis-event-actions,
+  .vis-table-actions,
+  .vis-form-actions,
+  .vis-modal-visitor-overlay {
+    display: none !important;
+  }
+  
+  .vis-main-content {
+    margin-left: 0;
+    width: 100%;
+  }
+  
+  .vis-event-card-visitor,
+  .vis-registration-card {
+    page-break-inside: avoid;
+  }
+}
